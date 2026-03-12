@@ -34,13 +34,6 @@ mkdir -p os-se-<YourStudentID>/os-lab-<YourStudentID>/lab1
 cd os-se-<YourStudentID>/os-lab-<YourStudentID>/lab1
 ```
 
-### A Brief Note on Output Redirection (`>` and `>>`)
-
-Throughout this lab, you will see commands followed by `>` or `>>`. This is called **output redirection**, and it is used to send the results of a command into a text file instead of printing them on your screen.
-
-- **`>` (Overwrite):** Saves the output to a file. If the file already exists, it will be completely erased and overwritten with the new data.
-- **`>>` (Append):** Adds the output to the end of an existing file, preserving the original contents.
-
 ### Documenting Your Work (Taking Screenshots)
 
 In this course, you will **not** submit lab reports using Word or PDF documents. Instead, you will use **Markdown and Git**.
@@ -50,6 +43,59 @@ In this course, you will **not** submit lab reports using Word or PDF documents.
 1. **Take Screenshots:** As you complete each task below in WSL/Terminal, use your host machine's screenshot tool (e.g., Windows Snipping Tool, Mac Screenshot) to capture your terminal.
 2. **Save Temporarily:** Save these images temporarily to a folder on your host machine (like your Windows Desktop or Pictures folder). Name them clearly (e.g., `task1.png`, `task2.png`).
 3. **Document Later:** You will add these images to a `README.md` file in VS Code after you finish all terminal tasks and push your text files to GitHub. Instructions for this are at the end of the lab.
+
+### Lab Workflow Overview
+
+The diagram below shows the overall flow of this lab from start to submission:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        WSL / Linux Terminal                         │
+│                                                                     │
+│   ┌───────────┐   ┌───────────┐   ┌───────────┐   ┌───────────┐   │
+│   │  Task 1   │   │  Task 2   │   │  Task 3   │   │  Task 4   │   │
+│   │ OS & Kern │──▶│ File Cmds │──▶│ APT Pkgs  │──▶│ Processes │   │
+│   └───────────┘   └───────────┘   └───────────┘   └───────────┘   │
+│                                                           │         │
+│                    ┌───────────┐   ┌───────────┐          │         │
+│                    │  Task 6   │   │  Task 5   │          │         │
+│                    │ Virt Det  │◀──│ Multitask │◀─────────┘         │
+│                    └─────┬─────┘   └───────────┘                    │
+│                          │                                          │
+│                          ▼                                          │
+│                   ┌─────────────┐                                   │
+│                   │  git push   │                                   │
+│                   │  to GitHub  │                                   │
+│                   └──────┬──────┘                                   │
+└──────────────────────────┼──────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                   Host OS (Windows / Mac)                            │
+│                                                                     │
+│   ┌──────────────┐   ┌───────────────┐   ┌──────────────────────┐  │
+│   │ Clone Repo   │──▶│ Add Images &  │──▶│ Final git push       │  │
+│   │ in VS Code   │   │ Write README  │   │ to GitHub            │  │
+│   └──────────────┘   └───────────────┘   └──────────┬───────────┘  │
+└─────────────────────────────────────────────────────┼───────────────┘
+                                                      │
+                                                      ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Local Lab Server (SSH)                          │
+│                                                                     │
+│   ┌───────────────────┐   ┌─────────────────────────────────────┐  │
+│   │ SSH into server   │──▶│ git clone / git pull repo           │  │
+│   │ with credentials  │   │ into home directory (~/)             │  │
+│   └───────────────────┘   └─────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### A Brief Note on Output Redirection (`>` and `>>`)
+
+Throughout this lab, you will see commands followed by `>` or `>>`. This is called **output redirection**, and it is used to send the results of a command into a text file instead of printing them on your screen.
+
+- **`>` (Overwrite):** Saves the output to a file. If the file already exists, it will be completely erased and overwritten with the new data.
+- **`>>` (Append):** Adds the output to the end of an existing file, preserving the original contents.
 
 ---
 
@@ -371,7 +417,45 @@ Now that your folder structure is on GitHub, move over to your host machine (Win
    git push
    ```
 
-**Submission:** Submit the link to your GitHub repository's `lab1` folder to your instructor via the course portal.
+### Phase 3: Pull Your Work to the Lab Server
+
+After your final push to GitHub, you must also pull your repository onto the local lab server so that your instructor can review it directly.
+
+1. **Connect to the server** using SSH with the credentials provided by your instructor:
+
+   ```bash
+   ssh <YourUsername>@<server-address>
+   ```
+
+   Enter your password when prompted.
+
+2. **Clone your repository** into your home directory on the server (first time only):
+
+   ```bash
+   cd ~
+   git clone https://github.com/<your-username>/OS-SE-<YourStudentID>.git
+   ```
+
+   If you have already cloned it from a previous session, pull the latest changes instead:
+
+   ```bash
+   cd ~/OS-SE-<YourStudentID>
+   git pull
+   ```
+
+3. **Verify** that your files are present:
+
+   ```bash
+   tree ~/OS-SE-<YourStudentID>
+   ```
+
+4. **Log out** of the server:
+
+   ```bash
+   exit
+   ```
+
+**Submission:** Submit the link to your GitHub repository's `lab1` folder to your instructor via the course portal. Ensure that your repository has also been pulled to the lab server.
 
 ---
 
