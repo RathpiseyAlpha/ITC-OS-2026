@@ -315,8 +315,21 @@ You have finished the terminal work. Now you will push your folder to GitHub, cl
 ### Phase 1: Push Your Terminal Work to GitHub (From WSL)
 
 1. Organize your `os-se-<YourStudentID>` folder so the text files are inside their respective task folders.
-2. Go to GitHub and create a new repository named `OS-SE-<YourStudentID>` (keep it empty, no README or license).
-3. In your WSL terminal, run the following commands to push your work:
+2. Install the `tree` utility so you can visualize and verify your folder structure before pushing:
+
+   ```bash
+   sudo apt-get install tree -y
+   ```
+
+   Then run `tree` from your top-level `os-se-<YourStudentID>` directory to check that everything is in place:
+
+   ```bash
+   cd ../..    # make sure you are in os-se-<YourStudentID>
+   tree
+   ```
+
+3. Go to GitHub and create a new repository named `OS-SE-<YourStudentID>` (keep it empty, no README or license).
+4. In your WSL terminal, run the following commands to push your work:
 
    ```bash
    # Move up to the top os-se-<YourStudentID> folder
@@ -359,3 +372,41 @@ Now that your folder structure is on GitHub, move over to your host machine (Win
    ```
 
 **Submission:** Submit the link to your GitHub repository's `lab1` folder to your instructor via the course portal.
+
+---
+
+## Expected Folder Structure
+
+After completing all tasks and documentation, your repository should look like this:
+
+```
+os-se-<YourStudentID>/
+└── os-lab-<YourStudentID>/
+    └── lab1/
+        ├── README.md
+        ├── images/
+        │   ├── task1.png
+        │   ├── task2.png
+        │   ├── task3.png
+        │   ├── task4.png
+        │   ├── task5.png
+        │   └── task6.png
+        ├── task1_os_info.txt
+        ├── task2_file_commands.txt
+        ├── task2_files/
+        │   ├── a.txt
+        │   └── b_renamed.txt
+        ├── task3_apt_install.txt
+        ├── task3_apt_purge.txt
+        ├── task3_apt_remove.txt
+        ├── task3_apt_update.txt
+        ├── task3_config_after_purge.txt
+        ├── task3_config_after_remove.txt
+        ├── task3_verify_install.txt
+        ├── task4_process_list.txt
+        ├── task5_app_verify.txt
+        ├── task5_multitasking.txt
+        └── task6_virtualization_check.txt
+```
+
+> **Tip:** Run `tree` from your `os-se-<YourStudentID>` directory to verify your structure matches the one above before submitting.
