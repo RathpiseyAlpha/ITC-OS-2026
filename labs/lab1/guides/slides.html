@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operating Systems - Linux Distribution & Lab 1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f0f2f5;
+            --text-primary: #1a1a2e;
+            --text-secondary: #3a3a5c;
+            --text-muted: #6b7280;
+            --accent: #e94560;
+            --accent2: #0d9488;
+            --bg-title: linear-gradient(135deg, #e8eaf6, #c5cae9, #e3f2fd);
+            --bg-section: linear-gradient(135deg, #e3f2fd, #bbdefb, #e8eaf6);
+            --bg-content: linear-gradient(135deg, #f5f7fa, #e8ecf1, #f0f2f5);
+            --bg-nav-btn: #e0e5ec;
+            --border-nav: #c5cae9;
+            --bg-code: #eef2f7;
+            --border-code: #c5cae9;
+            --code-color: #0d9488;
+            --bg-callout: #e3f2fd;
+            --border-callout: #0d9488;
+            --callout-text: #3a3a5c;
+            --shadow: rgba(0, 0, 0, 0.12);
+            --slide-num-color: #9ca3af;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #0d9488;
+            --list-sub-color: #6b7280;
+            --person-name: #0d9488;
+            --person-years: #6b7280;
+            --nav-info-color: #9ca3af;
+            --progress-bg: linear-gradient(90deg, #e94560, #0d9488);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --bg-body: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #ccd6f6;
+            --text-muted: #4a5568;
+            --accent: #e94560;
+            --accent2: #64ffda;
+            --bg-title: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --bg-section: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            --bg-content: linear-gradient(135deg, #0d1117, #161b22, #1a1a2e);
+            --bg-nav-btn: #16213e;
+            --border-nav: #30363d;
+            --bg-code: #0d1117;
+            --border-code: #30363d;
+            --code-color: #64ffda;
+            --bg-callout: #16213e;
+            --border-callout: #64ffda;
+            --callout-text: #a8b2d1;
+            --shadow: rgba(0, 0, 0, 0.5);
+            --slide-num-color: #4a5568;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #64ffda;
+            --list-sub-color: #8892b0;
+            --person-name: #64ffda;
+            --person-years: #8892b0;
+            --nav-info-color: #4a5568;
+            --progress-bg: linear-gradient(90deg, #e94560, #64ffda);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        body.nav-open .page-wrapper {
+            margin-left: 280px;
+        }
+
+        .page-wrapper {
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 60px 80px;
+            position: relative;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        /* Slide backgrounds */
+        .slide-title-bg {
+            background: var(--bg-title);
+        }
+
+        .slide-section-bg {
+            background: var(--bg-section);
+        }
+
+        .slide-content-bg {
+            background: var(--bg-content);
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-slide h1 {
+            font-size: 4em;
+            font-weight: 700;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-slide h2 {
+            font-size: 2em;
+            font-weight: 300;
+            color: var(--text-secondary);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .title-slide .title-image {
+            max-width: 500px;
+            margin-top: 30px;
+            border-radius: 10px;
+        }
+
+        /* Section header slides */
+        .section-slide {
+            text-align: center;
+            align-items: center;
+        }
+
+        .section-slide h2 {
+            font-size: 3em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .section-slide .slide-number {
+            font-size: 1.2em;
+            color: var(--text-muted);
+        }
+
+        /* Content slides */
+        .content-slide h2 {
+            font-size: 2.4em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9456040;
+            padding-bottom: 15px;
+        }
+
+        .content-slide ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .content-slide ul li {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            padding: 8px 0 8px 30px;
+            position: relative;
+        }
+
+        .content-slide ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .content-slide ul li ul {
+            margin-top: 5px;
+        }
+
+        .content-slide ul li ul li {
+            font-size: 0.95em;
+            color: var(--list-sub-color);
+            padding: 4px 0 4px 30px;
+        }
+
+        .content-slide ul li ul li::before {
+            content: '◦';
+            color: var(--accent2);
+        }
+
+        .content-slide p {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: flex;
+            gap: 50px;
+            align-items: flex-start;
+            flex: 1;
+        }
+
+        .two-col .col {
+            flex: 1;
+        }
+
+        .two-col .col-img {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .two-col .col-img img {
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        /* Image slides */
+        .image-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+        }
+
+        .image-center img {
+            max-width: 90%;
+            max-height: 70vh;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.05em;
+            color: var(--code-color);
+            margin: 8px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-code);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            line-height: 1;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .copy-btn.copied {
+            background: var(--accent2);
+            border-color: var(--accent2);
+            color: #fff;
+        }
+
+        /* Slide number indicator */
+        .slide-num {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 1em;
+            color: var(--slide-num-color);
+        }
+
+        .slide-section-label {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-size: 0.9em;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Person info box */
+        .person-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .person-box img {
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+            margin-bottom: 15px;
+        }
+
+        .person-box .name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--person-name);
+        }
+
+        .person-box .years {
+            font-size: 0.95em;
+            color: var(--person-years);
+        }
+
+        /* Callout box */
+        .callout {
+            background: var(--bg-callout);
+            border-left: 4px solid var(--border-callout);
+            border-radius: 0 8px 8px 0;
+            padding: 20px 25px;
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: var(--callout-text);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--progress-bg);
+            transition: width 0.3s ease, left 0.3s ease;
+            z-index: 100;
+        }
+
+        body.nav-open .progress-bar {
+            left: 280px;
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+            transition: left 0.3s ease;
+        }
+
+        body.nav-open .nav-controls {
+            left: calc(50% + 140px);
+        }
+
+        .nav-btn {
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-info {
+            display: flex;
+            align-items: center;
+            color: var(--nav-info-color);
+            font-size: 0.9em;
+            padding: 0 10px;
+        }
+
+        /* Prompt structure styling */
+        .prompt-example {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 10px;
+            padding: 25px 30px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.3em;
+            color: var(--code-color);
+            margin: 25px 0;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .highlight-green {
+            color: var(--accent2);
+        }
+
+        .highlight-red {
+            color: var(--accent);
+        }
+
+        .highlight-yellow {
+            color: #ffd700;
+        }
+
+        .note-text {
+            font-size: 1em;
+            color: var(--list-sub-color);
+            font-style: italic;
+            margin-top: 15px;
+        }
+
+        /* Slide navigation map sidebar */
+        .nav-map-toggle {
+            position: fixed;
+            top: 15px;
+            left: 65px;
+            z-index: 300;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-body);
+            border-right: 1px solid var(--border-nav);
+            z-index: 250;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            padding: 70px 0 30px 0;
+        }
+
+        body.nav-open .nav-map {
+            transform: translateX(0);
+        }
+
+        body.nav-open .theme-toggle {
+            left: 295px;
+        }
+
+        body.nav-open .nav-map-toggle {
+            left: 345px;
+        }
+
+        .theme-toggle,
+        .nav-map-toggle {
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-header {
+            padding: 0 20px 15px;
+            font-size: 0.75em;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-nav);
+            margin-bottom: 8px;
+        }
+
+        .nav-map-section {
+            padding: 8px 20px 4px;
+            font-size: 0.7em;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .nav-map-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .nav-map-item:hover {
+            background: var(--bg-code);
+            border-left-color: var(--accent2);
+        }
+
+        .nav-map-item.active {
+            background: var(--bg-callout);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .nav-map-item .nm-num {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-muted);
+        }
+
+        .nav-map-item.active .nm-num {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map-item .nm-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Scrollbar styling for nav map */
+        .nav-map::-webkit-scrollbar {
+            width: 4px;
+        }
+        .nav-map::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .nav-map::-webkit-scrollbar-thumb {
+            background: var(--border-nav);
+            border-radius: 2px;
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 200;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">&#9790;</button>
+    <button class="nav-map-toggle" id="navMapToggle" title="Slide navigation map" aria-label="Slide navigation map">&#9776;</button>
+
+    <!-- Slide Navigation Map -->
+    <nav class="nav-map" id="navMap">
+        <div class="nav-map-header">Slide Map</div>
+        <div class="nav-map-section">Lecture</div>
+        <div id="navMapLecture"></div>
+        <div class="nav-map-section" style="margin-top:6px;">Lab 1</div>
+        <div id="navMapLab"></div>
+    </nav>
+
+    <div class="page-wrapper">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Slide 1: Title Slide -->
+    <div class="slide title-slide slide-title-bg active" id="slide-1">
+        <h1>Operating Systems</h1>
+        <h2>Linux Distribution &amp; Lab 1</h2>
+        <img src="images/page1_img0.png" alt="Linux Distribution" class="title-image">
+        <span class="slide-num">01</span>
+    </div>
+
+    <!-- Slide 2: Linux Distribution - Distro (Section Header) -->
+    <div class="slide section-slide slide-section-bg" id="slide-2">
+        <h2>Linux Distribution - Distro</h2>
+        <img src="images/page2_img0.png" alt="Linux Distro Logos" style="max-width: 600px; border-radius: 10px; margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <span class="slide-num">02</span>
+    </div>
+
+    <!-- Slide 3: Linux Distribution - Distro (Content) -->
+    <div class="slide content-slide slide-content-bg" id="slide-3">
+        <h2>Linux Distribution - Distro</h2>
+        <ul>
+            <li>A Linux distribution (distro) is an operating system made from a software collection, which is based upon the Linux kernel and, often, a package management system.</li>
+            <li>A typical Linux distribution comprises:
+                <ul>
+                    <li>A Linux kernel</li>
+                    <li>GNU tools</li>
+                    <li>Others: libraries, additional software, documentation, a window system (the most common being the X Window System), a window manager, and a desktop environment.</li>
+                </ul>
+            </li>
+            <li>~500/600 distros are in active development.</li>
+        </ul>
+        <span class="slide-section-label">02</span>
+        <span class="slide-num">3 / 30</span>
+    </div>
+
+    <!-- Slide 4: Timeline of Distro (Part 1) -->
+    <div class="slide content-slide slide-content-bg" id="slide-4">
+        <h2>Timeline of Distro</h2>
+        <div class="image-center">
+            <img src="images/page4_img2.png" alt="Timeline of Linux Distributions">
+        </div>
+        <span class="slide-section-label">03</span>
+        <span class="slide-num">4 / 30</span>
+    </div>
+
+    <!-- Slide 5: Timeline of Distro (Part 2) -->
+    <div class="slide content-slide slide-content-bg" id="slide-5">
+        <h2>Timeline of Distro</h2>
+        <div class="image-center">
+            <img src="images/page5_img0.png" alt="Timeline of Linux Distributions (continued)">
+        </div>
+        <span class="slide-section-label">03</span>
+        <span class="slide-num">5 / 30</span>
+    </div>
+
+    <!-- Slide 6: Layers of Linux Distribution -->
+    <div class="slide content-slide slide-content-bg" id="slide-6">
+        <h2>Layers of Linux Distribution</h2>
+        <div class="image-center">
+            <img src="images/page6_img0.png" alt="Layers of Linux Distribution">
+        </div>
+        <span class="slide-section-label">04</span>
+        <span class="slide-num">6 / 30</span>
+    </div>
+
+    <!-- Slide 7: Linux Kernel -->
+    <div class="slide content-slide slide-content-bg" id="slide-7">
+        <h2>Linux Kernel</h2>
+        <div class="image-center">
+            <img src="images/page7_img0.png" alt="Linux Kernel">
+        </div>
+        <span class="slide-section-label">05</span>
+        <span class="slide-num">7 / 30</span>
+    </div>
+
+    <!-- Slide 8: Linux Origin -->
+    <div class="slide content-slide slide-content-bg" id="slide-8">
+        <h2>Linux Origin</h2>
+        <div class="two-col">
+            <div class="col">
+                <ul>
+                    <li>Linus Torvalds developed 1st version 0.01 in 1991.</li>
+                    <li>Linux was initially distributed as source code only.</li>
+                    <li>Later as a pair of downloadable floppy disk images:
+                        <ul>
+                            <li>A bootable and containing the Linux kernel</li>
+                            <li>The other with a set of GNU utilities and tools for setting up a filesystem.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-img">
+                <div class="person-box">
+                    <img src="images/page8_img0.jpg" alt="Linus Torvalds">
+                    <div class="name">Linus Torvalds</div>
+                    <div class="years">1969 - Present</div>
+                </div>
+            </div>
+        </div>
+        <span class="slide-section-label">06</span>
+        <span class="slide-num">8 / 30</span>
+    </div>
+
+    <!-- Slide 9: Package Management -->
+    <div class="slide content-slide slide-content-bg" id="slide-9">
+        <h2>Package Management</h2>
+        <ul>
+            <li>Distributions are normally segmented into packages. Each package contains a specific application or service.</li>
+            <li>Packages are bundles of software and metadata such as the software's full name, description of its purpose, version number, checksum, and a list of dependencies necessary for the software to run properly.</li>
+            <li>A Package management system (package manager) is a collection of software tools that automate the process of installing, upgrading, configuring, and removing computer programs for a computer's operating system in a consistent manner.</li>
+        </ul>
+        <span class="slide-section-label">07</span>
+        <span class="slide-num">9 / 30</span>
+    </div>
+
+    <!-- Slide 10: DPKG -->
+    <div class="slide content-slide slide-content-bg" id="slide-10">
+        <h2>DPKG</h2>
+        <ul>
+            <li>DPKG is a package manager for Debian-based systems. It can install, remove, and build packages, but unlike other package management systems, it cannot automatically download and install packages or their dependencies.</li>
+            <li>Detail of DPKG usage: <span class="code-block">man dpkg</span></li>
+            <li>Example of DPKG:
+                <ul>
+                    <li><span class="code-block">dpkg -l</span> &mdash; list all installed packages</li>
+                    <li><span class="code-block">dpkg -l | grep xxx</span> &mdash; check if a specific xxx is installed</li>
+                    <li><span class="code-block">sudo dpkg -i xxx.deb</span> &mdash; install xxx.deb</li>
+                    <li><span class="code-block">sudo dpkg -r xxx</span> &mdash; uninstall xxx</li>
+                </ul>
+            </li>
+        </ul>
+        <span class="slide-section-label">08</span>
+        <span class="slide-num">10 / 30</span>
+    </div>
+
+    <!-- Slide 11: APT -->
+    <div class="slide content-slide slide-content-bg" id="slide-11">
+        <h2>APT</h2>
+        <ul>
+            <li>The apt command is a powerful command-line tool, which works with Ubuntu's Advanced Packaging Tool (APT) performing such functions as installation of new software packages, upgrade of existing software packages, updating of the package list index, and even upgrading the entire Ubuntu system remotely.</li>
+            <li>Detail of APT usage: <span class="code-block">apt help</span></li>
+            <li>Example of APT:
+                <ul>
+                    <li><span class="code-block">sudo apt install xxx</span> &mdash; install xxx</li>
+                    <li><span class="code-block">sudo apt remove xxx</span> &mdash; remove xxx</li>
+                    <li><span class="code-block">sudo apt update</span> &mdash; update the local package index</li>
+                    <li><span class="code-block">sudo apt upgrade</span> &mdash; update packages and system</li>
+                </ul>
+            </li>
+        </ul>
+        <span class="slide-section-label">09</span>
+        <span class="slide-num">11 / 30</span>
+    </div>
+
+    <!-- Slide 12: Shell (Section Header) -->
+    <div class="slide section-slide slide-section-bg" id="slide-12">
+        <h2>Shell</h2>
+        <img src="images/page12_img0.png" alt="Shell" style="max-width: 500px; border-radius: 10px; margin-top: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+        <span class="slide-num">09</span>
+    </div>
+
+    <!-- Slide 13: What is a shell? (Part 1) -->
+    <div class="slide content-slide slide-content-bg" id="slide-13">
+        <h2>What is a shell?</h2>
+        <ul>
+            <li><strong>1.</strong> Once a user has entered a command the terminal then accepts what the user has typed and passes it to a shell.</li>
+            <li><strong>2.</strong> The shell is the command line interpreter that translates commands entered by a user into actions to be performed by the operating system.</li>
+        </ul>
+        <span class="slide-section-label">10</span>
+        <span class="slide-num">13 / 30</span>
+    </div>
+
+    <!-- Slide 14: What is a shell? (Part 2) -->
+    <div class="slide content-slide slide-content-bg" id="slide-14">
+        <h2>What is a shell?</h2>
+        <ul>
+            <li><strong>1.</strong> When a terminal application is run, and a shell appears, displaying an important part of the interface &mdash; the prompt.</li>
+            <li><strong>2.</strong> The structure of the prompt may vary between distributions, but typically contains information about the user and the system. Below is a common prompt structure:</li>
+        </ul>
+        <div class="prompt-example">
+            <span class="highlight-green">sysadmin</span>@<span class="highlight-yellow">localhost</span>:<span class="highlight-red">~</span>$
+        </div>
+        <span class="slide-section-label">10</span>
+        <span class="slide-num">14 / 30</span>
+    </div>
+
+    <!-- Slide 15: What is a shell? (Part 3) -->
+    <div class="slide content-slide slide-content-bg" id="slide-15">
+        <h2>What is a shell?</h2>
+        <div class="two-col">
+            <div class="col">
+                <div class="callout">
+                    The <span class="highlight-green">~</span> symbol is used as shorthand for the user's home directory.
+                </div>
+            </div>
+            <div class="col-img">
+                <img src="images/page15_img0.png" alt="Shell home directory" style="max-height: 350px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            </div>
+        </div>
+        <span class="slide-section-label">10</span>
+        <span class="slide-num">15 / 30</span>
+    </div>
+
+    <!-- ===================== LAB 1 SLIDES ===================== -->
+
+    <!-- Slide 16: Lab 1 Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-16">
+        <h2>Lab 1 — Hands-on</h2>
+        <p style="font-size:1.3em; color:var(--text-secondary); margin-top:10px; letter-spacing:2px;">Exploring Operating System Basics</p>
+        <p style="font-size:1em; color:var(--text-muted); margin-top:20px;">Duration: 2 Hours &nbsp;|&nbsp; Individual Lab</p>
+        <span class="slide-num">16</span>
+    </div>
+
+    <!-- Slide 17: Lab Objectives -->
+    <div class="slide content-slide slide-content-bg" id="slide-17">
+        <h2>Lab Objectives</h2>
+        <ul>
+            <li>Identify basic operating system and kernel information</li>
+            <li>Use essential Linux file and directory commands</li>
+            <li>Install, remove, and purge software using APT</li>
+            <li>Understand the difference between a program and a process</li>
+            <li>Observe multitasking in a running operating system</li>
+            <li>Detect whether the OS is running on a virtual environment</li>
+        </ul>
+        <div class="callout">
+            This lab establishes a foundation for later labs on process scheduling, threads, and memory management.
+        </div>
+        <span class="slide-section-label">LAB 1</span>
+        <span class="slide-num">17 / 30</span>
+    </div>
+
+    <!-- Slide 18: Lab Setup -->
+    <div class="slide content-slide slide-content-bg" id="slide-18">
+        <h2>Lab Setup</h2>
+        <p>Create your submission folder structure and enter the <code>lab1</code> directory:</p>
+        <div class="code-block" style="display:block; margin:20px 0;">mkdir -p os-se-&lt;YourStudentID&gt;/os-lab-&lt;YourStudentID&gt;/lab1<br>cd os-se-&lt;YourStudentID&gt;/os-lab-&lt;YourStudentID&gt;/lab1</div>
+        <ul style="margin-top:20px;">
+            <li><strong>Documentation:</strong> No Word/PDF — you will use <strong>Markdown &amp; Git</strong></li>
+            <li><strong>Screenshots:</strong> Capture terminal output for each task (<code>task1.png</code>, <code>task2.png</code>, …)</li>
+            <li><strong>Save temporarily</strong> to your host machine (Desktop/Pictures folder)</li>
+            <li>You will add images to a <code>README.md</code> at the end of the lab</li>
+        </ul>
+        <span class="slide-section-label">LAB 1</span>
+        <span class="slide-num">18 / 30</span>
+    </div>
+
+    <!-- Slide 19: Lab Workflow Overview -->
+    <div class="slide content-slide slide-content-bg" id="slide-19">
+        <h2>Lab Workflow Overview</h2>
+        <div style="display:flex; flex-direction:column; gap:15px; align-items:center; flex:1; justify-content:center;">
+            <div style="background:var(--bg-callout); border:2px solid var(--accent); border-radius:12px; padding:18px 30px; width:80%; text-align:center;">
+                <strong style="color:var(--accent); font-size:1.1em;">WSL / Linux Terminal</strong><br>
+                <span style="color:var(--text-secondary);">Task 1 → Task 2 → Task 3 → Task 4 → Task 5 → Task 6 → <code>git push</code></span>
+            </div>
+            <div style="font-size:1.8em; color:var(--accent);">▼</div>
+            <div style="background:var(--bg-callout); border:2px solid var(--accent2); border-radius:12px; padding:18px 30px; width:80%; text-align:center;">
+                <strong style="color:var(--accent2); font-size:1.1em;">Host OS (Windows / Mac)</strong><br>
+                <span style="color:var(--text-secondary);">Clone Repo in VS Code → Add Images &amp; Write README → Final <code>git push</code></span>
+            </div>
+            <div style="font-size:1.8em; color:var(--accent);">▼</div>
+            <div style="background:var(--bg-callout); border:2px solid var(--person-name); border-radius:12px; padding:18px 30px; width:80%; text-align:center;">
+                <strong style="color:var(--person-name); font-size:1.1em;">Local Lab Server (SSH)</strong><br>
+                <span style="color:var(--text-secondary);">SSH in → <code>git clone</code> / <code>git pull</code> into home directory</span>
+            </div>
+        </div>
+        <span class="slide-section-label">LAB 1</span>
+        <span class="slide-num">19 / 30</span>
+    </div>
+
+    <!-- Slide 20: Output Redirection -->
+    <div class="slide content-slide slide-content-bg" id="slide-20">
+        <h2>Output Redirection: <code>&gt;</code> and <code>&gt;&gt;</code></h2>
+        <p>Commands followed by <code>&gt;</code> or <code>&gt;&gt;</code> send output to a file instead of the screen.</p>
+        <ul style="margin-top:15px;">
+            <li><span class="code-block">command &gt; file.txt</span>
+                <ul><li><strong>Overwrite</strong> — erases the file and writes new data</li></ul>
+            </li>
+            <li><span class="code-block">command &gt;&gt; file.txt</span>
+                <ul><li><strong>Append</strong> — adds data to the end, preserving existing content</li></ul>
+            </li>
+        </ul>
+        <div class="callout" style="margin-top:20px;">
+            You will use these operators in every task to save command output into <code>.txt</code> files.
+        </div>
+        <span class="slide-section-label">LAB 1</span>
+        <span class="slide-num">20 / 30</span>
+    </div>
+
+    <!-- Slide 21: Task 1 — OS Identification -->
+    <div class="slide content-slide slide-content-bg" id="slide-21">
+        <h2>Task 1 — OS Identification</h2>
+        <p><strong>Purpose:</strong> Identify the operating system and kernel currently running.</p>
+        <ul style="margin-top:15px;">
+            <li><span class="code-block">uname -a</span> — kernel &amp; system information</li>
+            <li><span class="code-block">lsb_release -a</span> — Ubuntu distribution details</li>
+        </ul>
+        <p style="margin-top:20px;"><strong>Commands:</strong></p>
+        <div class="code-block" style="display:block; margin:10px 0;">uname -a &gt; task1_os_info.txt<br>lsb_release -a &gt;&gt; task1_os_info.txt</div>
+        <p style="margin-top:15px;"><strong>Output:</strong> <code>task1_os_info.txt</code></p>
+        <span class="slide-section-label">TASK 1</span>
+        <span class="slide-num">21 / 30</span>
+    </div>
+
+    <!-- Slide 22: Task 2 — File & Directory Commands -->
+    <div class="slide content-slide slide-content-bg" id="slide-22">
+        <h2>Task 2 — File &amp; Directory Commands</h2>
+        <p><strong>Purpose:</strong> Practice essential Linux file system commands.</p>
+        <div class="two-col" style="margin-top:15px;">
+            <div class="col">
+                <ul>
+                    <li><span class="code-block">pwd</span> — current directory</li>
+                    <li><span class="code-block">ls</span> — list contents</li>
+                    <li><span class="code-block">mkdir</span> / <span class="code-block">cd</span> — make/change dir</li>
+                    <li><span class="code-block">touch</span> — create empty file</li>
+                </ul>
+            </div>
+            <div class="col">
+                <ul>
+                    <li><span class="code-block">echo</span> — print / write text</li>
+                    <li><span class="code-block">cat</span> — display file contents</li>
+                    <li><span class="code-block">cp</span> / <span class="code-block">mv</span> / <span class="code-block">rm</span> — copy/move/remove</li>
+                </ul>
+            </div>
+        </div>
+        <div class="callout" style="margin-top:15px;">
+            <code>..</code> refers to the parent directory. <code>cd ..</code> moves up one level. <code>../file.txt</code> points to a file one folder above.
+        </div>
+        <p style="margin-top:10px;"><strong>Output:</strong> <code>task2_file_commands.txt</code></p>
+        <span class="slide-section-label">TASK 2</span>
+        <span class="slide-num">22 / 30</span>
+    </div>
+
+    <!-- Slide 23: Task 3 — Package Management (APT) -->
+    <div class="slide content-slide slide-content-bg" id="slide-23">
+        <h2>Task 3 — Package Management (APT)</h2>
+        <p><strong>Purpose:</strong> Observe the difference between <code>remove</code> (keeps config) and <code>purge</code> (deletes everything).</p>
+        <ul style="margin-top:15px;">
+            <li><span class="code-block">sudo apt-get update</span> — refresh package list</li>
+            <li><span class="code-block">sudo apt-get install mc -y</span> — install Midnight Commander</li>
+            <li><span class="code-block">which mc</span> &amp; <span class="code-block">ls -ld /etc/mc</span> — verify installation</li>
+            <li><span class="code-block">sudo apt-get remove mc -y</span> — uninstall binaries (config remains!)
+                <ul><li>Check: <span class="code-block">ls -ld /etc/mc</span> → folder still exists</li></ul>
+            </li>
+            <li><span class="code-block">sudo apt-get purge mc -y</span> — remove everything
+                <ul><li>Check: <span class="code-block">ls -ld /etc/mc</span> → "No such file or directory"</li></ul>
+            </li>
+        </ul>
+        <span class="slide-section-label">TASK 3</span>
+        <span class="slide-num">23 / 30</span>
+    </div>
+
+    <!-- Slide 24: Task 4 — Programs vs Processes -->
+    <div class="slide content-slide slide-content-bg" id="slide-24">
+        <h2>Task 4 — Programs vs Processes</h2>
+        <p><strong>Purpose:</strong> A program becomes a running <em>process</em> when executed.</p>
+        <ul style="margin-top:15px;">
+            <li><span class="code-block">sleep 120 &amp;</span> — run <code>sleep</code> in the background
+                <ul><li><code>&amp;</code> at the end sends the process to the background</li></ul>
+            </li>
+            <li><span class="code-block">ps</span> — list running processes</li>
+        </ul>
+        <p style="margin-top:15px;"><strong>Commands:</strong></p>
+        <div class="code-block" style="display:block; margin:10px 0;">sleep 120 &amp;<br>ps &gt; task4_process_list.txt</div>
+        <p style="margin-top:15px;"><strong>Output:</strong> <code>task4_process_list.txt</code></p>
+        <span class="slide-section-label">TASK 4</span>
+        <span class="slide-num">24 / 30</span>
+    </div>
+
+    <!-- Slide 25: Task 5 — Multitasking -->
+    <div class="slide content-slide slide-content-bg" id="slide-25">
+        <h2>Task 5 — Multitasking</h2>
+        <p><strong>Purpose:</strong> Install real applications and observe multiple processes running simultaneously.</p>
+        <ul style="margin-top:15px;">
+            <li>Install tools: <span class="code-block">sudo apt-get install htop tmux -y</span></li>
+            <li>Verify: <span class="code-block">which htop tmux &gt; task5_app_verify.txt</span></li>
+            <li>Start background processes:
+                <div class="code-block" style="display:block; margin:8px 0;">sleep 500 &amp;<br>sleep 600 &amp;<br>python3 -m http.server 8080 &amp;</div>
+            </li>
+            <li>Capture: <span class="code-block">ps &gt; task5_multitasking.txt</span></li>
+        </ul>
+        <p class="note-text">Optional cleanup: <code>kill %3</code> stops the web server.</p>
+        <span class="slide-section-label">TASK 5</span>
+        <span class="slide-num">25 / 30</span>
+    </div>
+
+    <!-- Slide 26: Task 6 — Virtualization Detection -->
+    <div class="slide content-slide slide-content-bg" id="slide-26">
+        <h2>Task 6 — Virtualization Detection</h2>
+        <p><strong>Purpose:</strong> Check if the OS runs on physical hardware or a virtual machine.</p>
+        <div class="code-block" style="display:block; margin:20px 0;">systemd-detect-virt &gt; task6_virtualization_check.txt<br>lscpu | grep -i hypervisor &gt;&gt; task6_virtualization_check.txt<br>uname -r &gt;&gt; task6_virtualization_check.txt<br>hostname &gt;&gt; task6_virtualization_check.txt</div>
+        <p style="margin-top:15px;"><strong>Output:</strong> <code>task6_virtualization_check.txt</code></p>
+        <div class="callout" style="margin-top:20px;">
+            If running under WSL, <code>systemd-detect-virt</code> will typically report <strong>wsl</strong>.
+        </div>
+        <span class="slide-section-label">TASK 6</span>
+        <span class="slide-num">26 / 30</span>
+    </div>
+
+    <!-- Slide 27: Submission Phase 1 — Push to GitHub -->
+    <div class="slide content-slide slide-content-bg" id="slide-27">
+        <h2>Submission — Phase 1: Push to GitHub</h2>
+        <ul>
+            <li>Install <span class="code-block">tree</span> and verify your folder structure:
+                <div class="code-block" style="display:block; margin:8px 0;">sudo apt-get install tree -y<br>tree</div>
+            </li>
+            <li>Create a <strong>new empty repo</strong> on GitHub: <code>OS-SE-&lt;YourStudentID&gt;</code></li>
+            <li>Initialize, commit and push:
+                <div class="code-block" style="display:block; margin:8px 0;">git init<br>git add .<br>git commit -m "Initial commit of Lab 1 text files"<br>git branch -M main<br>git remote add origin https://github.com/&lt;you&gt;/OS-SE-&lt;ID&gt;.git<br>git push -u origin main</div>
+            </li>
+        </ul>
+        <span class="slide-section-label">SUBMIT</span>
+        <span class="slide-num">27 / 30</span>
+    </div>
+
+    <!-- Slide 28: Submission Phase 2 — Document in VS Code -->
+    <div class="slide content-slide slide-content-bg" id="slide-28">
+        <h2>Submission — Phase 2: Document in VS Code</h2>
+        <p>Move to your <strong>host machine</strong> (Windows/Mac):</p>
+        <ul style="margin-top:10px;">
+            <li><strong>Clone</strong> the repo: <span class="code-block">git clone https://github.com/&lt;you&gt;/OS-SE-&lt;ID&gt;.git</span></li>
+            <li><strong>Open</strong> in VS Code</li>
+            <li><strong>Add Images:</strong> Create an <code>images/</code> folder inside <code>lab1/</code>, drag in your screenshots</li>
+            <li><strong>Create README:</strong> Write <code>README.md</code> using the provided template
+                <ul><li>Preview with <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd></li></ul>
+            </li>
+            <li><strong>Push:</strong>
+                <div class="code-block" style="display:block; margin:8px 0;">git add .<br>git commit -m "Added README report and screenshots"<br>git push</div>
+            </li>
+        </ul>
+        <span class="slide-section-label">SUBMIT</span>
+        <span class="slide-num">28 / 30</span>
+    </div>
+
+    <!-- Slide 29: Submission Phase 3 — Pull to Lab Server -->
+    <div class="slide content-slide slide-content-bg" id="slide-29">
+        <h2>Submission — Phase 3: Pull to Lab Server</h2>
+        <p>After your final push, pull the repo onto the <strong>local lab server</strong>:</p>
+        <ul style="margin-top:15px;">
+            <li><strong>SSH in:</strong> <span class="code-block">ssh &lt;YourUsername&gt;@&lt;server-address&gt;</span></li>
+            <li><strong>Clone</strong> (first time):
+                <div class="code-block" style="display:block; margin:8px 0;">cd ~<br>git clone https://github.com/&lt;you&gt;/OS-SE-&lt;ID&gt;.git</div>
+            </li>
+            <li><strong>Or pull</strong> (returning):
+                <div class="code-block" style="display:block; margin:8px 0;">cd ~/OS-SE-&lt;ID&gt;<br>git pull</div>
+            </li>
+            <li><strong>Verify:</strong> <span class="code-block">tree ~/OS-SE-&lt;ID&gt;</span></li>
+            <li><strong>Log out:</strong> <span class="code-block">exit</span></li>
+        </ul>
+        <span class="slide-section-label">SUBMIT</span>
+        <span class="slide-num">29 / 30</span>
+    </div>
+
+    <!-- Slide 30: Expected Folder Structure & Summary -->
+    <div class="slide content-slide slide-content-bg" id="slide-30">
+        <h2>Expected Folder Structure</h2>
+        <div class="two-col">
+            <div class="col">
+                <div class="code-block" style="display:block; font-size:0.85em; line-height:1.6;">os-se-&lt;ID&gt;/<br>└── os-lab-&lt;ID&gt;/<br>&nbsp;&nbsp;&nbsp;&nbsp;└── lab1/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── README.md<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── images/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── task1.png … task6.png<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task1_os_info.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task2_file_commands.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task2_files/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task3_*.txt (7 files)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task4_process_list.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task5_*.txt (2 files)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── task6_virtualization_check.txt</div>
+            </div>
+            <div class="col">
+                <div class="callout" style="margin-bottom:20px;">
+                    <strong>Checklist before submitting:</strong>
+                </div>
+                <ul>
+                    <li>✅ All <code>.txt</code> output files present</li>
+                    <li>✅ Screenshots in <code>images/</code></li>
+                    <li>✅ <code>README.md</code> written</li>
+                    <li>✅ Pushed to GitHub</li>
+                    <li>✅ Pulled to lab server</li>
+                    <li>✅ Link submitted to course portal</li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-section-label">SUMMARY</span>
+        <span class="slide-num">30 / 30</span>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">&#9664; Prev</button>
+        <div class="nav-info"><span id="slideInfo">1 / 30</span></div>
+        <button class="nav-btn" onclick="nextSlide()">Next &#9654;</button>
+    </div>
+    </div><!-- end page-wrapper -->
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 30;
+
+        // Slide titles for the navigation map
+        const slideTitles = [
+            'Title',
+            'Linux Distro',
+            'Linux Distro',
+            'Timeline (1)',
+            'Timeline (2)',
+            'Layers',
+            'Linux Kernel',
+            'Linux Origin',
+            'Package Mgmt',
+            'DPKG',
+            'APT',
+            'Shell',
+            'What is a Shell? (1)',
+            'What is a Shell? (2)',
+            'What is a Shell? (3)',
+            'Lab 1 — Hands-on',
+            'Objectives',
+            'Lab Setup',
+            'Workflow Overview',
+            'Output Redirection',
+            'Task 1: OS ID',
+            'Task 2: Files & Dirs',
+            'Task 3: APT',
+            'Task 4: Processes',
+            'Task 5: Multitasking',
+            'Task 6: Virtualization',
+            'Phase 1: Push',
+            'Phase 2: VS Code',
+            'Phase 3: Lab Server',
+            'Summary & Checklist'
+        ];
+
+        // Build navigation map
+        function buildNavMap() {
+            const lectureContainer = document.getElementById('navMapLecture');
+            const labContainer = document.getElementById('navMapLab');
+            for (let i = 1; i <= totalSlides; i++) {
+                const item = document.createElement('div');
+                item.className = 'nav-map-item';
+                item.setAttribute('data-slide', i);
+                item.innerHTML = '<span class="nm-num">' + i + '</span><span class="nm-title">' + slideTitles[i - 1] + '</span>';
+                item.addEventListener('click', function() {
+                    showSlide(i);
+                });
+                if (i <= 15) lectureContainer.appendChild(item);
+                else labContainer.appendChild(item);
+            }
+        }
+
+        function updateNavMap(n) {
+            document.querySelectorAll('.nav-map-item').forEach(function(item) {
+                item.classList.remove('active');
+                if (parseInt(item.getAttribute('data-slide')) === n) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            });
+        }
+
+        // Nav map toggle
+        const navMap = document.getElementById('navMap');
+        const navMapToggle = document.getElementById('navMapToggle');
+        navMapToggle.addEventListener('click', function() {
+            document.body.classList.toggle('nav-open');
+        });
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+            currentSlide = n;
+
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            document.getElementById('slide-' + n).classList.add('active');
+            document.getElementById('slideInfo').textContent = n + ' / ' + totalSlides;
+            document.getElementById('progressBar').style.width = ((n / totalSlides) * 100) + '%';
+            updateNavMap(n);
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(1);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides);
+            }
+        });
+
+        // Touch support for mobile
+        let touchStartX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        document.addEventListener('touchend', function(e) {
+            const touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide();
+                else prevSlide();
+            }
+        });
+
+        // Add copy buttons to all code blocks
+        document.querySelectorAll('.code-block').forEach(function(block) {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            var copyIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M5 11H3.5A1.5 1.5 0 0 1 2 9.5V3.5A1.5 1.5 0 0 1 3.5 2h6A1.5 1.5 0 0 1 11 3.5V5"/></svg>';
+            var checkIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8.5l3.5 3.5 6.5-7"/></svg>';
+            btn.innerHTML = copyIcon;
+            btn.title = 'Copy command';
+            btn.setAttribute('aria-label', 'Copy command');
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const text = block.childNodes[0].textContent.trim();
+                navigator.clipboard.writeText(text).then(function() {
+                    btn.innerHTML = checkIcon;
+                    btn.classList.add('copied');
+                    setTimeout(function() {
+                        btn.innerHTML = copyIcon;
+                        btn.classList.remove('copied');
+                    }, 1500);
+                });
+            });
+            block.appendChild(btn);
+        });
+
+        // Theme toggle
+        const themeToggle = document.getElementById('themeToggle');
+        function setTheme(dark) {
+            if (dark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.innerHTML = '&#9788;';
+                localStorage.setItem('slide-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.innerHTML = '&#9790;';
+                localStorage.setItem('slide-theme', 'light');
+            }
+        }
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.documentElement.hasAttribute('data-theme');
+            setTheme(!isDark);
+        });
+        // Load saved theme preference
+        if (localStorage.getItem('slide-theme') === 'dark') {
+            setTheme(true);
+        }
+
+        // Initialize
+        buildNavMap();
+        showSlide(1);
+    </script>
+</body>
+</html>
