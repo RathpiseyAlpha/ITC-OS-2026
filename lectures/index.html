@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lectures — ITC OS 2026</title>
+    <link rel="stylesheet" href="../assets/terminal-theme.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <span class="prompt-symbol">$</span>
+        <a href="../index.html">~</a>
+        <span class="sep">/</span>
+        <span class="current">lectures</span>
+    </div>
+
+    <!-- File Listing -->
+    <div class="terminal reveal">
+        <div class="terminal-header">
+            <span class="terminal-btn btn-close"></span>
+            <span class="terminal-btn btn-min"></span>
+            <span class="terminal-btn btn-max"></span>
+            <span class="terminal-title">student@itc-os:~/lectures</span>
+        </div>
+        <div class="terminal-body">
+            <div>
+                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~/lectures$ </span>
+                <span class="cmd">ls -la</span>
+            </div>
+            <br>
+            <div class="section-label">// LECTURE MATERIALS</div>
+
+            <table class="file-table">
+                <thead>
+                    <tr><th class="icon"></th><th>NAME</th><th>DESCRIPTION</th><th>TYPE</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="icon">📁</td>
+                        <td class="name"><a href="../index.html">..</a></td>
+                        <td class="desc">Parent directory</td>
+                        <td><span class="type-badge badge-dir">DIR</span></td>
+                    </tr>
+                    <tr>
+                        <td class="icon">📁</td>
+                        <td class="name"><a href="files/index.html">files/</a></td>
+                        <td class="desc">Lecture slide PDFs (ch1–ch4)</td>
+                        <td><span class="type-badge badge-dir">DIR</span></td>
+                    </tr>
+                    <tr>
+                        <td class="icon">📁</td>
+                        <td class="name"><a href="class-activity/index.html">class-activity/</a></td>
+                        <td class="desc">In-class exercises and activities</td>
+                        <td><span class="type-badge badge-dir">DIR</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Quick Nav -->
+    <div class="terminal reveal">
+        <div class="terminal-header">
+            <span class="terminal-btn btn-close"></span>
+            <span class="terminal-btn btn-min"></span>
+            <span class="terminal-btn btn-max"></span>
+            <span class="terminal-title">bash — navigation</span>
+        </div>
+        <div class="terminal-body">
+            <div class="section-label">// QUICK ACCESS</div>
+            <div class="nav-grid">
+                <a href="files/index.html" class="nav-card">
+                    <span class="nav-card-icon">📄</span>
+                    <div class="nav-card-title">Lecture Slides (PDF)</div>
+                    <div class="nav-card-desc">Ch 1 — Introduction to OS<br>Ch 2 — OS Structures &amp; Interfaces<br>Ch 3 — Processes<br>Ch 4 — Threads &amp; Multicore<br><span style="color: var(--green);">4 chapters available</span></div>
+                </a>
+                <a href="class-activity/index.html" class="nav-card">
+                    <span class="nav-card-icon">✏️</span>
+                    <div class="nav-card-title">Class Activities</div>
+                    <div class="nav-card-desc">In-class exercises and hands-on activities.<br><span style="color: var(--yellow);">○ Content pending</span></div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <a href="../index.html">← Back to Home</a> &middot; ITC Operating Systems 2026
+    </div>
+</div>
+<script src="../assets/terminal-theme.js"></script>
+</body>
+</html>

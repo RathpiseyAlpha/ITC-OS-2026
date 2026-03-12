@@ -22,8 +22,11 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-ITC--OS--2026-181717?logo=github&style=for-the-badge)](https://github.com/RathpiseyAlpha/ITC-OS-2026)
 [![License](https://img.shields.io/badge/License-Educational-blue?style=for-the-badge)](#)
+[![Web View](https://img.shields.io/badge/🖥️_Web_View-Terminal_Theme-00ff41?style=for-the-badge&logo=html5&logoColor=white)](https://rathpiseyalpha.github.io/ITC-OS-2026/)
 
 ---
+
+> **🌐 [View the interactive terminal-themed web page →](https://rathpiseyalpha.github.io/ITC-OS-2026/)**
 
 </div>
 

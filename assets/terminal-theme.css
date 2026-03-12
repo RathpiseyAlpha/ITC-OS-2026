@@ -1,0 +1,348 @@
+/* ═══════════════════════════════════════════════════════
+   ITC-OS-2026 — Shared Terminal Theme
+   ═══════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --bg: #0a0e14;
+    --terminal-bg: #0d1117;
+    --border: #1e3a2f;
+    --green: #00ff41;
+    --green-dim: #00cc33;
+    --green-dark: #008f11;
+    --cyan: #00d4ff;
+    --yellow: #ffb627;
+    --red: #ff3e3e;
+    --white: #c9d1d9;
+    --gray: #6e7681;
+    --comment: #5c6370;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Fira Code', 'Courier New', monospace;
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+/* Scanline */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.015) 2px, rgba(0,255,65,0.015) 4px);
+    z-index: 9999;
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ─── Breadcrumb ─── */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    background: var(--terminal-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.breadcrumb a {
+    color: var(--cyan);
+    text-decoration: none;
+    transition: color 0.2s, text-shadow 0.2s;
+}
+
+.breadcrumb a:hover {
+    color: var(--green);
+    text-shadow: 0 0 8px rgba(0,255,65,0.5);
+}
+
+.breadcrumb .sep {
+    color: var(--green-dark);
+    margin: 0 2px;
+}
+
+.breadcrumb .current {
+    color: var(--yellow);
+    font-weight: 600;
+}
+
+/* ─── Terminal Window ─── */
+.terminal {
+    background: var(--terminal-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 16px 0;
+    box-shadow: 0 0 30px rgba(0,255,65,0.08), inset 0 0 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+}
+
+.terminal-header {
+    background: linear-gradient(180deg, #1a1e24, #161a20);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.terminal-btn {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.btn-close { background: var(--red); }
+.btn-min { background: var(--yellow); }
+.btn-max { background: var(--green); }
+
+.terminal-title {
+    color: var(--gray);
+    font-size: 12px;
+    margin-left: 8px;
+    flex: 1;
+    text-align: center;
+}
+
+.terminal-body {
+    padding: 20px 24px;
+    min-height: 60px;
+}
+
+/* ─── Text colors ─── */
+.prompt-user { color: var(--green); }
+.prompt-path { color: var(--cyan); }
+.prompt-symbol { color: var(--white); }
+.cmd { color: var(--white); }
+.output { color: var(--green-dim); }
+.comment { color: var(--comment); font-style: italic; }
+.highlight { color: var(--yellow); }
+.error { color: var(--red); }
+
+.link-text {
+    color: var(--cyan);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--cyan);
+    transition: all 0.3s ease;
+}
+.link-text:hover {
+    color: var(--green);
+    border-color: var(--green);
+    text-shadow: 0 0 8px rgba(0,255,65,0.5);
+}
+
+/* ─── Cursor ─── */
+.cursor {
+    display: inline-block;
+    width: 8px; height: 16px;
+    background: var(--green);
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+    margin-left: 2px;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ─── Section label ─── */
+.section-label {
+    color: var(--yellow);
+    font-size: 14px;
+    margin-top: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--green-dark);
+    margin-bottom: 10px;
+}
+
+/* ─── File listing table ─── */
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+    font-size: 13px;
+}
+
+.file-table th {
+    color: var(--yellow);
+    text-align: left;
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--green-dark);
+}
+
+.file-table td {
+    padding: 5px 12px;
+    color: var(--white);
+    border-bottom: 1px solid rgba(30,58,47,0.4);
+}
+
+.file-table tr:hover td {
+    background: rgba(0,255,65,0.04);
+}
+
+.file-table .icon {
+    width: 30px;
+    text-align: center;
+    color: var(--cyan);
+}
+
+.file-table .name a {
+    color: var(--cyan);
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.file-table .name a:hover {
+    color: var(--green);
+    text-shadow: 0 0 6px rgba(0,255,65,0.4);
+}
+
+.file-table .desc {
+    color: var(--comment);
+    font-size: 12px;
+}
+
+.file-table .type-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.badge-dir { background: rgba(0,212,255,0.15); color: var(--cyan); }
+.badge-md { background: rgba(0,255,65,0.12); color: var(--green); }
+.badge-pdf { background: rgba(255,62,62,0.15); color: var(--red); }
+.badge-html { background: rgba(255,182,39,0.15); color: var(--yellow); }
+.badge-img { background: rgba(255,182,39,0.12); color: var(--yellow); }
+.badge-file { background: rgba(110,118,129,0.2); color: var(--gray); }
+
+/* ─── Nav cards ─── */
+.nav-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+}
+
+.nav-card {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    background: rgba(13,17,23,0.8);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+}
+
+.nav-card:hover {
+    border-color: var(--green);
+    box-shadow: 0 0 20px rgba(0,255,65,0.1);
+    transform: translateY(-2px);
+}
+
+.nav-card-title {
+    color: var(--green);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.nav-card-desc {
+    color: var(--gray);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.nav-card-icon {
+    font-size: 22px;
+    margin-bottom: 6px;
+    display: block;
+}
+
+/* ─── Markdown viewer ─── */
+.md-viewer {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 12px 0;
+    max-height: 70vh;
+    overflow-y: auto;
+    color: var(--white);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.md-viewer h1, .md-viewer h2, .md-viewer h3 { color: var(--green); margin: 16px 0 8px; }
+.md-viewer h1 { font-size: 20px; border-bottom: 1px solid var(--green-dark); padding-bottom: 6px; }
+.md-viewer h2 { font-size: 17px; }
+.md-viewer h3 { font-size: 15px; color: var(--cyan); }
+.md-viewer code { background: rgba(0,255,65,0.08); padding: 2px 6px; border-radius: 3px; color: var(--green); font-size: 12px; }
+.md-viewer pre { background: var(--terminal-bg); border: 1px solid var(--border); padding: 12px; border-radius: 4px; overflow-x: auto; margin: 10px 0; }
+.md-viewer pre code { background: none; padding: 0; }
+.md-viewer a { color: var(--cyan); }
+.md-viewer a:hover { color: var(--green); }
+.md-viewer table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+.md-viewer th, .md-viewer td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+.md-viewer th { background: rgba(0,255,65,0.06); color: var(--green); }
+.md-viewer blockquote { border-left: 3px solid var(--green-dark); padding-left: 12px; color: var(--comment); margin: 10px 0; }
+.md-viewer ul, .md-viewer ol { padding-left: 24px; margin: 8px 0; }
+.md-viewer li { margin: 3px 0; }
+.md-viewer hr { border: none; border-top: 1px dashed var(--green-dark); margin: 16px 0; }
+.md-viewer img { max-width: 100%; border-radius: 6px; border: 1px solid var(--border); margin: 8px 0; }
+
+/* ─── PDF viewer ─── */
+.pdf-viewer {
+    width: 100%;
+    height: 80vh;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin: 12px 0;
+}
+
+/* ─── Footer ─── */
+.footer {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--comment);
+    font-size: 11px;
+}
+
+.footer a {
+    color: var(--green-dim);
+    text-decoration: none;
+}
+
+.footer a:hover { color: var(--green); }
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+    .terminal-body { padding: 12px 14px; }
+    .nav-grid { grid-template-columns: 1fr; }
+    .breadcrumb { font-size: 11px; }
+}
+
+/* ─── Reveal animation ─── */
+.reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: all 0.5s ease;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}

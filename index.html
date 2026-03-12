@@ -53,6 +53,11 @@
                 rgba(0, 255, 65, 0.015) 4px
             );
             z-index: 9999;
+            transition: opacity 0.3s;
+        }
+        body.readme-mode::after {
+            opacity: 0;
+        }
         }
 
         /* Matrix rain canvas */
@@ -442,6 +447,188 @@
             .nav-grid { grid-template-columns: 1fr; }
         }
 
+        /* View Switch Toggle */
+        .view-switch {
+            position: fixed;
+            top: 18px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--terminal-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 12px;
+            box-shadow: 0 0 20px rgba(0,255,65,0.08);
+        }
+        .view-switch label {
+            color: var(--comment);
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .view-switch label.active {
+            color: var(--green);
+            text-shadow: 0 0 6px rgba(0,255,65,0.4);
+        }
+        body.readme-mode .view-switch {
+            background: #ffffff;
+            border-color: #d1d9e0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        body.readme-mode .view-switch label {
+            color: #8b949e;
+        }
+        body.readme-mode .view-switch label.active {
+            color: #0969da;
+            text-shadow: none;
+        }
+        body.readme-mode .view-switch .toggle-track {
+            background: #f6f8fa;
+            border-color: #d1d9e0;
+        }
+        body.readme-mode .view-switch .toggle-thumb {
+            background: #0969da;
+            box-shadow: 0 0 4px rgba(9,105,218,0.4);
+        }
+        .view-switch .toggle-track {
+            position: relative;
+            width: 40px;
+            height: 20px;
+            background: var(--bg);
+            border: 1px solid var(--green-dark);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .view-switch .toggle-track .toggle-thumb {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            background: var(--green);
+            border-radius: 50%;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 0 6px rgba(0,255,65,0.6);
+        }
+        .view-switch .toggle-track.readme .toggle-thumb {
+            transform: translateX(20px);
+        }
+        #readme-view {
+            display: none;
+        }
+        #readme-view.active {
+            display: block;
+        }
+        #terminal-view.hidden {
+            display: none;
+        }
+
+        /* README rendered view — GitHub style */
+        .readme-plain {
+            max-width: 900px;
+            margin: 60px auto 40px;
+            padding: 0;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 0 40px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .readme-plain-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: #f6f8fa;
+            border-bottom: 1px solid #d1d9e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            color: #1f2328;
+        }
+        .readme-plain-header svg { flex-shrink: 0; }
+        .readme-plain-header span { font-weight: 600; }
+        .readme-body {
+            padding: 32px 40px 40px;
+            color: #1f2328;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+        .readme-body h1 { font-size: 28px; border-bottom: 1px solid #d1d9e0; padding-bottom: 10px; margin: 24px 0 16px; color: #1f2328; }
+        .readme-body h2 { font-size: 22px; border-bottom: 1px solid #d1d9e0; padding-bottom: 8px; margin: 24px 0 14px; color: #1f2328; }
+        .readme-body h3 { font-size: 18px; margin: 20px 0 10px; color: #1f2328; }
+        .readme-body h4 { font-size: 15px; margin: 18px 0 8px; color: #1f2328; }
+        .readme-body code { background: #eff1f3; padding: 2px 6px; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 13px; color: #1f2328; }
+        .readme-body pre { background: #f6f8fa; border: 1px solid #d1d9e0; padding: 14px 16px; border-radius: 6px; overflow-x: auto; margin: 12px 0; line-height: 1.5; }
+        .readme-body pre code { background: none; padding: 0; font-size: 13px; }
+        .readme-body a { color: #0969da; text-decoration: none; }
+        .readme-body a:hover { text-decoration: underline; }
+        .readme-body img { max-width: 100%; border-radius: 4px; }
+        .readme-body table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+        .readme-body th, .readme-body td { border: 1px solid #d1d9e0; padding: 8px 12px; text-align: left; }
+        .readme-body th { background: #f6f8fa; font-weight: 600; }
+        .readme-body blockquote { border-left: 4px solid #d1d9e0; padding: 4px 16px; color: #656d76; margin: 12px 0; }
+        .readme-body ul, .readme-body ol { padding-left: 26px; margin: 8px 0; }
+        .readme-body li { margin: 4px 0; }
+        .readme-body hr { border: none; border-top: 1px solid #d1d9e0; margin: 20px 0; }
+        .readme-body strong { font-weight: 600; }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            background: var(--terminal-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .breadcrumb a {
+            color: var(--cyan);
+            text-decoration: none;
+            transition: color 0.2s, text-shadow 0.2s;
+        }
+        .breadcrumb a:hover {
+            color: var(--green);
+            text-shadow: 0 0 8px rgba(0,255,65,0.5);
+        }
+        .breadcrumb .sep { color: var(--green-dark); margin: 0 2px; }
+        .breadcrumb .current { color: var(--yellow); font-weight: 600; }
+
+        /* Markdown viewer */
+        .md-viewer {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px 24px;
+            margin: 12px 0;
+            max-height: 70vh;
+            overflow-y: auto;
+            color: var(--white);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+        .md-viewer h1, .md-viewer h2, .md-viewer h3 { color: var(--green); margin: 16px 0 8px; }
+        .md-viewer h1 { font-size: 20px; border-bottom: 1px solid var(--green-dark); padding-bottom: 6px; }
+        .md-viewer h2 { font-size: 17px; }
+        .md-viewer h3 { font-size: 15px; color: var(--cyan); }
+        .md-viewer code { background: rgba(0,255,65,0.08); padding: 2px 6px; border-radius: 3px; color: var(--green); font-size: 12px; }
+        .md-viewer pre { background: var(--terminal-bg); border: 1px solid var(--border); padding: 12px; border-radius: 4px; overflow-x: auto; margin: 10px 0; }
+        .md-viewer pre code { background: none; padding: 0; }
+        .md-viewer a { color: var(--cyan); }
+        .md-viewer a:hover { color: var(--green); }
+        .md-viewer table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        .md-viewer th, .md-viewer td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+        .md-viewer th { background: rgba(0,255,65,0.06); color: var(--green); }
+        .md-viewer blockquote { border-left: 3px solid var(--green-dark); padding-left: 12px; color: var(--comment); margin: 10px 0; }
+        .md-viewer ul, .md-viewer ol { padding-left: 24px; margin: 8px 0; }
+        .md-viewer hr { border: none; border-top: 1px dashed var(--green-dark); margin: 16px 0; }
+
         /* Scroll reveal */
         .reveal {
             opacity: 0;
@@ -454,8 +641,31 @@
             transform: translateY(0);
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
+
+<!-- View Switch Toggle -->
+<div class="view-switch" id="view-switch">
+    <label id="lbl-terminal" class="active" onclick="switchView('terminal')">terminal</label>
+    <div class="toggle-track" id="toggle-track" onclick="toggleView()">
+        <div class="toggle-thumb"></div>
+    </div>
+    <label id="lbl-readme" onclick="switchView('readme')">README</label>
+</div>
+
+<!-- README View (rendered markdown — GitHub style) -->
+<div id="readme-view">
+    <div class="readme-plain">
+        <div class="readme-plain-header">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="#656d76"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/></svg>
+            <span>README.md</span>
+        </div>
+        <div class="readme-body" id="readme-content">
+            <p style="color:#656d76;font-style:italic">Loading...</p>
+        </div>
+    </div>
+</div>
 
 <!-- Boot Sequence Overlay -->
 <div id="boot-screen">
@@ -465,7 +675,13 @@
 <!-- Matrix Background -->
 <canvas id="matrix-bg"></canvas>
 
-<div class="container">
+<div class="container" id="terminal-view">
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        <span class="prompt-symbol">$</span>
+        <span class="current">~ (root)</span>
+    </div>
 
     <!-- Main Terminal: ASCII Banner -->
     <div class="terminal reveal">
@@ -559,25 +775,35 @@
         <div class="terminal-body">
             <div class="section-label">// QUICK NAVIGATION</div>
             <div class="nav-grid">
-                <a href="course-outline.md" class="nav-card">
+                <a href="#" onclick="viewCourseOutline()" class="nav-card">
                     <span class="nav-card-icon">📋</span>
                     <div class="nav-card-title">$ cat course-outline.md</div>
                     <div class="nav-card-desc">Complete 12-week syllabus with weekly topics, learning objectives, and resource links.</div>
                 </a>
-                <a href="lectures/files/" class="nav-card">
+                <a href="lectures/index.html" class="nav-card">
                     <span class="nav-card-icon">📚</span>
+                    <div class="nav-card-title">$ cd lectures/</div>
+                    <div class="nav-card-desc">Lecture slides &amp; class activities. Ch 1–4 available.</div>
+                </a>
+                <a href="lectures/files/index.html" class="nav-card">
+                    <span class="nav-card-icon">📄</span>
                     <div class="nav-card-title">$ ls lectures/files/</div>
-                    <div class="nav-card-desc">Lecture slides (ch1–ch4 available). Covers OS intro through threads &amp; multicore.</div>
+                    <div class="nav-card-desc">View &amp; download lecture slide PDFs (ch1–ch4).</div>
                 </a>
-                <a href="labs/lab1/lab1-instruction.md" class="nav-card">
-                    <span class="nav-card-icon">🔬</span>
-                    <div class="nav-card-title">$ cd labs/lab1/</div>
-                    <div class="nav-card-desc">Lab 1: Exploring OS Basics — kernel info, file commands, APT, processes, multitasking.</div>
-                </a>
-                <a href="labs/" class="nav-card">
+                <a href="labs/index.html" class="nav-card">
                     <span class="nav-card-icon">🗂️</span>
                     <div class="nav-card-title">$ ls labs/</div>
-                    <div class="nav-card-desc">All lab assignments (lab1–lab5). New labs released throughout the semester.</div>
+                    <div class="nav-card-desc">All lab assignments (lab1–lab5). Navigate into each lab.</div>
+                </a>
+                <a href="labs/lab1/index.html" class="nav-card">
+                    <span class="nav-card-icon">🔬</span>
+                    <div class="nav-card-title">$ cd labs/lab1/</div>
+                    <div class="nav-card-desc">Lab 1: Exploring OS Basics — view instructions, guides, pictures.</div>
+                </a>
+                <a href="README.md" class="nav-card" target="_blank">
+                    <span class="nav-card-icon">📖</span>
+                    <div class="nav-card-title">$ cat README.md</div>
+                    <div class="nav-card-desc">View the full repository README on GitHub.</div>
                 </a>
             </div>
         </div>
@@ -668,7 +894,7 @@
             <br>
             <div>
                 <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~/labs$ </span>
-                <a href="labs/lab1/lab1-instruction" class="link-text">open lab1-instruction.md →</a>
+                <a href="labs/lab1/index.html" class="link-text">open labs/lab1/ →</a>
             </div>
         </div>
     </div>
@@ -688,10 +914,12 @@
             </div>
             <br>
             <pre style="font-size: 13px; line-height: 1.6;"><span class="tree-dir">.</span>
+<span class="tree-line">├── </span><span class="tree-dir">assets/</span>                 <span class="tree-comment"># shared theme CSS &amp; JS</span>
 <span class="tree-line">├── </span><span class="tree-dir">labs/</span>
+<span class="tree-line">│   ├── </span><a href="labs/index.html" class="tree-dir" style="text-decoration:none;">index.html</a>          <span class="tree-comment"># labs listing page</span>
 <span class="tree-line">│   ├── </span><span class="tree-dir">lab1/</span>
-<span class="tree-line">│   │   ├── </span><span class="tree-dir">guides/</span>         <span class="tree-comment"># slides &amp; images</span>
-<span class="tree-line">│   │   ├── </span><span class="tree-dir">pictures/</span>       <span class="tree-comment"># lab workflow diagrams</span>
+<span class="tree-line">│   │   ├── </span><a href="labs/lab1/guides/index.html" class="tree-dir" style="text-decoration:none;">guides/</a>         <span class="tree-comment"># slides, PDF &amp; images</span>
+<span class="tree-line">│   │   ├── </span><a href="labs/lab1/pictures/index.html" class="tree-dir" style="text-decoration:none;">pictures/</a>       <span class="tree-comment"># workflow diagrams</span>
 <span class="tree-line">│   │   ├── </span><span class="tree-file">lab1-instruction.md</span>
 <span class="tree-line">│   │   └── </span><span class="tree-file">README.md</span>
 <span class="tree-line">│   ├── </span><span class="tree-dir">lab2/</span>               <span class="tree-comment"># coming soon</span>
@@ -699,14 +927,16 @@
 <span class="tree-line">│   ├── </span><span class="tree-dir">lab4/</span>               <span class="tree-comment"># coming soon</span>
 <span class="tree-line">│   └── </span><span class="tree-dir">lab5/</span>               <span class="tree-comment"># coming soon</span>
 <span class="tree-line">├── </span><span class="tree-dir">lectures/</span>
-<span class="tree-line">│   ├── </span><span class="tree-dir">class-activity/</span>
+<span class="tree-line">│   ├── </span><a href="lectures/index.html" class="tree-dir" style="text-decoration:none;">index.html</a>          <span class="tree-comment"># lectures listing page</span>
+<span class="tree-line">│   ├── </span><a href="lectures/class-activity/index.html" class="tree-dir" style="text-decoration:none;">class-activity/</a>
 <span class="tree-line">│   └── </span><span class="tree-dir">files/</span>
+<span class="tree-line">│       ├── </span><a href="lectures/files/index.html" class="tree-file" style="text-decoration:none;color:var(--cyan);">index.html</a>      <span class="tree-comment"># PDF viewer page</span>
 <span class="tree-line">│       ├── </span><span class="tree-file">ch1.pdf</span>         <span class="tree-comment"># Introduction to OS</span>
 <span class="tree-line">│       ├── </span><span class="tree-file">ch2.pdf</span>         <span class="tree-comment"># OS Structures</span>
 <span class="tree-line">│       ├── </span><span class="tree-file">ch3.pdf</span>         <span class="tree-comment"># Processes</span>
 <span class="tree-line">│       └── </span><span class="tree-file">ch4.pdf</span>         <span class="tree-comment"># Threads &amp; Multicore</span>
 <span class="tree-line">├── </span><span class="tree-file">course-outline.md</span>
-<span class="tree-line">├── </span><span class="tree-file">index.html</span>
+<span class="tree-line">├── </span><span class="tree-file">index.html</span>              <span class="tree-comment"># ← you are here</span>
 <span class="tree-line">└── </span><span class="tree-file">README.md</span>
 </pre>
             <br>
@@ -789,6 +1019,24 @@
                     <tr><td style="color: var(--cyan);">SSH</td><td>Lab server access</td><td class="status-ok">● REQUIRED</td></tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Course Outline Viewer -->
+    <div class="terminal reveal" id="outline-viewer" style="display: none;">
+        <div class="terminal-header">
+            <span class="terminal-btn btn-close" onclick="closeOutlineViewer()" style="cursor:pointer;" title="Close"></span>
+            <span class="terminal-btn btn-min"></span>
+            <span class="terminal-btn btn-max"></span>
+            <span class="terminal-title">bash — cat course-outline.md</span>
+        </div>
+        <div class="terminal-body">
+            <div>
+                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
+                <span class="cmd">cat course-outline.md</span>
+            </div>
+            <br>
+            <div class="md-viewer" id="outline-content"></div>
         </div>
     </div>
 
@@ -919,6 +1167,109 @@ const progressObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.5 });
 
 progressBars.forEach(bar => progressObserver.observe(bar));
+
+// ─── Lightweight Markdown Renderer (inline) ───
+function renderMarkdown(md) {
+    let html = md;
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+        const escaped = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        return '<pre><code>' + escaped + '</code></pre>';
+    });
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/^---+$/gm, '<hr>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+    html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    html = html.replace(/^\|(.+)\|$/gm, (match) => {
+        const cells = match.split('|').filter(c => c.trim() !== '');
+        if (cells.every(c => /^[\s\-:]+$/.test(c))) return '';
+        return '<tr>' + cells.map(c => '<td>' + c.trim() + '</td>').join('') + '</tr>';
+    });
+    html = html.replace(/(<tr>.*<\/tr>\n?)+/g, '<table>$&</table>');
+    return html;
+}
+
+function viewCourseOutline() {
+    const section = document.getElementById('outline-viewer');
+    const container = document.getElementById('outline-content');
+    container.innerHTML = '<span style="color:#5c6370;font-style:italic">Loading...</span>';
+    section.style.display = 'block';
+    section.classList.add('visible');
+    fetch('course-outline.md')
+        .then(r => r.text())
+        .then(md => { container.innerHTML = renderMarkdown(md); })
+        .catch(() => { container.innerHTML = '<span style="color:#ff3e3e">Error loading file.</span>'; });
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeOutlineViewer() {
+    document.getElementById('outline-viewer').style.display = 'none';
+}
+
+// ─── View Switch: Terminal ↔ README ───
+let currentView = 'terminal';
+
+function switchView(view) {
+    if (view === currentView) return;
+    currentView = view;
+    const terminalView = document.getElementById('terminal-view');
+    const readmeView = document.getElementById('readme-view');
+    const track = document.getElementById('toggle-track');
+    const lblT = document.getElementById('lbl-terminal');
+    const lblR = document.getElementById('lbl-readme');
+
+    const matrixCanvas = document.getElementById('matrix-bg');
+
+    if (view === 'readme') {
+        terminalView.classList.add('hidden');
+        readmeView.classList.add('active');
+        track.classList.add('readme');
+        lblT.classList.remove('active');
+        lblR.classList.add('active');
+        document.body.classList.add('readme-mode');
+        document.body.style.background = '#f6f8fa';
+        matrixCanvas.style.display = 'none';
+        // Load README and render with marked.js
+        const container = document.getElementById('readme-content');
+        if (!container.dataset.loaded) {
+            container.innerHTML = '<p style="color:#656d76;font-style:italic">Loading...</p>';
+            fetch('README.md')
+                .then(r => r.text())
+                .then(md => {
+                    container.innerHTML = marked.parse(md);
+                    container.dataset.loaded = '1';
+                })
+                .catch(() => { container.innerHTML = '<p style="color:#cf222e">Error loading README.md</p>'; });
+        }
+    } else {
+        terminalView.classList.remove('hidden');
+        readmeView.classList.remove('active');
+        track.classList.remove('readme');
+        lblT.classList.add('active');
+        lblR.classList.remove('active');
+        document.body.classList.remove('readme-mode');
+        document.body.style.background = '';
+        matrixCanvas.style.display = '';
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleView() {
+    switchView(currentView === 'terminal' ? 'readme' : 'terminal');
+}
+
+// Check URL hash on load
+if (window.location.hash === '#readme') {
+    switchView('readme');
+}
 </script>
 
 </body>
