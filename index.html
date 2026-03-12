@@ -1337,9 +1337,20 @@ function renderFileView(filePath) {
         viewerEl.style.display = 'flex';
         const container = document.getElementById('md-render');
         container.innerHTML = '<span style="color:var(--comment);font-style:italic">Loading...</span>';
+        const baseDir = dirPath ? dirPath + '/' : '';
         fetch(filePath)
             .then(r => { if (!r.ok) throw new Error(); return r.text(); })
-            .then(md => { container.innerHTML = marked.parse(md); })
+            .then(md => {
+                container.innerHTML = marked.parse(md);
+                // Rewrite relative paths for images and links
+                container.querySelectorAll('img[src], a[href]').forEach(el => {
+                    const attr = el.hasAttribute('src') ? 'src' : 'href';
+                    const val = el.getAttribute(attr);
+                    if (val && !val.startsWith('http') && !val.startsWith('/') && !val.startsWith('#') && !val.startsWith('data:')) {
+                        el.setAttribute(attr, baseDir + val);
+                    }
+                });
+            })
             .catch(() => { container.innerHTML = '<span style="color:var(--red)">Error loading file.</span>'; });
     } else if (ext === 'pdf') {
         html = '<iframe src="' + filePath + '" title="' + fileName + '"></iframe>';
