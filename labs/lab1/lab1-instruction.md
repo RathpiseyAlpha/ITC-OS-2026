@@ -89,6 +89,7 @@ The diagram below shows the overall flow of this lab from start to submission:
 │   └───────────────────┘   └─────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+![Lab Workflow](pictures/lab-workflow.png)
 
 ### A Brief Note on Output Redirection (`>` and `>>`)
 
