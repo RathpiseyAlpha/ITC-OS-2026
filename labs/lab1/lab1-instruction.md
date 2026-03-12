@@ -91,6 +91,29 @@ The diagram below shows the overall flow of this lab from start to submission:
 ```
 ![Lab Workflow](pictures/lab-workflow.png)
 
+### Using the `man` Command (Manual Pages)
+
+Linux comes with a built-in reference manual for almost every command. The `man` (short for **manual**) command displays detailed documentation, including usage syntax, available options, and examples.
+
+**Usage:**
+
+```bash
+man <command-name>
+```
+
+**Examples:**
+
+```bash
+man ls        # shows the manual page for the ls command
+man mkdir     # shows the manual page for mkdir
+man apt-get   # shows the manual page for apt-get
+```
+
+- Use the **arrow keys** or **Page Up / Page Down** to scroll through the manual.
+- Press **`q`** to quit and return to the terminal.
+
+> **Tip:** Whenever you encounter an unfamiliar command in this course, try `man <command>` first — it is the fastest way to understand what a command does and what options it supports.
+
 ### A Brief Note on Output Redirection (`>` and `>>`)
 
 Throughout this lab, you will see commands followed by `>` or `>>`. This is called **output redirection**, and it is used to send the results of a command into a text file instead of printing them on your screen.
@@ -204,9 +227,31 @@ lsb_release -a >> task1_os_info.txt
 
 **Commands Used:**
 
-- `apt-get update`, `apt-get install`
-- `apt-get remove`, `apt-get purge`
+- `apt-get update` — refreshes the local package index from remote repositories
+- `apt-get install` — downloads and installs a package
+- `apt-get remove` — uninstalls a package but keeps its configuration files
+- `apt-get purge` — uninstalls a package **and** removes its configuration files
+- `apt-get upgrade` — upgrades all currently installed packages to their latest available versions
+- `apt list --installed` — lists all packages currently installed on the system
 - `ls` — used here to check for the existence of configuration directories
+
+> **`apt-get upgrade` vs `apt-get update`:**
+> - `apt-get update` only **refreshes the package list** (downloads the latest catalog of available software and versions). It does not install or change any software.
+> - `apt-get upgrade` actually **downloads and installs newer versions** of the packages you already have installed.
+> - You should always run `update` before `upgrade` so the system knows what the latest versions are.
+>
+> **Example:**
+> ```bash
+> sudo apt-get update    # step 1: refresh the package list
+> sudo apt-get upgrade   # step 2: upgrade installed packages
+> ```
+
+> **`apt list`** lets you browse packages. Common usage:
+> ```bash
+> apt list --installed          # show all installed packages
+> apt list --installed | grep mc   # check if 'mc' is installed
+> apt list --upgradable         # show packages with updates available
+> ```
 
 **Instructions:**
 
