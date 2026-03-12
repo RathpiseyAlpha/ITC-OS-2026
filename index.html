@@ -58,7 +58,6 @@
         body.readme-mode::after {
             opacity: 0;
         }
-        }
 
         /* Matrix rain canvas */
         #matrix-bg {
@@ -629,6 +628,89 @@
         .md-viewer ul, .md-viewer ol { padding-left: 24px; margin: 8px 0; }
         .md-viewer hr { border: none; border-top: 1px dashed var(--green-dark); margin: 16px 0; }
 
+        /* File Explorer */
+        .explorer-breadcrumb {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2px;
+            padding: 8px 0 12px;
+            font-size: 13px;
+        }
+        .explorer-breadcrumb a {
+            color: var(--cyan);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .explorer-breadcrumb a:hover {
+            color: var(--green);
+            text-shadow: 0 0 6px rgba(0,255,65,0.4);
+        }
+        .explorer-breadcrumb .sep { color: var(--green-dark); margin: 0 3px; }
+        .explorer-breadcrumb .current-dir { color: var(--yellow); font-weight: 600; }
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .file-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 12px;
+            border-bottom: 1px solid rgba(30,58,47,0.3);
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 13px;
+        }
+        .file-list li:hover {
+            background: rgba(0,255,65,0.04);
+        }
+        .file-list li:last-child { border-bottom: none; }
+        .file-list .icon { width: 20px; text-align: center; flex-shrink: 0; }
+        .file-list .fname { color: var(--white); flex: 1; }
+        .file-list .fname.dir { color: var(--cyan); font-weight: 600; }
+        .file-list .fmeta { color: var(--comment); font-size: 11px; }
+        .file-viewer {
+            margin-top: 16px;
+        }
+        .file-viewer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(0,255,65,0.04);
+            border: 1px solid var(--border);
+            border-radius: 6px 6px 0 0;
+            font-size: 12px;
+        }
+        .file-viewer-header .file-path { color: var(--cyan); }
+        .file-viewer-header .close-btn {
+            color: var(--comment);
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+        .file-viewer-header .close-btn:hover {
+            color: var(--red);
+            background: rgba(255,62,62,0.1);
+        }
+        .file-viewer iframe {
+            width: 100%;
+            height: 75vh;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            background: #fff;
+        }
+        .file-viewer img {
+            max-width: 100%;
+            border: 1px solid var(--border);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+        }
+
         /* Scroll reveal */
         .reveal {
             opacity: 0;
@@ -764,48 +846,23 @@
         </div>
     </div>
 
-    <!-- Navigation Cards -->
-    <div class="terminal reveal">
+    <!-- File Explorer -->
+    <div class="terminal reveal" id="explorer-terminal">
         <div class="terminal-header">
             <span class="terminal-btn btn-close"></span>
             <span class="terminal-btn btn-min"></span>
             <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — ls -la ./contents/</span>
+            <span class="terminal-title" id="explorer-title">bash — ls -la</span>
         </div>
         <div class="terminal-body">
-            <div class="section-label">// QUICK NAVIGATION</div>
-            <div class="nav-grid">
-                <a href="#" onclick="viewCourseOutline()" class="nav-card">
-                    <span class="nav-card-icon">📋</span>
-                    <div class="nav-card-title">$ cat course-outline.md</div>
-                    <div class="nav-card-desc">Complete 12-week syllabus with weekly topics, learning objectives, and resource links.</div>
-                </a>
-                <a href="lectures/index.html" class="nav-card">
-                    <span class="nav-card-icon">📚</span>
-                    <div class="nav-card-title">$ cd lectures/</div>
-                    <div class="nav-card-desc">Lecture slides &amp; class activities. Ch 1–4 available.</div>
-                </a>
-                <a href="lectures/files/index.html" class="nav-card">
-                    <span class="nav-card-icon">📄</span>
-                    <div class="nav-card-title">$ ls lectures/files/</div>
-                    <div class="nav-card-desc">View &amp; download lecture slide PDFs (ch1–ch4).</div>
-                </a>
-                <a href="labs/index.html" class="nav-card">
-                    <span class="nav-card-icon">🗂️</span>
-                    <div class="nav-card-title">$ ls labs/</div>
-                    <div class="nav-card-desc">All lab assignments (lab1–lab5). Navigate into each lab.</div>
-                </a>
-                <a href="labs/lab1/index.html" class="nav-card">
-                    <span class="nav-card-icon">🔬</span>
-                    <div class="nav-card-title">$ cd labs/lab1/</div>
-                    <div class="nav-card-desc">Lab 1: Exploring OS Basics — view instructions, guides, pictures.</div>
-                </a>
-                <a href="README.md" class="nav-card" target="_blank">
-                    <span class="nav-card-icon">📖</span>
-                    <div class="nav-card-title">$ cat README.md</div>
-                    <div class="nav-card-desc">View the full repository README on GitHub.</div>
-                </a>
+            <div>
+                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
+                <span class="cmd" id="explorer-cmd">ls -la</span>
             </div>
+            <br>
+            <div id="explorer-breadcrumb" class="explorer-breadcrumb"></div>
+            <ul class="file-list" id="file-list"></ul>
+            <div id="file-viewer" class="file-viewer" style="display:none;"></div>
         </div>
     </div>
 
@@ -894,55 +951,12 @@
             <br>
             <div>
                 <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~/labs$ </span>
-                <a href="labs/lab1/index.html" class="link-text">open labs/lab1/ →</a>
+                <a href="#browse/labs/lab1" class="link-text">open labs/lab1/ →</a>
             </div>
         </div>
     </div>
 
-    <!-- File Tree Terminal -->
-    <div class="terminal reveal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — tree</span>
-        </div>
-        <div class="terminal-body">
-            <div>
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                <span class="cmd">tree -L 3 --dirsfirst</span>
-            </div>
-            <br>
-            <pre style="font-size: 13px; line-height: 1.6;"><span class="tree-dir">.</span>
-<span class="tree-line">├── </span><span class="tree-dir">assets/</span>                 <span class="tree-comment"># shared theme CSS &amp; JS</span>
-<span class="tree-line">├── </span><span class="tree-dir">labs/</span>
-<span class="tree-line">│   ├── </span><a href="labs/index.html" class="tree-dir" style="text-decoration:none;">index.html</a>          <span class="tree-comment"># labs listing page</span>
-<span class="tree-line">│   ├── </span><span class="tree-dir">lab1/</span>
-<span class="tree-line">│   │   ├── </span><a href="labs/lab1/guides/index.html" class="tree-dir" style="text-decoration:none;">guides/</a>         <span class="tree-comment"># slides, PDF &amp; images</span>
-<span class="tree-line">│   │   ├── </span><a href="labs/lab1/pictures/index.html" class="tree-dir" style="text-decoration:none;">pictures/</a>       <span class="tree-comment"># workflow diagrams</span>
-<span class="tree-line">│   │   ├── </span><span class="tree-file">lab1-instruction.md</span>
-<span class="tree-line">│   │   └── </span><span class="tree-file">README.md</span>
-<span class="tree-line">│   ├── </span><span class="tree-dir">lab2/</span>               <span class="tree-comment"># coming soon</span>
-<span class="tree-line">│   ├── </span><span class="tree-dir">lab3/</span>               <span class="tree-comment"># coming soon</span>
-<span class="tree-line">│   ├── </span><span class="tree-dir">lab4/</span>               <span class="tree-comment"># coming soon</span>
-<span class="tree-line">│   └── </span><span class="tree-dir">lab5/</span>               <span class="tree-comment"># coming soon</span>
-<span class="tree-line">├── </span><span class="tree-dir">lectures/</span>
-<span class="tree-line">│   ├── </span><a href="lectures/index.html" class="tree-dir" style="text-decoration:none;">index.html</a>          <span class="tree-comment"># lectures listing page</span>
-<span class="tree-line">│   ├── </span><a href="lectures/class-activity/index.html" class="tree-dir" style="text-decoration:none;">class-activity/</a>
-<span class="tree-line">│   └── </span><span class="tree-dir">files/</span>
-<span class="tree-line">│       ├── </span><a href="lectures/files/index.html" class="tree-file" style="text-decoration:none;color:var(--cyan);">index.html</a>      <span class="tree-comment"># PDF viewer page</span>
-<span class="tree-line">│       ├── </span><span class="tree-file">ch1.pdf</span>         <span class="tree-comment"># Introduction to OS</span>
-<span class="tree-line">│       ├── </span><span class="tree-file">ch2.pdf</span>         <span class="tree-comment"># OS Structures</span>
-<span class="tree-line">│       ├── </span><span class="tree-file">ch3.pdf</span>         <span class="tree-comment"># Processes</span>
-<span class="tree-line">│       └── </span><span class="tree-file">ch4.pdf</span>         <span class="tree-comment"># Threads &amp; Multicore</span>
-<span class="tree-line">├── </span><span class="tree-file">course-outline.md</span>
-<span class="tree-line">├── </span><span class="tree-file">index.html</span>              <span class="tree-comment"># ← you are here</span>
-<span class="tree-line">└── </span><span class="tree-file">README.md</span>
-</pre>
-            <br>
-            <div class="output">3 directories, 10 files</div>
-        </div>
-    </div>
+
 
     <!-- Getting Started Terminal -->
     <div class="terminal reveal">
@@ -1057,6 +1071,252 @@
 </div>
 
 <script>
+// ─── File System Manifest ───
+const FILE_TREE = {
+    '': {
+        dirs: ['labs', 'lectures'],
+        files: [
+            { name: 'README.md', desc: 'Repository documentation' },
+            { name: 'course-outline.md', desc: 'Full course syllabus' },
+            { name: 'index.html', desc: 'This landing page' }
+        ]
+    },
+    'labs': {
+        dirs: ['lab1', 'lab2', 'lab3', 'lab4', 'lab5'],
+        files: []
+    },
+    'labs/lab1': {
+        dirs: ['guides', 'pictures'],
+        files: [
+            { name: 'lab1-instruction.md', desc: 'Lab 1 instructions' },
+            { name: 'README.md', desc: 'Lab 1 overview' }
+        ]
+    },
+    'labs/lab1/guides': {
+        dirs: ['images'],
+        files: [
+            { name: 'lab1-guides.pdf', desc: 'Lab 1 guide slides' },
+            { name: 'slides.html', desc: 'HTML slides' }
+        ]
+    },
+    'labs/lab1/guides/images': {
+        dirs: [],
+        files: [
+            { name: 'page1_img0.png' }, { name: 'page2_img0.png' },
+            { name: 'page4_img0.png' }, { name: 'page4_img1.jpg' },
+            { name: 'page4_img2.png' }, { name: 'page4_img3.png' },
+            { name: 'page5_img0.png' }, { name: 'page6_img0.png' },
+            { name: 'page7_img0.png' }, { name: 'page8_img0.jpg' },
+            { name: 'page12_img0.png' }, { name: 'page15_img0.png' }
+        ]
+    },
+    'labs/lab1/pictures': {
+        dirs: [],
+        files: [
+            { name: 'image.png', desc: 'Lab diagram' },
+            { name: 'lab-workflow.png', desc: 'Workflow diagram' }
+        ]
+    },
+    'labs/lab2': {
+        dirs: [],
+        files: [{ name: 'lab2-instruction.md', desc: 'Lab 2 instructions' }]
+    },
+    'labs/lab3': {
+        dirs: [],
+        files: [{ name: 'lab3-instruction.md', desc: 'Lab 3 instructions' }]
+    },
+    'labs/lab4': { dirs: [], files: [] },
+    'labs/lab5': { dirs: [], files: [] },
+    'lectures': {
+        dirs: ['class-activity', 'files'],
+        files: []
+    },
+    'lectures/class-activity': { dirs: [], files: [] },
+    'lectures/files': {
+        dirs: [],
+        files: [
+            { name: 'ch1.pdf', desc: 'Introduction to OS' },
+            { name: 'ch2.pdf', desc: 'OS Structures' },
+            { name: 'ch3.pdf', desc: 'Processes' },
+            { name: 'ch4.pdf', desc: 'Threads & Multicore' }
+        ]
+    }
+};
+
+function getIcon(name, isDir) {
+    if (isDir) return '📁';
+    const ext = name.split('.').pop().toLowerCase();
+    if (ext === 'pdf') return '📄';
+    if (ext === 'md') return '📝';
+    if (ext === 'html') return '🌐';
+    if (['png','jpg','jpeg','gif','svg'].includes(ext)) return '🖼️';
+    return '📄';
+}
+
+function getExt(name) {
+    return name.split('.').pop().toLowerCase();
+}
+
+function navigateTo(path) {
+    window.location.hash = path ? 'browse/' + path : 'browse';
+}
+
+function viewFile(dirPath, fileName) {
+    const filePath = dirPath ? dirPath + '/' + fileName : fileName;
+    window.location.hash = 'view/' + filePath;
+}
+
+function renderExplorer(path) {
+    const node = FILE_TREE[path];
+    if (!node) return;
+
+    const parts = path ? path.split('/') : [];
+    const listEl = document.getElementById('file-list');
+    const viewerEl = document.getElementById('file-viewer');
+    const breadEl = document.getElementById('explorer-breadcrumb');
+    const cmdEl = document.getElementById('explorer-cmd');
+    const titleEl = document.getElementById('explorer-title');
+
+    viewerEl.style.display = 'none';
+    viewerEl.innerHTML = '';
+
+    // Breadcrumb
+    let bc = '<a onclick="navigateTo(\'\')" style="cursor:pointer">~</a>';
+    let cumulative = '';
+    parts.forEach((p, i) => {
+        cumulative += (i > 0 ? '/' : '') + p;
+        const cp = cumulative;
+        bc += '<span class="sep">/</span>';
+        if (i === parts.length - 1) {
+            bc += '<span class="current-dir">' + p + '</span>';
+        } else {
+            bc += '<a onclick="navigateTo(\'' + cp + '\')" style="cursor:pointer">' + p + '</a>';
+        }
+    });
+    bc += '<span class="sep">/</span>';
+    breadEl.innerHTML = bc;
+    cmdEl.textContent = 'ls -la ' + (path || '.');
+    titleEl.textContent = 'bash — ' + (path || '~');
+
+    // File listing
+    let html = '';
+
+    // Parent directory
+    if (path) {
+        const parent = parts.slice(0, -1).join('/');
+        html += '<li onclick="navigateTo(\'' + parent + '\')"><span class="icon">⬆️</span><span class="fname dir">..</span><span class="fmeta">parent directory</span></li>';
+    }
+
+    // Directories
+    node.dirs.forEach(d => {
+        const fullPath = path ? path + '/' + d : d;
+        const childNode = FILE_TREE[fullPath];
+        const count = childNode ? (childNode.dirs.length + childNode.files.length) : 0;
+        html += '<li onclick="navigateTo(\'' + fullPath + '\')"><span class="icon">📁</span><span class="fname dir">' + d + '/</span><span class="fmeta">' + count + ' items</span></li>';
+    });
+
+    // Files
+    node.files.forEach(f => {
+        const desc = f.desc || '';
+        html += '<li onclick="viewFile(\'' + path + '\',\'' + f.name + '\')"><span class="icon">' + getIcon(f.name) + '</span><span class="fname">' + f.name + '</span><span class="fmeta">' + desc + '</span></li>';
+    });
+
+    if (!node.dirs.length && !node.files.length && !path) {
+        html += '<li><span class="fmeta">Empty directory</span></li>';
+    }
+    if (!node.dirs.length && !node.files.length && path) {
+        html += '<li onclick="navigateTo(\'' + parts.slice(0,-1).join('/') + '\')"><span class="icon">⬆️</span><span class="fname dir">..</span><span class="fmeta">parent directory</span></li>';
+        html += '<li><span class="fmeta" style="color:var(--yellow)">// empty — content coming soon</span></li>';
+    }
+
+    listEl.innerHTML = html;
+    document.getElementById('explorer-terminal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderFileView(filePath) {
+    const viewerEl = document.getElementById('file-viewer');
+    const listEl = document.getElementById('file-list');
+    const cmdEl = document.getElementById('explorer-cmd');
+
+    const ext = getExt(filePath);
+    const dirPath = filePath.split('/').slice(0, -1).join('/');
+    const fileName = filePath.split('/').pop();
+
+    // Update breadcrumb to show file
+    const breadEl = document.getElementById('explorer-breadcrumb');
+    const parts = filePath.split('/');
+    let bc = '<a onclick="navigateTo(\'\')" style="cursor:pointer">~</a>';
+    let cumulative = '';
+    parts.forEach((p, i) => {
+        if (i > 0) cumulative += '/';
+        cumulative += p;
+        bc += '<span class="sep">/</span>';
+        if (i === parts.length - 1) {
+            bc += '<span class="current-dir">' + p + '</span>';
+        } else {
+            const cp = cumulative;
+            bc += '<a onclick="navigateTo(\'' + cp + '\')" style="cursor:pointer">' + p + '</a>';
+        }
+    });
+    breadEl.innerHTML = bc;
+
+    cmdEl.textContent = 'cat ' + filePath;
+    listEl.innerHTML = '';
+
+    let html = '<div class="file-viewer-header"><span class="file-path">' + filePath + '</span>';
+    html += '<span class="close-btn" onclick="navigateTo(\'' + dirPath + '\')">✕ close</span></div>';
+
+    if (ext === 'md') {
+        html += '<div class="md-viewer" id="md-render" style="max-height:none;border-top:none;border-radius:0 0 6px 6px;"></div>';
+        viewerEl.innerHTML = html;
+        viewerEl.style.display = 'block';
+        const container = document.getElementById('md-render');
+        container.innerHTML = '<span style="color:var(--comment);font-style:italic">Loading...</span>';
+        fetch(filePath)
+            .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+            .then(md => { container.innerHTML = marked.parse(md); })
+            .catch(() => { container.innerHTML = '<span style="color:var(--red)">Error loading file.</span>'; });
+    } else if (ext === 'pdf') {
+        html += '<iframe src="' + filePath + '" title="' + fileName + '"></iframe>';
+        viewerEl.innerHTML = html;
+        viewerEl.style.display = 'block';
+    } else if (['png','jpg','jpeg','gif','svg'].includes(ext)) {
+        html += '<img src="' + filePath + '" alt="' + fileName + '">';
+        viewerEl.innerHTML = html;
+        viewerEl.style.display = 'block';
+    } else if (ext === 'html') {
+        html += '<iframe src="' + filePath + '" title="' + fileName + '"></iframe>';
+        viewerEl.innerHTML = html;
+        viewerEl.style.display = 'block';
+    } else {
+        html += '<div class="md-viewer" style="max-height:none;border-top:none;border-radius:0 0 6px 6px;"><span style="color:var(--comment)">Preview not available. <a href="' + filePath + '" target="_blank" style="color:var(--cyan)">Download file</a></span></div>';
+        viewerEl.innerHTML = html;
+        viewerEl.style.display = 'block';
+    }
+
+    document.getElementById('explorer-terminal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── Hash Router ───
+function handleHash() {
+    const hash = window.location.hash.slice(1);
+    if (hash.startsWith('browse/') || hash === 'browse') {
+        const path = hash === 'browse' ? '' : hash.slice(7);
+        if (FILE_TREE[path] !== undefined) {
+            renderExplorer(path);
+        } else {
+            renderExplorer('');
+        }
+    } else if (hash.startsWith('view/')) {
+        const filePath = hash.slice(5);
+        renderFileView(filePath);
+    } else if (hash === 'readme') {
+        switchView('readme');
+    }
+}
+
+window.addEventListener('hashchange', handleHash);
+
 // ─── Matrix Rain Background ───
 const canvas = document.getElementById('matrix-bg');
 const ctx = canvas.getContext('2d');
@@ -1124,79 +1384,39 @@ async function runBoot() {
         line.className = 'boot-line ' + bootLines[i].cls;
         line.textContent = bootLines[i].text;
         bootText.appendChild(line);
-
         await new Promise(r => setTimeout(r, 120));
         line.style.opacity = '1';
     }
-
     await new Promise(r => setTimeout(r, 600));
     bootScreen.classList.add('hidden');
-
-    setTimeout(() => {
-        bootScreen.style.display = 'none';
-    }, 800);
+    setTimeout(() => { bootScreen.style.display = 'none'; }, 800);
 }
 
 runBoot();
 
 // ─── Scroll Reveal ───
 const revealElements = document.querySelectorAll('.reveal');
-
 const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-        }
+        if (entry.isIntersecting) entry.target.classList.add('visible');
     });
 }, { threshold: 0.1 });
-
 revealElements.forEach(el => observer.observe(el));
 
-// ─── Animate progress bars on scroll ───
+// ─── Animate progress bars ───
 const progressBars = document.querySelectorAll('.progress-fill');
 const progressObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (entry.isIntersecting) {
             const width = entry.target.style.width;
             entry.target.style.width = '0%';
-            setTimeout(() => {
-                entry.target.style.width = width;
-            }, 200);
+            setTimeout(() => { entry.target.style.width = width; }, 200);
         }
     });
 }, { threshold: 0.5 });
-
 progressBars.forEach(bar => progressObserver.observe(bar));
 
-// ─── Lightweight Markdown Renderer (inline) ───
-function renderMarkdown(md) {
-    let html = md;
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-        const escaped = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        return '<pre><code>' + escaped + '</code></pre>';
-    });
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2">');
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
-    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-    html = html.replace(/^---+$/gm, '<hr>');
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
-    html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-    html = html.replace(/^\|(.+)\|$/gm, (match) => {
-        const cells = match.split('|').filter(c => c.trim() !== '');
-        if (cells.every(c => /^[\s\-:]+$/.test(c))) return '';
-        return '<tr>' + cells.map(c => '<td>' + c.trim() + '</td>').join('') + '</tr>';
-    });
-    html = html.replace(/(<tr>.*<\/tr>\n?)+/g, '<table>$&</table>');
-    return html;
-}
-
+// ─── Course Outline Viewer ───
 function viewCourseOutline() {
     const section = document.getElementById('outline-viewer');
     const container = document.getElementById('outline-content');
@@ -1205,7 +1425,7 @@ function viewCourseOutline() {
     section.classList.add('visible');
     fetch('course-outline.md')
         .then(r => r.text())
-        .then(md => { container.innerHTML = renderMarkdown(md); })
+        .then(md => { container.innerHTML = marked.parse(md); })
         .catch(() => { container.innerHTML = '<span style="color:#ff3e3e">Error loading file.</span>'; });
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1225,7 +1445,6 @@ function switchView(view) {
     const track = document.getElementById('toggle-track');
     const lblT = document.getElementById('lbl-terminal');
     const lblR = document.getElementById('lbl-readme');
-
     const matrixCanvas = document.getElementById('matrix-bg');
 
     if (view === 'readme') {
@@ -1237,7 +1456,6 @@ function switchView(view) {
         document.body.classList.add('readme-mode');
         document.body.style.background = '#f6f8fa';
         matrixCanvas.style.display = 'none';
-        // Load README and render with marked.js
         const container = document.getElementById('readme-content');
         if (!container.dataset.loaded) {
             container.innerHTML = '<p style="color:#656d76;font-style:italic">Loading...</p>';
@@ -1266,10 +1484,9 @@ function toggleView() {
     switchView(currentView === 'terminal' ? 'readme' : 'terminal');
 }
 
-// Check URL hash on load
-if (window.location.hash === '#readme') {
-    switchView('readme');
-}
+// ─── Init: render root listing & handle hash ───
+renderExplorer('');
+handleHash();
 </script>
 
 </body>
