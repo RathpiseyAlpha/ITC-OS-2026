@@ -310,6 +310,46 @@
             50% { opacity: 1; }
         }
 
+        /* Login input */
+        .login-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--green);
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            width: 200px;
+            caret-color: var(--green);
+        }
+        .login-input::placeholder {
+            color: var(--comment);
+            font-style: italic;
+        }
+        .login-line {
+            display: flex;
+            align-items: center;
+            gap: 0;
+        }
+        .login-label {
+            color: var(--cyan);
+            white-space: pre;
+        }
+        .login-status {
+            color: var(--yellow);
+            font-style: italic;
+            margin-top: 4px;
+        }
+        .login-success {
+            color: var(--green);
+        }
+        .login-motd {
+            color: var(--comment);
+            font-size: 11px;
+            border-left: 2px solid var(--green-dark);
+            padding-left: 10px;
+            margin: 8px 0;
+        }
+
         /* Contents Page */
         .contents-page { display: none; }
         .contents-page.active {
@@ -998,26 +1038,21 @@
                 <span class="terminal-btn btn-close"></span>
                 <span class="terminal-btn btn-min"></span>
                 <span class="terminal-btn btn-max"></span>
-                <span class="terminal-title">bash — welcome</span>
+                <span class="terminal-title">bash — login</span>
             </div>
-            <div class="terminal-body">
-                <div>
-                    <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                    <span class="cmd">cat /etc/os-course/welcome.txt</span>
+            <div class="terminal-body" id="login-body">
+                <div style="color:var(--comment);font-size:11px;margin-bottom:8px;">ITC-OS kernel 6.1.0-itc (tty1)</div>
+                <div style="margin-bottom:4px;"><span style="color:var(--white);">itc-os-2026</span> login: </div>
+                <div class="login-line">
+                    <span class="login-label">username: </span>
+                    <input type="text" class="login-input" id="login-input" placeholder="enter your name" maxlength="20" autocomplete="off" spellcheck="false">
                 </div>
-                <br>
-                <div><span class="output">Welcome to the SE-019 Operating Systems course repository.</span></div>
-                <div><span class="output">All lectures, labs, and resources are available here.</span></div>
-                <br>
-                <div>
-                    <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                    <span class="cursor"></span>
-                </div>
+                <div id="login-output"></div>
             </div>
         </div>
 
-        <div class="enter-prompt" id="enter-prompt" onclick="enterExplorer()">
-            <span class="prompt-symbol">$</span> Press <span class="highlight">Enter</span> or click here to explore <span class="cursor"></span>
+        <div class="enter-prompt" id="enter-prompt" style="pointer-events:none;opacity:0.3;">
+            <span class="prompt-symbol">$</span> Login to explore the system <span class="cursor"></span>
         </div>
     </div>
 
@@ -1564,8 +1599,79 @@ function toggleView() {
     switchView(currentView === 'terminal' ? 'readme' : 'terminal');
 }
 
+// ─── Login System ───
+let loggedInUser = '';
+
+function performLogin(username) {
+    const name = username.trim();
+    if (!name) return;
+    loggedInUser = name;
+    const input = document.getElementById('login-input');
+    const output = document.getElementById('login-output');
+    input.disabled = true;
+    input.style.color = 'var(--white)';
+
+    // Authenticating animation
+    output.innerHTML = '<div class="login-status">Authenticating...</div>';
+
+    setTimeout(function() {
+        output.innerHTML = '<div class="login-status">Authenticating... done.</div>';
+        setTimeout(function() {
+            const now = new Date();
+            const ts = now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }) + ' ' + now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+            output.innerHTML = '<div class="login-success">\u2714 Login successful.</div>'
+                + '<div class="login-motd">'
+                + 'Welcome to ITC-OS 2026, <span style="color:var(--cyan)">' + escapeHtml(name) + '</span>!<br>'
+                + 'Last login: ' + ts + ' on tty1<br>'
+                + 'SE-019 Operating Systems &mdash; Instructor: Heng Rathpisey'
+                + '</div>'
+                + '<br><div><span class="prompt-user">' + escapeHtml(name) + '</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span><span class="cmd">cat /etc/os-course/welcome.txt</span></div>'
+                + '<br>'
+                + '<div><span class="output">Welcome to the SE-019 Operating Systems course repository.</span></div>'
+                + '<div><span class="output">All lectures, labs, and resources are available here.</span></div>'
+                + '<br>'
+                + '<div><span class="prompt-user">' + escapeHtml(name) + '</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span><span class="cursor"></span></div>';
+
+            // Update all prompt-user elements
+            document.querySelectorAll('.prompt-user').forEach(function(el) {
+                el.textContent = name;
+            });
+
+            // Enable enter prompt
+            const ep = document.getElementById('enter-prompt');
+            ep.style.pointerEvents = '';
+            ep.style.opacity = '';
+            ep.onclick = enterExplorer;
+            ep.innerHTML = '<span class="prompt-symbol">$</span> Press <span class="highlight">Enter</span> or click here to explore <span class="cursor"></span>';
+
+        }, 600);
+    }, 800);
+}
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+(function() {
+    const loginInput = document.getElementById('login-input');
+    if (loginInput) {
+        loginInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                performLogin(loginInput.value);
+            }
+        });
+        // Auto-focus after boot sequence
+        setTimeout(function() { loginInput.focus(); }, 3500);
+    }
+})();
+
 // ─── Enter Explorer ───
 function enterExplorer() {
+    if (!loggedInUser) return;
     document.getElementById('landing-page').classList.add('hidden');
     document.getElementById('contents-page').classList.add('active');
     renderExplorer('');
@@ -1580,7 +1686,7 @@ function backToLanding() {
 }
 
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !document.getElementById('landing-page').classList.contains('hidden')) {
+    if (e.key === 'Enter' && !document.getElementById('landing-page').classList.contains('hidden') && loggedInUser) {
         enterExplorer();
     }
 });
