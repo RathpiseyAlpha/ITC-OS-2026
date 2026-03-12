@@ -73,7 +73,7 @@
         .container {
             position: relative;
             z-index: 1;
-            max-width: 960px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -287,48 +287,260 @@
             text-align: center;
         }
 
-        /* Nav cards */
-        .nav-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 16px;
-            margin: 16px 0;
+        /* Landing Page */
+        .landing-page {
+            min-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .landing-page.hidden { display: none; }
+        .enter-prompt {
+            text-align: center;
+            padding: 24px 16px;
+            font-size: 13px;
+            color: var(--comment);
+            cursor: pointer;
+            transition: color 0.3s;
+            animation: subtlePulse 2s ease-in-out infinite;
+        }
+        .enter-prompt:hover { color: var(--green); }
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
         }
 
-        .nav-card {
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 16px;
-            background: rgba(13, 17, 23, 0.8);
-            transition: all 0.3s ease;
+        /* Contents Page */
+        .contents-page { display: none; }
+        .contents-page.active {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 220px;
+            right: 0;
+            bottom: 28px;
+        }
+        .contents-layout {
+            display: flex;
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            overflow-y: auto;
+            background: var(--terminal-bg);
+            border-right: 1px solid var(--border);
+            border-radius: 0;
+            padding: 16px 14px;
+            font-size: 12px;
+            z-index: 100;
+        }
+        .sidebar-section { margin-bottom: 14px; }
+        .sidebar-section:last-of-type { margin-bottom: 0; }
+        .sidebar-title {
+            color: var(--yellow);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px dashed var(--green-dark);
+        }
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-nav li {
+            padding: 5px 8px;
+            cursor: pointer;
+            color: var(--white);
+            border-radius: 4px;
+            transition: background 0.2s;
+            font-size: 12px;
+        }
+        .sidebar-nav li:hover {
+            background: rgba(0,255,65,0.06);
+            color: var(--green);
+        }
+        .sidebar-schedule {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-schedule li {
+            padding: 3px 8px;
+            font-size: 11px;
+            color: var(--white);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sidebar-schedule .wk {
+            color: var(--cyan);
+            min-width: 18px;
+            font-size: 10px;
+        }
+        .sidebar-schedule a {
+            color: var(--white);
             cursor: pointer;
             text-decoration: none;
-            display: block;
+            transition: color 0.2s;
+            flex: 1;
         }
-
-        .nav-card:hover {
-            border-color: var(--green);
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
-            transform: translateY(-2px);
+        .sidebar-schedule a:hover { color: var(--cyan); }
+        .sidebar-schedule .status-dot.ok { color: var(--green); font-size: 8px; }
+        .sidebar-schedule .status-dot.pending { color: var(--comment); font-size: 8px; }
+        .sidebar-back {
+            color: var(--comment);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 10px 8px 0;
+            text-align: center;
+            transition: color 0.2s;
+            border-top: 1px dashed var(--green-dark);
+            margin-top: 12px;
         }
+        .sidebar-back:hover { color: var(--green); }
 
-        .nav-card-title {
-            color: var(--green);
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 6px;
+        /* Split Pane */
+        .split-pane {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
         }
-
-        .nav-card-desc {
-            color: var(--gray);
+        .pane-top {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 80px;
+        }
+        .pane-top .terminal {
+            margin: 0;
+            border-radius: 0;
+            border: none;
+            border-bottom: none;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .pane-top .terminal-body {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .pane-divider {
+            height: 5px;
+            background: var(--border);
+            cursor: row-resize;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+            transition: background 0.15s;
+        }
+        .pane-divider:hover, .pane-divider.active {
+            background: var(--green-dark);
+        }
+        .pane-divider::after {
+            content: '⋯';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--comment);
+            font-size: 10px;
+            line-height: 1;
+        }
+        .pane-bottom {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 80px;
+            background: var(--terminal-bg);
+        }
+        .pane-bottom .terminal {
+            margin: 0;
+            border-radius: 0;
+            border: none;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .pane-bottom .terminal-body {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .pane-bottom .file-viewer { margin-top: 0; }
+        .pane-bottom .file-viewer iframe { height: 100%; min-height: 300px; }
+        .pane-bottom .md-viewer { max-height: none; }
+        .pane-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--comment);
             font-size: 12px;
-            line-height: 1.5;
+            font-style: italic;
+            padding: 20px;
         }
 
-        .nav-card-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
-            display: block;
+        /* Side-by-side (left/right) mode */
+        .split-pane.side-view {
+            flex-direction: row;
+        }
+        .split-pane.side-view .pane-top {
+            min-height: 0;
+            min-width: 200px;
+        }
+        .split-pane.side-view .pane-bottom {
+            min-height: 0;
+            min-width: 200px;
+        }
+        .split-pane.side-view .pane-divider {
+            width: 5px;
+            height: auto;
+            cursor: col-resize;
+        }
+        .split-pane.side-view .pane-divider::after {
+            content: '⋮';
+        }
+
+        /* Layout toggle button */
+        .layout-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+            padding: 1px 7px;
+            font-size: 10px;
+            font-family: 'Fira Code', monospace;
+            color: var(--comment);
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .layout-toggle:hover {
+            color: var(--green);
+            border-color: var(--green-dark);
+        }
+        .layout-toggle .icon {
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        @media (max-width: 768px) {
+            .contents-page.active { left: 0; bottom: 28px; flex-direction: column; }
+            .sidebar { width: 100%; position: static; border-right: none; border-bottom: 1px solid var(--border); max-height: 40vh; }
+            .split-pane.side-view { flex-direction: column; }
+            .split-pane.side-view .pane-divider { width: auto; height: 5px; cursor: row-resize; }
         }
 
         /* Progress bar */
@@ -422,12 +634,23 @@
             color: var(--yellow);
         }
 
-        /* Footer */
+        /* Footer / Status Bar */
         .footer {
-            text-align: center;
-            padding: 30px 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 4px 16px;
             color: var(--comment);
-            font-size: 12px;
+            font-size: 11px;
+            background: var(--terminal-bg);
+            border-top: 1px solid var(--border);
+            z-index: 200;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
         }
 
         .footer a {
@@ -446,21 +669,12 @@
             .nav-grid { grid-template-columns: 1fr; }
         }
 
-        /* View Switch Toggle */
+        /* View Switch Toggle (in footer) */
         .view-switch {
-            position: fixed;
-            top: 18px;
-            right: 24px;
-            z-index: 9999;
             display: flex;
             align-items: center;
-            gap: 10px;
-            background: var(--terminal-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 6px 14px;
-            font-size: 12px;
-            box-shadow: 0 0 20px rgba(0,255,65,0.08);
+            gap: 8px;
+            font-size: 11px;
         }
         .view-switch label {
             color: var(--comment);
@@ -471,33 +685,27 @@
             color: var(--green);
             text-shadow: 0 0 6px rgba(0,255,65,0.4);
         }
-        body.readme-mode .view-switch {
-            background: #ffffff;
-            border-color: #d1d9e0;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        }
         body.readme-mode .view-switch label {
-            color: #8b949e;
+            color: var(--comment);
         }
         body.readme-mode .view-switch label.active {
-            color: #0969da;
+            color: var(--cyan);
             text-shadow: none;
         }
         body.readme-mode .view-switch .toggle-track {
-            background: #f6f8fa;
-            border-color: #d1d9e0;
+            border-color: var(--comment);
         }
         body.readme-mode .view-switch .toggle-thumb {
-            background: #0969da;
-            box-shadow: 0 0 4px rgba(9,105,218,0.4);
+            background: var(--cyan);
+            box-shadow: 0 0 4px rgba(0,212,255,0.4);
         }
         .view-switch .toggle-track {
             position: relative;
-            width: 40px;
-            height: 20px;
+            width: 32px;
+            height: 16px;
             background: var(--bg);
             border: 1px solid var(--green-dark);
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             transition: background 0.3s;
         }
@@ -505,15 +713,15 @@
             position: absolute;
             top: 2px;
             left: 2px;
-            width: 14px;
-            height: 14px;
+            width: 10px;
+            height: 10px;
             background: var(--green);
             border-radius: 50%;
             transition: transform 0.3s, box-shadow 0.3s;
             box-shadow: 0 0 6px rgba(0,255,65,0.6);
         }
         .view-switch .toggle-track.readme .toggle-thumb {
-            transform: translateX(20px);
+            transform: translateX(16px);
         }
         #readme-view {
             display: none;
@@ -672,7 +880,10 @@
         .file-list .fname.dir { color: var(--cyan); font-weight: 600; }
         .file-list .fmeta { color: var(--comment); font-size: 11px; }
         .file-viewer {
-            margin-top: 16px;
+            margin-top: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
         }
         .file-viewer-header {
             display: flex;
@@ -680,9 +891,9 @@
             justify-content: space-between;
             padding: 8px 12px;
             background: rgba(0,255,65,0.04);
-            border: 1px solid var(--border);
-            border-radius: 6px 6px 0 0;
+            border-bottom: 1px solid var(--border);
             font-size: 12px;
+            flex-shrink: 0;
         }
         .file-viewer-header .file-path { color: var(--cyan); }
         .file-viewer-header .close-btn {
@@ -698,17 +909,14 @@
         }
         .file-viewer iframe {
             width: 100%;
-            height: 75vh;
-            border: 1px solid var(--border);
-            border-top: none;
-            border-radius: 0 0 6px 6px;
+            flex: 1;
+            min-height: 200px;
+            border: none;
             background: #fff;
         }
         .file-viewer img {
             max-width: 100%;
-            border: 1px solid var(--border);
-            border-top: none;
-            border-radius: 0 0 6px 6px;
+            padding: 12px;
         }
 
         /* Scroll reveal */
@@ -728,13 +936,7 @@
 <body>
 
 <!-- View Switch Toggle -->
-<div class="view-switch" id="view-switch">
-    <label id="lbl-terminal" class="active" onclick="switchView('terminal')">terminal</label>
-    <div class="toggle-track" id="toggle-track" onclick="toggleView()">
-        <div class="toggle-thumb"></div>
-    </div>
-    <label id="lbl-readme" onclick="switchView('readme')">README</label>
-</div>
+<!-- (moved to footer) -->
 
 <!-- README View (rendered markdown — GitHub style) -->
 <div id="readme-view">
@@ -759,21 +961,16 @@
 
 <div class="container" id="terminal-view">
 
-    <!-- Breadcrumb -->
-    <div class="breadcrumb">
-        <span class="prompt-symbol">$</span>
-        <span class="current">~ (root)</span>
-    </div>
-
-    <!-- Main Terminal: ASCII Banner -->
-    <div class="terminal reveal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">root@itc-os:~</span>
-        </div>
-        <div class="terminal-body ascii-banner">
+    <!-- Landing Page -->
+    <div id="landing-page" class="landing-page">
+        <div class="terminal">
+            <div class="terminal-header">
+                <span class="terminal-btn btn-close"></span>
+                <span class="terminal-btn btn-min"></span>
+                <span class="terminal-btn btn-max"></span>
+                <span class="terminal-title">root@itc-os:~</span>
+            </div>
+            <div class="terminal-body ascii-banner">
 <pre>
  ___  ____  _____ ____      _  _____ ___ _   _  ____
 / _ \|  _ \| ____|  _ \    / \|_   _|_ _| \ | |/ ___|
@@ -787,287 +984,162 @@
  ___) || |  ___) || | | |___| |  | |___) |
 |____/ |_| |____/ |_| |_____|_|  |_|____/
 </pre>
-            <div style="margin-top: 10px; color: var(--cyan); font-size: 13px;">
-                Institute of Technology of Cambodia &middot; Department of Information and Communication Engineering
-            </div>
-            <div style="color: var(--comment); font-size: 11px; margin-top: 4px;">
-               Course: SE-019 - Operating Systems &mdash; Instructor: Heng Rathpisey
-            </div>
-        </div>
-    </div>
-
-    <!-- Welcome Terminal -->
-    <div class="terminal reveal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — welcome</span>
-        </div>
-        <div class="terminal-body" id="welcome-terminal">
-            <div class="typed-line" style="animation-delay: 0s;">
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                <span class="cmd">cat /etc/os-course/welcome.txt</span>
-            </div>
-            <br>
-            <div class="typed-line" style="animation-delay: 0.3s;">
-                <span class="output">Welcome to the SE-019 - Operating Systems course repository!</span>
-            </div>
-            <div class="typed-line" style="animation-delay: 0.5s;">
-                <span class="output">This repo contains all lectures, labs, and resources you'll need.</span>
-            </div>
-            <br>
-            <div class="typed-line" style="animation-delay: 0.8s;">
-                <span class="comment"># Topics covered:</span>
-            </div>
-            <div class="typed-line" style="animation-delay: 1.0s;">
-                <span class="output">→ OS Architecture &amp; Structures</span>
-            </div>
-            <div class="typed-line" style="animation-delay: 1.1s;">
-                <span class="output">→ Processes, Threads &amp; Concurrency</span>
-            </div>
-            <div class="typed-line" style="animation-delay: 1.2s;">
-                <span class="output">→ CPU Scheduling Algorithms</span>
-            </div>
-            <div class="typed-line" style="animation-delay: 1.3s;">
-                <span class="output">→ Synchronization &amp; Deadlocks</span>
-            </div>
-            <div class="typed-line" style="animation-delay: 1.4s;">
-                <span class="output">→ Memory Management &amp; Virtual Memory</span>
-            </div>
-            <div class="typed-line" style="animation-delay: 1.5s;">
-                <span class="output">→ File Systems</span>
-            </div>
-            <br>
-            <div class="typed-line" style="animation-delay: 1.8s;">
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                <span class="cursor"></span>
-            </div>
-        </div>
-    </div>
-
-    <!-- File Explorer -->
-    <div class="terminal reveal" id="explorer-terminal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title" id="explorer-title">bash — ls -la</span>
-        </div>
-        <div class="terminal-body">
-            <div>
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                <span class="cmd" id="explorer-cmd">ls -la</span>
-            </div>
-            <br>
-            <div id="explorer-breadcrumb" class="explorer-breadcrumb"></div>
-            <ul class="file-list" id="file-list"></ul>
-            <div id="file-viewer" class="file-viewer" style="display:none;"></div>
-        </div>
-    </div>
-
-    <!-- Course Schedule Terminal -->
-    <div class="terminal reveal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — course-schedule</span>
-        </div>
-        <div class="terminal-body">
-            <div>
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                <span class="cmd">cat /proc/course/schedule</span>
-            </div>
-            <br>
-            <div class="section-label">// WEEKLY TOPIC SCHEDULE</div>
-            <table class="term-table">
-                <thead>
-                    <tr>
-                        <th>WK</th>
-                        <th>TOPIC</th>
-                        <th>SLIDES</th>
-                        <th>STATUS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td class="week-num">01</td><td>Introduction to OS</td><td><a href="lectures/files/ch1.pdf" class="link-text">ch1.pdf</a></td><td class="status-ok">● READY</td></tr>
-                    <tr><td class="week-num">02</td><td>OS Structures &amp; Interfaces</td><td><a href="lectures/files/ch2.pdf" class="link-text">ch2.pdf</a></td><td class="status-ok">● READY</td></tr>
-                    <tr><td class="week-num">03</td><td>Processes</td><td><a href="lectures/files/ch3.pdf" class="link-text">ch3.pdf</a></td><td class="status-ok">● READY</td></tr>
-                    <tr><td class="week-num">04</td><td>Threads &amp; Multicore</td><td><a href="lectures/files/ch4.pdf" class="link-text">ch4.pdf</a></td><td class="status-ok">● READY</td></tr>
-                    <tr><td class="week-num">05</td><td>CPU Scheduling I</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                    <tr><td class="week-num">06</td><td>CPU Scheduling II</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                    <tr><td class="week-num">07</td><td>Critical Sections</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                    <tr><td class="week-num">08</td><td>Semaphores &amp; Sync</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                    <tr><td class="week-num">09</td><td>Deadlocks</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                    <tr><td class="week-num">10</td><td>Memory Management</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                    <tr><td class="week-num">11</td><td>Virtual Memory</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                    <tr><td class="week-num">12</td><td>File Systems</td><td>—</td><td class="status-soon">○ PENDING</td></tr>
-                </tbody>
-            </table>
-            <br>
-            <div class="comment"># Course progress</div>
-            <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-                <span class="output" style="min-width: 80px;">Lectures:</span>
-                <div class="progress-bar" style="flex: 1;">
-                    <div class="progress-fill" style="width: 33%;"></div>
+                <div style="margin-top: 10px; color: var(--cyan); font-size: 13px;">
+                    Institute of Technology of Cambodia &middot; Department of Information and Communication Engineering
                 </div>
-                <span class="highlight">4/12</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-                <span class="output" style="min-width: 80px;">Labs:</span>
-                <div class="progress-bar" style="flex: 1;">
-                    <div class="progress-fill" style="width: 20%;"></div>
+                <div style="color: var(--comment); font-size: 11px; margin-top: 4px;">
+                   Course: SE-019 - Operating Systems &mdash; Instructor: Heng Rathpisey
                 </div>
-                <span class="highlight">1/5</span>
+            </div>
+        </div>
+
+        <div class="terminal">
+            <div class="terminal-header">
+                <span class="terminal-btn btn-close"></span>
+                <span class="terminal-btn btn-min"></span>
+                <span class="terminal-btn btn-max"></span>
+                <span class="terminal-title">bash — welcome</span>
+            </div>
+            <div class="terminal-body">
+                <div>
+                    <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
+                    <span class="cmd">cat /etc/os-course/welcome.txt</span>
+                </div>
+                <br>
+                <div><span class="output">Welcome to the SE-019 Operating Systems course repository.</span></div>
+                <div><span class="output">All lectures, labs, and resources are available here.</span></div>
+                <br>
+                <div>
+                    <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
+                    <span class="cursor"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="enter-prompt" id="enter-prompt" onclick="enterExplorer()">
+            <span class="prompt-symbol">$</span> Press <span class="highlight">Enter</span> or click here to explore <span class="cursor"></span>
+        </div>
+    </div>
+
+    <!-- Contents Page -->
+    <div id="contents-page" class="contents-page">
+        <div class="contents-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <div class="sidebar-title">// quick nav</div>
+                    <ul class="sidebar-nav">
+                        <li onclick="navigateTo('')">📁 root</li>
+                        <li onclick="navigateTo('labs')">📁 labs</li>
+                        <li onclick="navigateTo('lectures')">📁 lectures</li>
+                        <li onclick="navigateTo('lectures/files')">📄 slides</li>
+                        <li onclick="viewCourseOutline()">📝 course outline</li>
+                    </ul>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">// schedule</div>
+                    <ul class="sidebar-schedule">
+                        <li><span class="wk">01</span> <a onclick="viewFile('lectures/files','ch1.pdf')">Intro to OS</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">02</span> <a onclick="viewFile('lectures/files','ch2.pdf')">OS Structures</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">03</span> <a onclick="viewFile('lectures/files','ch3.pdf')">Processes</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">04</span> <a onclick="viewFile('lectures/files','ch4.pdf')">Threads</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">05</span> <span style="color:var(--comment)">CPU Scheduling I</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">06</span> <span style="color:var(--comment)">CPU Scheduling II</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">07</span> <span style="color:var(--comment)">Critical Sections</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">08</span> <span style="color:var(--comment)">Semaphores</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">09</span> <span style="color:var(--comment)">Deadlocks</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">10</span> <span style="color:var(--comment)">Memory Mgmt</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">11</span> <span style="color:var(--comment)">Virtual Memory</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">12</span> <span style="color:var(--comment)">File Systems</span> <span class="status-dot pending">○</span></li>
+                    </ul>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title">// progress</div>
+                    <div style="padding: 0 8px;">
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;">
+                            <span class="output" style="min-width:55px">Lectures</span>
+                            <div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:33%"></div></div>
+                            <span class="highlight" style="font-size:10px">4/12</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;">
+                            <span class="output" style="min-width:55px">Labs</span>
+                            <div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:20%"></div></div>
+                            <span class="highlight" style="font-size:10px">1/5</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="sidebar-back" onclick="backToLanding()">
+                    ← back to welcome
+                </div>
+            </aside>
+
+            <!-- Split Pane -->
+            <div class="split-pane side-view">
+                <!-- Top Pane: File Explorer -->
+                <div class="pane-top" id="pane-top">
+                    <div class="terminal" id="explorer-terminal">
+                        <div class="terminal-header">
+                            <span class="terminal-btn btn-close"></span>
+                            <span class="terminal-btn btn-min"></span>
+                            <span class="terminal-btn btn-max"></span>
+                            <span class="terminal-title" id="explorer-title">bash — ls -la</span>
+                            <button class="layout-toggle" id="layout-toggle" onclick="toggleLayout()" title="Toggle top/bottom view">
+                                <span class="icon">⬌</span> split
+                            </button>
+                        </div>
+                        <div class="terminal-body">
+                            <div>
+                                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
+                                <span class="cmd" id="explorer-cmd">ls -la</span>
+                            </div>
+                            <br>
+                            <div id="explorer-breadcrumb" class="explorer-breadcrumb"></div>
+                            <ul class="file-list" id="file-list"></ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resize Divider -->
+                <div class="pane-divider" id="pane-divider"></div>
+
+                <!-- Bottom Pane: Content Viewer -->
+                <div class="pane-bottom" id="pane-bottom">
+                    <div class="terminal" id="viewer-terminal">
+                        <div class="terminal-header">
+                            <span class="terminal-btn btn-close" id="viewer-close" onclick="closeViewer()" style="cursor:pointer" title="Close"></span>
+                            <span class="terminal-btn btn-min"></span>
+                            <span class="terminal-btn btn-max"></span>
+                            <span class="terminal-title" id="viewer-title">bash — preview</span>
+                            <button class="layout-toggle" onclick="toggleLayout()" title="Toggle top/bottom view">
+                                <span class="icon">⬌</span> split
+                            </button>
+                        </div>
+                        <div class="terminal-body" id="viewer-body">
+                            <div class="pane-placeholder" id="viewer-placeholder">
+                                <span>// select a file above to preview</span>
+                            </div>
+                            <div id="file-viewer" class="file-viewer" style="display:none;"></div>
+                            <div class="md-viewer" id="outline-content" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Lab 1 Details -->
-    <div class="terminal reveal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — lab1-overview</span>
-        </div>
-        <div class="terminal-body">
-            <div>
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~/labs$ </span>
-                <span class="cmd">cat lab1/README.md | head -40</span>
-            </div>
-            <br>
-            <div class="section-label">// LAB 1 — EXPLORING OPERATING SYSTEM BASICS</div>
-            <div style="color: var(--gray); font-size: 12px; margin-bottom: 12px;">Duration: 2 Hours &middot; Type: Individual &middot; Chapter: Introduction to OS</div>
+</div>
 
-            <div class="output" style="margin: 4px 0;"><span class="highlight">Task 1</span> ── OS &amp; Kernel Identification &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># uname, lsb_release</span></div>
-            <div class="output" style="margin: 4px 0;"><span class="highlight">Task 2</span> ── File &amp; Directory Commands &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># pwd, ls, mkdir, cp, mv, rm</span></div>
-            <div class="output" style="margin: 4px 0;"><span class="highlight">Task 3</span> ── Package Management (APT) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># install, remove, purge</span></div>
-            <div class="output" style="margin: 4px 0;"><span class="highlight">Task 4</span> ── Programs vs Processes &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># sleep, ps, background jobs</span></div>
-            <div class="output" style="margin: 4px 0;"><span class="highlight">Task 5</span> ── Multitasking Applications &nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># htop, tmux, http.server</span></div>
-            <div class="output" style="margin: 4px 0;"><span class="highlight">Task 6</span> ── Virtualization Detection &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># systemd-detect-virt</span></div>
-
-            <br>
-            <div>
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~/labs$ </span>
-                <a href="#browse/labs/lab1" class="link-text">open labs/lab1/ →</a>
-            </div>
+<!-- Footer Status Bar -->
+<div class="footer">
+    <span style="color: var(--green-dark);">Operating Systems — ITC 2026</span>
+    <div class="view-switch" id="view-switch">
+        <label id="lbl-terminal" class="active" onclick="switchView('terminal')">terminal</label>
+        <div class="toggle-track" id="toggle-track" onclick="toggleView()">
+            <div class="toggle-thumb"></div>
         </div>
+        <label id="lbl-readme" onclick="switchView('readme')">README</label>
     </div>
-
-
-
-    <!-- Getting Started Terminal -->
-    <div class="terminal reveal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — getting-started</span>
-        </div>
-        <div class="terminal-body">
-            <div class="section-label">// GETTING STARTED</div>
-            <div style="margin: 8px 0;">
-                <span class="comment"># Clone the course repository</span>
-            </div>
-            <div>
-                <span class="prompt-symbol">$ </span>
-                <span class="cmd">git clone https://github.com/RathpiseyAlpha/ITC-OS-2026.git</span>
-            </div>
-            <div>
-                <span class="prompt-symbol">$ </span>
-                <span class="cmd">cd ITC-OS-2026</span>
-            </div>
-            <br>
-            <div style="margin: 8px 0;">
-                <span class="comment"># Set up your personal submission repo</span>
-            </div>
-            <div>
-                <span class="prompt-symbol">$ </span>
-                <span class="cmd">mkdir -p os-se-&lt;YourStudentID&gt;/os-lab-&lt;YourStudentID&gt;/lab1</span>
-            </div>
-            <div>
-                <span class="prompt-symbol">$ </span>
-                <span class="cmd">cd os-se-&lt;YourStudentID&gt;</span>
-            </div>
-            <div>
-                <span class="prompt-symbol">$ </span>
-                <span class="cmd">git init</span>
-            </div>
-            <br>
-            <div style="margin: 8px 0;">
-                <span class="comment"># Start working on labs 🚀</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tools & Environment -->
-    <div class="terminal reveal">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — env</span>
-        </div>
-        <div class="terminal-body">
-            <div>
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                <span class="cmd">printenv COURSE_TOOLS</span>
-            </div>
-            <br>
-            <div class="section-label">// TOOLS &amp; ENVIRONMENT</div>
-            <table class="term-table">
-                <thead>
-                    <tr>
-                        <th>TOOL</th>
-                        <th>PURPOSE</th>
-                        <th>STATUS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td style="color: var(--cyan);">WSL / Ubuntu</td><td>Primary Linux environment</td><td class="status-ok">● REQUIRED</td></tr>
-                    <tr><td style="color: var(--cyan);">VS Code</td><td>Editor &amp; Markdown docs</td><td class="status-ok">● REQUIRED</td></tr>
-                    <tr><td style="color: var(--cyan);">Git &amp; GitHub</td><td>Version control &amp; submission</td><td class="status-ok">● REQUIRED</td></tr>
-                    <tr><td style="color: var(--cyan);">GCC / Python3</td><td>Programming &amp; scripting</td><td class="status-ok">● REQUIRED</td></tr>
-                    <tr><td style="color: var(--cyan);">SSH</td><td>Lab server access</td><td class="status-ok">● REQUIRED</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Course Outline Viewer -->
-    <div class="terminal reveal" id="outline-viewer" style="display: none;">
-        <div class="terminal-header">
-            <span class="terminal-btn btn-close" onclick="closeOutlineViewer()" style="cursor:pointer;" title="Close"></span>
-            <span class="terminal-btn btn-min"></span>
-            <span class="terminal-btn btn-max"></span>
-            <span class="terminal-title">bash — cat course-outline.md</span>
-        </div>
-        <div class="terminal-body">
-            <div>
-                <span class="prompt-user">student</span><span class="prompt-symbol">@</span><span class="prompt-path">itc-os</span><span class="prompt-symbol">:~$ </span>
-                <span class="cmd">cat course-outline.md</span>
-            </div>
-            <br>
-            <div class="md-viewer" id="outline-content"></div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <div style="margin-bottom: 8px;">
-<pre style="font-size: 10px; color: var(--green-dark); line-height: 1.2;">
-┌─────────────────────────────────────────────────┐
-│  Operating Systems — ITC 2026                   │
-│  Institute of Technology of Cambodia            │
-│  Dept. of Information &amp; Communication Eng.      │
-└─────────────────────────────────────────────────┘
-</pre>
-        </div>
-        <span class="comment">/* process exited with code 0 */</span>
-    </div>
-
+    <span class="comment">/* process exited with code 0 */</span>
 </div>
 
 <script>
@@ -1233,43 +1305,36 @@ function renderExplorer(path) {
     document.getElementById('explorer-terminal').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function showBottomPane(title) {
+    document.getElementById('viewer-placeholder').style.display = 'none';
+    document.getElementById('viewer-title').textContent = title;
+}
+
+function closeViewer() {
+    document.getElementById('file-viewer').style.display = 'none';
+    document.getElementById('file-viewer').innerHTML = '';
+    document.getElementById('outline-content').style.display = 'none';
+    document.getElementById('outline-content').innerHTML = '';
+    document.getElementById('viewer-placeholder').style.display = 'flex';
+    document.getElementById('viewer-title').textContent = 'bash \u2014 preview';
+}
+
 function renderFileView(filePath) {
     const viewerEl = document.getElementById('file-viewer');
-    const listEl = document.getElementById('file-list');
-    const cmdEl = document.getElementById('explorer-cmd');
+    const outlineEl = document.getElementById('outline-content');
+    outlineEl.style.display = 'none';
 
     const ext = getExt(filePath);
     const dirPath = filePath.split('/').slice(0, -1).join('/');
     const fileName = filePath.split('/').pop();
 
-    // Update breadcrumb to show file
-    const breadEl = document.getElementById('explorer-breadcrumb');
-    const parts = filePath.split('/');
-    let bc = '<a onclick="navigateTo(\'\')" style="cursor:pointer">~</a>';
-    let cumulative = '';
-    parts.forEach((p, i) => {
-        if (i > 0) cumulative += '/';
-        cumulative += p;
-        bc += '<span class="sep">/</span>';
-        if (i === parts.length - 1) {
-            bc += '<span class="current-dir">' + p + '</span>';
-        } else {
-            const cp = cumulative;
-            bc += '<a onclick="navigateTo(\'' + cp + '\')" style="cursor:pointer">' + p + '</a>';
-        }
-    });
-    breadEl.innerHTML = bc;
+    showBottomPane('bash \u2014 cat ' + filePath);
 
-    cmdEl.textContent = 'cat ' + filePath;
-    listEl.innerHTML = '';
-
-    let html = '<div class="file-viewer-header"><span class="file-path">' + filePath + '</span>';
-    html += '<span class="close-btn" onclick="navigateTo(\'' + dirPath + '\')">✕ close</span></div>';
-
+    let html = '';
     if (ext === 'md') {
-        html += '<div class="md-viewer" id="md-render" style="max-height:none;border-top:none;border-radius:0 0 6px 6px;"></div>';
+        html = '<div class="md-viewer" id="md-render" style="max-height:none;flex:1;"></div>';
         viewerEl.innerHTML = html;
-        viewerEl.style.display = 'block';
+        viewerEl.style.display = 'flex';
         const container = document.getElementById('md-render');
         container.innerHTML = '<span style="color:var(--comment);font-style:italic">Loading...</span>';
         fetch(filePath)
@@ -1277,24 +1342,22 @@ function renderFileView(filePath) {
             .then(md => { container.innerHTML = marked.parse(md); })
             .catch(() => { container.innerHTML = '<span style="color:var(--red)">Error loading file.</span>'; });
     } else if (ext === 'pdf') {
-        html += '<iframe src="' + filePath + '" title="' + fileName + '"></iframe>';
+        html = '<iframe src="' + filePath + '" title="' + fileName + '"></iframe>';
         viewerEl.innerHTML = html;
-        viewerEl.style.display = 'block';
+        viewerEl.style.display = 'flex';
     } else if (['png','jpg','jpeg','gif','svg'].includes(ext)) {
-        html += '<img src="' + filePath + '" alt="' + fileName + '">';
+        html = '<img src="' + filePath + '" alt="' + fileName + '">';
         viewerEl.innerHTML = html;
-        viewerEl.style.display = 'block';
+        viewerEl.style.display = 'flex';
     } else if (ext === 'html') {
-        html += '<iframe src="' + filePath + '" title="' + fileName + '"></iframe>';
+        html = '<iframe src="' + filePath + '" title="' + fileName + '"></iframe>';
         viewerEl.innerHTML = html;
-        viewerEl.style.display = 'block';
+        viewerEl.style.display = 'flex';
     } else {
-        html += '<div class="md-viewer" style="max-height:none;border-top:none;border-radius:0 0 6px 6px;"><span style="color:var(--comment)">Preview not available. <a href="' + filePath + '" target="_blank" style="color:var(--cyan)">Download file</a></span></div>';
+        html = '<div class="md-viewer" style="max-height:none;flex:1;"><span style="color:var(--comment)">Preview not available. <a href="' + filePath + '" target="_blank" style="color:var(--cyan)">Download file</a></span></div>';
         viewerEl.innerHTML = html;
-        viewerEl.style.display = 'block';
+        viewerEl.style.display = 'flex';
     }
-
-    document.getElementById('explorer-terminal').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ─── Hash Router ───
@@ -1418,20 +1481,21 @@ progressBars.forEach(bar => progressObserver.observe(bar));
 
 // ─── Course Outline Viewer ───
 function viewCourseOutline() {
-    const section = document.getElementById('outline-viewer');
+    const viewerEl = document.getElementById('file-viewer');
     const container = document.getElementById('outline-content');
+    viewerEl.style.display = 'none';
+    viewerEl.innerHTML = '';
+    showBottomPane('bash \u2014 cat course-outline.md');
+    container.style.display = 'block';
     container.innerHTML = '<span style="color:#5c6370;font-style:italic">Loading...</span>';
-    section.style.display = 'block';
-    section.classList.add('visible');
     fetch('course-outline.md')
         .then(r => r.text())
         .then(md => { container.innerHTML = marked.parse(md); })
         .catch(() => { container.innerHTML = '<span style="color:#ff3e3e">Error loading file.</span>'; });
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function closeOutlineViewer() {
-    document.getElementById('outline-viewer').style.display = 'none';
+    closeViewer();
 }
 
 // ─── View Switch: Terminal ↔ README ───
@@ -1484,9 +1548,103 @@ function toggleView() {
     switchView(currentView === 'terminal' ? 'readme' : 'terminal');
 }
 
-// ─── Init: render root listing & handle hash ───
-renderExplorer('');
-handleHash();
+// ─── Enter Explorer ───
+function enterExplorer() {
+    document.getElementById('landing-page').classList.add('hidden');
+    document.getElementById('contents-page').classList.add('active');
+    renderExplorer('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function backToLanding() {
+    document.getElementById('contents-page').classList.remove('active');
+    document.getElementById('landing-page').classList.remove('hidden');
+    window.location.hash = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !document.getElementById('landing-page').classList.contains('hidden')) {
+        enterExplorer();
+    }
+});
+
+// ─── Layout Toggle ───
+let layoutMode = 'horizontal'; // 'vertical' = top/bottom, 'horizontal' = left/right
+
+function toggleLayout() {
+    const splitPane = document.querySelector('.split-pane');
+    const paneTop = document.getElementById('pane-top');
+    const btns = document.querySelectorAll('.layout-toggle');
+
+    // Reset any manual sizing from drag
+    paneTop.style.flex = '';
+    paneTop.style.height = '';
+    paneTop.style.width = '';
+
+    if (layoutMode === 'vertical') {
+        layoutMode = 'horizontal';
+        splitPane.classList.add('side-view');
+        btns.forEach(b => { b.innerHTML = '<span class="icon">⬌</span> split'; b.title = 'Toggle top/bottom view'; });
+    } else {
+        layoutMode = 'vertical';
+        splitPane.classList.remove('side-view');
+        btns.forEach(b => { b.innerHTML = '<span class="icon">⬍</span> split'; b.title = 'Toggle side view'; });
+    }
+}
+
+// ─── Split Pane Resize ───
+(function() {
+    const divider = document.getElementById('pane-divider');
+    const paneTop = document.getElementById('pane-top');
+    const splitPane = paneTop.parentElement;
+    let isDragging = false;
+
+    divider.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        isDragging = true;
+        divider.classList.add('active');
+        document.body.style.cursor = layoutMode === 'horizontal' ? 'col-resize' : 'row-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        const rect = splitPane.getBoundingClientRect();
+        const minPx = layoutMode === 'horizontal' ? 200 : 80;
+
+        if (layoutMode === 'horizontal') {
+            const offset = e.clientX - rect.left;
+            const total = rect.width;
+            const clamped = Math.max(minPx, Math.min(offset, total - minPx - 5));
+            paneTop.style.flex = 'none';
+            paneTop.style.width = clamped + 'px';
+            paneTop.style.height = '';
+        } else {
+            const offset = e.clientY - rect.top;
+            const total = rect.height;
+            const clamped = Math.max(minPx, Math.min(offset, total - minPx - 5));
+            paneTop.style.flex = 'none';
+            paneTop.style.height = clamped + 'px';
+            paneTop.style.width = '';
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (!isDragging) return;
+        isDragging = false;
+        divider.classList.remove('active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    });
+})();
+
+// ─── Init ───
+const hash = window.location.hash.slice(1);
+if (hash.startsWith('browse') || hash.startsWith('view') || hash === 'readme') {
+    enterExplorer();
+    handleHash();
+}
 </script>
 
 </body>
