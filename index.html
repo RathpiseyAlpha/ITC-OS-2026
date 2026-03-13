@@ -576,11 +576,177 @@
             line-height: 1;
         }
 
+        /* ─── Mobile sidebar toggle button ─── */
+        .mobile-sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 250;
+            background: var(--terminal-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--green);
+            font-family: 'Fira Code', monospace;
+            font-size: 18px;
+            width: 38px;
+            height: 38px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .mobile-sidebar-toggle:hover {
+            border-color: var(--green-dark);
+            background: rgba(0,255,65,0.06);
+        }
+        .mobile-sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 90;
+        }
+        .mobile-sidebar-overlay.visible { display: block; }
+
         @media (max-width: 768px) {
-            .contents-page.active { left: 0; bottom: 28px; flex-direction: column; }
-            .sidebar { width: 100%; position: static; border-right: none; border-bottom: 1px solid var(--border); max-height: 40vh; }
-            .split-pane.side-view { flex-direction: column; }
-            .split-pane.side-view .pane-divider { width: auto; height: 5px; cursor: row-resize; }
+            /* Contents page: full width, no sidebar offset */
+            .contents-page.active {
+                left: 0;
+                bottom: 28px;
+            }
+
+            /* Contents layout must fill the fixed container vertically */
+            .contents-layout {
+                flex-direction: column;
+                height: 100%;
+                min-height: 0;
+            }
+
+            /* Sidebar: off-canvas drawer on mobile */
+            .sidebar {
+                width: 260px;
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                max-height: none;
+                border-right: 1px solid var(--border);
+                border-bottom: none;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                z-index: 150;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .mobile-sidebar-toggle {
+                display: flex;
+            }
+
+            /* Split pane: vertical stack, scrollable */
+            .split-pane,
+            .split-pane.side-view {
+                flex-direction: column !important;
+                overflow-y: auto !important;
+                overflow-x: hidden;
+                height: 100%;
+                min-height: 0;
+            }
+
+            /* Panes: give each a proper share of the viewport */
+            .pane-top {
+                flex: none !important;
+                min-height: 35vh;
+                max-height: 50vh;
+                overflow-y: auto;
+            }
+            .pane-bottom {
+                flex: 1 1 auto !important;
+                min-height: 45vh;
+                overflow-y: auto;
+            }
+
+            /* Divider */
+            .split-pane.side-view .pane-divider {
+                width: auto;
+                height: 5px;
+                cursor: row-resize;
+            }
+            .split-pane.side-view .pane-divider::after {
+                content: '⋯';
+            }
+
+            /* File viewer: ensure proper sizing inside the bottom pane */
+            .pane-bottom .terminal {
+                height: auto !important;
+                min-height: 100%;
+            }
+            .pane-bottom .terminal-body {
+                overflow-y: visible !important;
+            }
+            .file-viewer {
+                height: auto !important;
+                min-height: 300px;
+            }
+            .file-viewer iframe {
+                min-height: 50vh !important;
+                height: 60vh;
+            }
+            .pane-bottom .md-viewer {
+                max-height: none;
+                min-height: 200px;
+            }
+
+            /* Footer: compact on mobile */
+            .footer {
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 28px;
+                padding: 4px 10px;
+                gap: 6px;
+                font-size: 10px;
+            }
+            .footer > span:first-child {
+                display: none;
+            }
+            .footer .comment {
+                display: none;
+            }
+
+            /* Landing terminals */
+            .terminal-body { padding: 14px 16px; }
+            .ascii-banner pre { font-size: clamp(3px, 2.2vw, 8px); }
+
+            /* Tables: horizontal scroll */
+            .term-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+            /* README view */
+            .readme-plain { margin: 40px 8px 30px; border-radius: 6px; }
+            .readme-body { padding: 18px 16px 24px; font-size: 14px; }
+            .readme-body h1 { font-size: 22px; }
+            .readme-body h2 { font-size: 18px; }
+
+            /* Breadcrumbs wrap nicely */
+            .breadcrumb, .explorer-breadcrumb { font-size: 12px; }
+
+            /* Layout toggle label */
+            .layout-toggle { display: none; }
+        }
+
+        @media (max-width: 480px) {
+            .ascii-banner pre { font-size: clamp(2.5px, 2vw, 6px); }
+            .terminal-body { padding: 10px 12px; font-size: 12px; }
+            .login-input { width: 140px; font-size: 12px; }
+            .sidebar { width: 240px; }
+            .file-list li { padding: 6px 8px; font-size: 12px; gap: 6px; }
+            .file-list .fmeta { font-size: 10px; }
+            .md-viewer { padding: 14px 12px; font-size: 12px; }
+            .readme-body { padding: 14px 12px 20px; font-size: 13px; }
+            .file-viewer iframe {
+                min-height: 40vh !important;
+                height: 50vh;
+            }
         }
 
         /* Progress bar */
@@ -1058,9 +1224,11 @@
 
     <!-- Contents Page -->
     <div id="contents-page" class="contents-page">
+        <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" onclick="toggleMobileSidebar()" aria-label="Toggle sidebar">☰</button>
+        <div class="mobile-sidebar-overlay" id="mobile-sidebar-overlay" onclick="closeMobileSidebar()"></div>
         <div class="contents-layout">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="sidebar" id="sidebar">
                 <div class="sidebar-section">
                     <div class="sidebar-title">// quick nav</div>
                     <ul class="sidebar-nav">
@@ -1767,6 +1935,26 @@ if (hash.startsWith('browse') || hash.startsWith('view') || hash === 'readme') {
     enterExplorer();
     handleHash();
 }
+
+// ─── Mobile Sidebar ───
+function toggleMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('visible');
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('mobile-sidebar-overlay');
+    sidebar.classList.remove('open');
+    overlay.classList.remove('visible');
+}
+
+// Close sidebar on nav click (mobile)
+document.querySelectorAll('.sidebar-nav li, .sidebar-schedule a, .sidebar-back').forEach(function(el) {
+    el.addEventListener('click', closeMobileSidebar);
+});
 </script>
 
 </body>
