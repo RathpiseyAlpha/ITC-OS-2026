@@ -53,7 +53,13 @@ ITC-OS-2026/
 │   │   ├── ch1.pdf            #   Ch 1 — Introduction to OS
 │   │   ├── ch2.pdf            #   Ch 2 — OS Structures & Interfaces
 │   │   ├── ch3.pdf            #   Ch 3 — Processes
-│   │   └── ch4.pdf            #   Ch 4 — Threads & Multicore
+│   │   ├── ch4.pdf            #   Ch 4 — Threads & Multicore
+│   │   ├── ch5.pdf            #   Ch 5 — CPU Scheduling I
+│   │   ├── ch6.pdf            #   Ch 6 — CPU Scheduling II
+│   │   ├── ch7.pdf            #   Ch 7 — Critical Sections
+│   │   ├── ch8.pdf            #   Ch 8 — Semaphores & Sync Problems
+│   │   ├── ch9.pdf            #   Ch 9 — Deadlocks
+│   │   └── ch10.pdf           #   Ch 10 — Memory Management I
 │   └── class-activity/        # In-class exercises (TBA)
 │
 └── labs/
@@ -64,10 +70,8 @@ ITC-OS-2026/
     │   └── pictures/
     ├── lab2/                  # Lab 2 — (Coming Soon)
     │   └── lab2-instruction.md
-    ├── lab3/                  # Lab 3 — (Coming Soon)
-    │   └── lab3-instruction.md
-    ├── lab4/                  # Lab 4 — (Coming Soon)
-    └── lab5/                  # Lab 5 — (Coming Soon)
+    └── lab3/                  # Lab 3 — (Coming Soon)
+        └── lab3-instruction.md
 ```
 
 ---
@@ -98,12 +102,12 @@ ITC-OS-2026/
 | 2 | OS Structures & Interfaces | [ch2.pdf](lectures/files/ch2.pdf) | — |
 | 3 | Processes | [ch3.pdf](lectures/files/ch3.pdf) | [Lab 1](labs/lab1/) |
 | 4 | Threads & Multicore | [ch4.pdf](lectures/files/ch4.pdf) | — |
-| 5 | CPU Scheduling I | *Coming Soon* | — |
-| 6 | CPU Scheduling II | *Coming Soon* | — |
-| 7 | Critical Sections | *Coming Soon* | — |
-| 8 | Semaphores & Sync Problems | *Coming Soon* | — |
-| 9 | Deadlocks | *Coming Soon* | — |
-| 10 | Memory Management I | *Coming Soon* | — |
+| 5 | CPU Scheduling I | [ch5.pdf](lectures/files/ch5.pdf) | — |
+| 6 | CPU Scheduling II | [ch6.pdf](lectures/files/ch6.pdf) | — |
+| 7 | Critical Sections | [ch7.pdf](lectures/files/ch7.pdf) | — |
+| 8 | Semaphores & Sync Problems | [ch8.pdf](lectures/files/ch8.pdf) | — |
+| 9 | Deadlocks | [ch9.pdf](lectures/files/ch9.pdf) | — |
+| 10 | Memory Management I | [ch10.pdf](lectures/files/ch10.pdf) | — |
 | 11 | Virtual Memory | *Coming Soon* | — |
 | 12 | File Systems | *Coming Soon* | — |
 
@@ -115,11 +119,9 @@ ITC-OS-2026/
 
 | Lab | Title | Status | Link |
 |:---:|-------|:------:|:----:|
-| 1 | Exploring Operating System Basics | ✅ Available | [Instructions](labs/lab1/lab1-instruction.md) |
+| 1 | Exploring Operating System Basics | ✅ Available | [Instructions](labs/lab1/lab1-instruction) |
 | 2 | *TBA* | 🔜 Coming Soon | [Placeholder](labs/lab2/) |
 | 3 | *TBA* | 🔜 Coming Soon | [Placeholder](labs/lab3/) |
-| 4 | *TBA* | 🔜 Coming Soon | [Placeholder](labs/lab4/) |
-| 5 | *TBA* | 🔜 Coming Soon | [Placeholder](labs/lab5/) |
 
 ### Lab 1 Highlights
 
@@ -144,6 +146,12 @@ Task 6 ─ Virtualization Detection          (systemd-detect-virt, lscpu)
 | 2 | OS Structures & Interfaces | [📄 ch2.pdf](lectures/files/ch2.pdf) |
 | 3 | Processes | [📄 ch3.pdf](lectures/files/ch3.pdf) |
 | 4 | Threads & Multicore Programming | [📄 ch4.pdf](lectures/files/ch4.pdf) |
+| 5 | CPU Scheduling I | [📄 ch5.pdf](lectures/files/ch5.pdf) |
+| 6 | CPU Scheduling II | [📄 ch6.pdf](lectures/files/ch6.pdf) |
+| 7 | Critical Sections | [📄 ch7.pdf](lectures/files/ch7.pdf) |
+| 8 | Semaphores & Sync Problems | [📄 ch8.pdf](lectures/files/ch8.pdf) |
+| 9 | Deadlocks | [📄 ch9.pdf](lectures/files/ch9.pdf) |
+| 10 | Memory Management I | [📄 ch10.pdf](lectures/files/ch10.pdf) |
 
 > More chapters will be added as the course progresses.
 

@@ -1246,12 +1246,12 @@
                         <li><span class="wk">02</span> <a onclick="viewFile('lectures/files','ch2.pdf')">OS Structures</a> <span class="status-dot ok">●</span></li>
                         <li><span class="wk">03</span> <a onclick="viewFile('lectures/files','ch3.pdf')">Processes</a> <span class="status-dot ok">●</span></li>
                         <li><span class="wk">04</span> <a onclick="viewFile('lectures/files','ch4.pdf')">Threads</a> <span class="status-dot ok">●</span></li>
-                        <li><span class="wk">05</span> <span style="color:var(--comment)">CPU Scheduling I</span> <span class="status-dot pending">○</span></li>
-                        <li><span class="wk">06</span> <span style="color:var(--comment)">CPU Scheduling II</span> <span class="status-dot pending">○</span></li>
-                        <li><span class="wk">07</span> <span style="color:var(--comment)">Critical Sections</span> <span class="status-dot pending">○</span></li>
-                        <li><span class="wk">08</span> <span style="color:var(--comment)">Semaphores</span> <span class="status-dot pending">○</span></li>
-                        <li><span class="wk">09</span> <span style="color:var(--comment)">Deadlocks</span> <span class="status-dot pending">○</span></li>
-                        <li><span class="wk">10</span> <span style="color:var(--comment)">Memory Mgmt</span> <span class="status-dot pending">○</span></li>
+                        <li><span class="wk">05</span> <a onclick="viewFile('lectures/files','ch5.pdf')">CPU Scheduling I</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">06</span> <a onclick="viewFile('lectures/files','ch6.pdf')">CPU Scheduling II</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">07</span> <a onclick="viewFile('lectures/files','ch7.pdf')">Critical Sections</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">08</span> <a onclick="viewFile('lectures/files','ch8.pdf')">Semaphores</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">09</span> <a onclick="viewFile('lectures/files','ch9.pdf')">Deadlocks</a> <span class="status-dot ok">●</span></li>
+                        <li><span class="wk">10</span> <a onclick="viewFile('lectures/files','ch10.pdf')">Memory Mgmt</a> <span class="status-dot ok">●</span></li>
                         <li><span class="wk">11</span> <span style="color:var(--comment)">Virtual Memory</span> <span class="status-dot pending">○</span></li>
                         <li><span class="wk">12</span> <span style="color:var(--comment)">File Systems</span> <span class="status-dot pending">○</span></li>
                     </ul>
@@ -1261,8 +1261,8 @@
                     <div style="padding: 0 8px;">
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;">
                             <span class="output" style="min-width:55px">Lectures</span>
-                            <div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:33%"></div></div>
-                            <span class="highlight" style="font-size:10px">4/12</span>
+                            <div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:83%"></div></div>
+                            <span class="highlight" style="font-size:10px">10/12</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;">
                             <span class="output" style="min-width:55px">Labs</span>
@@ -1362,7 +1362,7 @@ const FILE_TREE = {
         ]
     },
     'labs': {
-        dirs: ['lab1', 'lab2', 'lab3', 'lab4', 'lab5'],
+        dirs: ['lab1', 'lab2', 'lab3'],
         files: []
     },
     'labs/lab1': {
@@ -1405,8 +1405,6 @@ const FILE_TREE = {
         dirs: [],
         files: [{ name: 'lab3-instruction.md', desc: 'Lab 3 instructions' }]
     },
-    'labs/lab4': { dirs: [], files: [] },
-    'labs/lab5': { dirs: [], files: [] },
     'lectures': {
         dirs: ['class-activity', 'files'],
         files: []
@@ -1418,7 +1416,13 @@ const FILE_TREE = {
             { name: 'ch1.pdf', desc: 'Introduction to OS' },
             { name: 'ch2.pdf', desc: 'OS Structures' },
             { name: 'ch3.pdf', desc: 'Processes' },
-            { name: 'ch4.pdf', desc: 'Threads & Multicore' }
+            { name: 'ch4.pdf', desc: 'Threads & Multicore' },
+            { name: 'ch5.pdf', desc: 'CPU Scheduling I' },
+            { name: 'ch6.pdf', desc: 'CPU Scheduling II' },
+            { name: 'ch7.pdf', desc: 'Critical Sections' },
+            { name: 'ch8.pdf', desc: 'Semaphores & Sync Problems' },
+            { name: 'ch9.pdf', desc: 'Deadlocks' },
+            { name: 'ch10.pdf', desc: 'Memory Management I' }
         ]
     }
 };
