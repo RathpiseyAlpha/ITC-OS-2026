@@ -749,8 +749,9 @@ You have finished the terminal work. Now push your folder to GitHub and document
 After completing all tasks and documentation, your `lab2` folder should look like this:
 
 ```
-os-lab-<YourStudentID>/
-└── lab2/
+os-se-<YourStudentID>/
+└── os-lab-<YourStudentID>/
+    └── lab2/
     ├── README.md
     ├── images/
     │   ├── task4_challenge.png
