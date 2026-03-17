@@ -43,8 +43,9 @@ Each task in this lab redirects its output into `.txt` files, which serve as you
 
 1. **Output Files (No Screenshots Needed):** The guided steps in each task automatically save results to `.txt` files (e.g., `task1_basic_navigation.txt`). These files will be committed to your repository as proof of completion.
 2. **Challenge Screenshots:** When you reach the 🧩 **Challenge** sections in Tasks 4, 5, and 6, take a screenshot of your terminal showing the commands you used and their output. Save these as `task4_challenge.png`, `task5_challenge.png`, and `task6_challenge.png`.
-3. **History Screenshot:** After finishing all tasks, run `history | tail -n 50` and take a screenshot. Save it as `history.png`.
-4. **Save All Images:** Save all screenshots to a folder on your host machine. You will add them to an `images/` folder in your `README.md` later.
+3. **Challenge History Screenshots:** Run the specific history command given in the README template for Tasks 4, 5, and 6 challenges and take screenshots. Save these as `task4_history.png`, `task5_history.png`, and `task6_history.png`.
+4. **Full History Screenshot:** After finishing all tasks, run `history | tail -n 50` and take a screenshot. Save it as `full_history.png`.
+5. **Save All Images:** Save all screenshots to a folder on your host machine. You will add them to an `images/` folder in your `README.md` later.
 
 ### Lab Workflow Overview
 
@@ -753,9 +754,12 @@ os-lab-<YourStudentID>/
     ├── README.md
     ├── images/
     │   ├── task4_challenge.png
+    │   ├── task4_history.png
     │   ├── task5_challenge.png
+    │   ├── task5_history.png
     │   ├── task6_challenge.png
-    │   └── history.png
+    │   ├── task6_history.png
+    │   └── full_history.png
     ├── task1_basic_navigation.txt
     ├── task2_filesystem_exploration.txt
     ├── task3_directory_structure.txt
