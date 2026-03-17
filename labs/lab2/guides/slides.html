@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operating Systems - Linux Navigation & Lab 2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f0f2f5;
+            --text-primary: #1a1a2e;
+            --text-secondary: #3a3a5c;
+            --text-muted: #6b7280;
+            --accent: #e94560;
+            --accent2: #0d9488;
+            --bg-title: linear-gradient(135deg, #e8eaf6, #c5cae9, #e3f2fd);
+            --bg-section: linear-gradient(135deg, #e3f2fd, #bbdefb, #e8eaf6);
+            --bg-content: linear-gradient(135deg, #f5f7fa, #e8ecf1, #f0f2f5);
+            --bg-nav-btn: #e0e5ec;
+            --border-nav: #c5cae9;
+            --bg-code: #eef2f7;
+            --border-code: #c5cae9;
+            --code-color: #0d9488;
+            --bg-callout: #e3f2fd;
+            --border-callout: #0d9488;
+            --callout-text: #3a3a5c;
+            --shadow: rgba(0, 0, 0, 0.12);
+            --slide-num-color: #9ca3af;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #0d9488;
+            --list-sub-color: #6b7280;
+            --person-name: #0d9488;
+            --person-years: #6b7280;
+            --nav-info-color: #9ca3af;
+            --progress-bg: linear-gradient(90deg, #e94560, #0d9488);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --bg-body: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #ccd6f6;
+            --text-muted: #4a5568;
+            --accent: #e94560;
+            --accent2: #64ffda;
+            --bg-title: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --bg-section: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            --bg-content: linear-gradient(135deg, #0d1117, #161b22, #1a1a2e);
+            --bg-nav-btn: #16213e;
+            --border-nav: #30363d;
+            --bg-code: #0d1117;
+            --border-code: #30363d;
+            --code-color: #64ffda;
+            --bg-callout: #16213e;
+            --border-callout: #64ffda;
+            --callout-text: #a8b2d1;
+            --shadow: rgba(0, 0, 0, 0.5);
+            --slide-num-color: #4a5568;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #64ffda;
+            --list-sub-color: #8892b0;
+            --person-name: #64ffda;
+            --person-years: #8892b0;
+            --nav-info-color: #4a5568;
+            --progress-bg: linear-gradient(90deg, #e94560, #64ffda);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        body.nav-open .page-wrapper {
+            margin-left: 280px;
+        }
+
+        .page-wrapper {
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 60px 80px;
+            position: relative;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        /* Slide backgrounds */
+        .slide-title-bg {
+            background: var(--bg-title);
+        }
+
+        .slide-section-bg {
+            background: var(--bg-section);
+        }
+
+        .slide-content-bg {
+            background: var(--bg-content);
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-slide h1 {
+            font-size: 4em;
+            font-weight: 700;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-slide h2 {
+            font-size: 2em;
+            font-weight: 300;
+            color: var(--text-secondary);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .title-slide .title-image {
+            max-width: 500px;
+            margin-top: 30px;
+            border-radius: 10px;
+        }
+
+        /* Section header slides */
+        .section-slide {
+            text-align: center;
+            align-items: center;
+        }
+
+        .section-slide h2 {
+            font-size: 3em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .section-slide .slide-number {
+            font-size: 1.2em;
+            color: var(--text-muted);
+        }
+
+        /* Content slides */
+        .content-slide h2 {
+            font-size: 2.4em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9456040;
+            padding-bottom: 15px;
+        }
+
+        .content-slide ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .content-slide ul li {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            padding: 8px 0 8px 30px;
+            position: relative;
+        }
+
+        .content-slide ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .content-slide ul li ul {
+            margin-top: 5px;
+        }
+
+        .content-slide ul li ul li {
+            font-size: 0.95em;
+            color: var(--list-sub-color);
+            padding: 4px 0 4px 30px;
+        }
+
+        .content-slide ul li ul li::before {
+            content: '◦';
+            color: var(--accent2);
+        }
+
+        .content-slide p {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: flex;
+            gap: 50px;
+            align-items: flex-start;
+            flex: 1;
+        }
+
+        .two-col .col {
+            flex: 1;
+        }
+
+        .two-col .col-img {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .two-col .col-img img {
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        /* Image slides */
+        .image-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+        }
+
+        .image-center img {
+            max-width: 90%;
+            max-height: 70vh;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.05em;
+            color: var(--code-color);
+            margin: 8px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-code);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            line-height: 1;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .copy-btn.copied {
+            background: var(--accent2);
+            border-color: var(--accent2);
+            color: #fff;
+        }
+
+        /* Slide number indicator */
+        .slide-num {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 1em;
+            color: var(--slide-num-color);
+        }
+
+        .slide-section-label {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-size: 0.9em;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Person info box */
+        .person-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .person-box img {
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+            margin-bottom: 15px;
+        }
+
+        .person-box .name {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: var(--person-name);
+        }
+
+        .person-box .years {
+            font-size: 0.95em;
+            color: var(--person-years);
+        }
+
+        /* Callout box */
+        .callout {
+            background: var(--bg-callout);
+            border-left: 4px solid var(--border-callout);
+            border-radius: 0 8px 8px 0;
+            padding: 20px 25px;
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: var(--callout-text);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--progress-bg);
+            transition: width 0.3s ease, left 0.3s ease;
+            z-index: 100;
+        }
+
+        body.nav-open .progress-bar {
+            left: 280px;
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+            transition: left 0.3s ease;
+        }
+
+        body.nav-open .nav-controls {
+            left: calc(50% + 140px);
+        }
+
+        .nav-btn {
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-info {
+            display: flex;
+            align-items: center;
+            color: var(--nav-info-color);
+            font-size: 0.9em;
+            padding: 0 10px;
+        }
+
+        /* Prompt structure styling */
+        .prompt-example {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 10px;
+            padding: 25px 30px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.3em;
+            color: var(--code-color);
+            margin: 25px 0;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .highlight-green {
+            color: var(--accent2);
+        }
+
+        .highlight-red {
+            color: var(--accent);
+        }
+
+        .highlight-yellow {
+            color: #ffd700;
+        }
+
+        .note-text {
+            font-size: 1em;
+            color: var(--list-sub-color);
+            font-style: italic;
+            margin-top: 15px;
+        }
+
+        /* Slide navigation map sidebar */
+        .nav-map-toggle {
+            position: fixed;
+            top: 15px;
+            left: 65px;
+            z-index: 300;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-body);
+            border-right: 1px solid var(--border-nav);
+            z-index: 250;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            padding: 70px 0 30px 0;
+        }
+
+        body.nav-open .nav-map {
+            transform: translateX(0);
+        }
+
+        body.nav-open .theme-toggle {
+            left: 295px;
+        }
+
+        body.nav-open .nav-map-toggle {
+            left: 345px;
+        }
+
+        .theme-toggle,
+        .nav-map-toggle {
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-header {
+            padding: 0 20px 15px;
+            font-size: 0.75em;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-nav);
+            margin-bottom: 8px;
+        }
+
+        .nav-map-section {
+            padding: 8px 20px 4px;
+            font-size: 0.7em;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .nav-map-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .nav-map-item:hover {
+            background: var(--bg-code);
+            border-left-color: var(--accent2);
+        }
+
+        .nav-map-item.active {
+            background: var(--bg-callout);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .nav-map-item .nm-num {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-muted);
+        }
+
+        .nav-map-item.active .nm-num {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map-item .nm-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Scrollbar styling for nav map */
+        .nav-map::-webkit-scrollbar {
+            width: 4px;
+        }
+        .nav-map::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .nav-map::-webkit-scrollbar-thumb {
+            background: var(--border-nav);
+            border-radius: 2px;
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 200;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">&#9790;</button>
+    <button class="nav-map-toggle" id="navMapToggle" title="Slide navigation map" aria-label="Slide navigation map">&#9776;</button>
+
+    <!-- Slide Navigation Map -->
+    <nav class="nav-map" id="navMap">
+        <div class="nav-map-header">Slide Map</div>
+        <div class="nav-map-section">Lecture</div>
+        <div id="navMapLecture"></div>
+        <div class="nav-map-section" style="margin-top:6px;">Lab 2</div>
+        <div id="navMapLab"></div>
+    </nav>
+
+    <div class="page-wrapper">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- ===================== LECTURE SLIDES ===================== -->
+
+    <!-- Slide 1: Title Slide -->
+    <div class="slide title-slide slide-title-bg active" id="slide-1">
+        <h1>Linux Essentials</h1>
+        <h2>Navigation</h2>
+        <img src="images/page1_img0.png" alt="Linux Essentials" class="title-image">
+        <span class="slide-num">01</span>
+    </div>
+
+    <!-- Slide 2: Introduction -->
+    <div class="slide content-slide slide-content-bg" id="slide-2">
+        <h2>Introduction</h2>
+        <ul>
+            <li>In Linux, <strong>everything is considered a file</strong>.</li>
+            <li>Files are used to store data such as text, graphics, and programs.</li>
+            <li>Directories are a type of file used to store other files; Windows and Mac OS X users typically refer to them as <strong>folders</strong>.</li>
+            <li>Directories provide a <strong>hierarchical organization structure</strong> that may differ depending on the system in use.</li>
+        </ul>
+        <div class="callout">
+            When working in a Linux operating system, it is important to know how to manipulate files and directories. While some distributions have GUI-based tools, knowing the <strong>command line</strong> is essential.
+        </div>
+        <span class="slide-section-label">01</span>
+        <span class="slide-num">2 / 28</span>
+    </div>
+
+    <!-- Slide 3: Directory Structure (Overview) -->
+    <div class="slide content-slide slide-content-bg" id="slide-3">
+        <h2>Directory Structure</h2>
+        <div class="image-center">
+            <img src="images/page3_img0.jpeg" alt="Linux Directory Structure">
+        </div>
+        <span class="slide-section-label">02</span>
+        <span class="slide-num">3 / 28</span>
+    </div>
+
+    <!-- Slide 4: Directory Structure (Detail) -->
+    <div class="slide content-slide slide-content-bg" id="slide-4">
+        <h2>Directory Structure</h2>
+        <div class="image-center">
+            <img src="images/page4_img0.png" alt="Linux Directory Structure Detail">
+        </div>
+        <span class="slide-section-label">02</span>
+        <span class="slide-num">4 / 28</span>
+    </div>
+
+    <!-- Slide 5: Home Directory -->
+    <div class="slide content-slide slide-content-bg" id="slide-5">
+        <h2>Home Directory</h2>
+        <div class="two-col">
+            <div class="col-img">
+                <img src="images/page5_img0.png" alt="Home Directory" style="max-height:350px;">
+            </div>
+            <div class="col-img">
+                <img src="images/page5_img1.png" alt="Home Directory Detail" style="max-height:350px;">
+            </div>
+        </div>
+        <span class="slide-section-label">03</span>
+        <span class="slide-num">5 / 28</span>
+    </div>
+
+    <!-- Slide 6: Home Directory (Detail) -->
+    <div class="slide content-slide slide-content-bg" id="slide-6">
+        <h2>Home Directory</h2>
+        <div class="image-center">
+            <img src="images/page6_img0.png" alt="Home Directory Detail">
+        </div>
+        <span class="slide-section-label">03</span>
+        <span class="slide-num">6 / 28</span>
+    </div>
+
+    <!-- Slide 7: Paths -->
+    <div class="slide content-slide slide-content-bg" id="slide-7">
+        <h2>Paths</h2>
+        <div class="two-col">
+            <div class="col">
+                <ul>
+                    <li>A <strong>path</strong> is used to identify the location of a file or directory in the filesystem.</li>
+                    <li>There are two types of paths:
+                        <ul>
+                            <li><strong>Absolute Path</strong> &mdash; starts from the root <span class="code-block">/</span></li>
+                            <li><strong>Relative Path</strong> &mdash; starts from the current directory</li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="prompt-example" style="margin-top:20px;">
+                    Path: <span class="highlight-green">/home/sysadmin</span>
+                </div>
+            </div>
+            <div class="col-img">
+                <img src="images/page7_img0.png" alt="Path Example" style="max-height:350px;">
+            </div>
+        </div>
+        <span class="slide-section-label">04</span>
+        <span class="slide-num">7 / 28</span>
+    </div>
+
+    <!-- Slide 8: Absolute Paths -->
+    <div class="slide content-slide slide-content-bg" id="slide-8">
+        <h2>Absolute Paths</h2>
+        <div class="two-col">
+            <div class="col">
+                <ul>
+                    <li>An <strong>absolute path</strong> always begins with the <span class="code-block">/</span> (root) character.</li>
+                    <li>It specifies the complete location from the root of the filesystem.</li>
+                    <li>Absolute paths work regardless of your current directory.</li>
+                </ul>
+                <div class="prompt-example" style="margin-top:20px;">
+                    <span class="highlight-red">cd</span> <span class="highlight-green">/home/sysadmin/Documents</span>
+                </div>
+            </div>
+            <div class="col-img">
+                <img src="images/page9_img0.png" alt="Absolute Path Example" style="max-height:300px;">
+            </div>
+        </div>
+        <span class="slide-section-label">05</span>
+        <span class="slide-num">8 / 28</span>
+    </div>
+
+    <!-- Slide 9: Relative Paths -->
+    <div class="slide content-slide slide-content-bg" id="slide-9">
+        <h2>Relative Paths</h2>
+        <div class="two-col">
+            <div class="col">
+                <ul>
+                    <li><strong>Relative paths</strong> start from the current directory.</li>
+                    <li>They give directions to a file <em>relative</em> to your current location in the filesystem.</li>
+                    <li>They do <strong>not</strong> begin with the <span class="code-block">/</span> character.</li>
+                </ul>
+                <div class="prompt-example" style="margin-top:20px;">
+                    <span class="highlight-red">cd</span> <span class="highlight-green">Documents/School</span>
+                </div>
+            </div>
+            <div class="col-img">
+                <img src="images/page10_img0.png" alt="Relative Path Example" style="max-height:300px;">
+            </div>
+        </div>
+        <span class="slide-section-label">06</span>
+        <span class="slide-num">9 / 28</span>
+    </div>
+
+    <!-- Slide 10: Path Examples — Absolute -->
+    <div class="slide content-slide slide-content-bg" id="slide-10">
+        <h2>Example: Absolute Path</h2>
+        <div class="image-center">
+            <img src="images/page12_img0.png" alt="Absolute Path Example">
+        </div>
+        <span class="slide-section-label">07</span>
+        <span class="slide-num">10 / 28</span>
+    </div>
+
+    <!-- Slide 11: Path Examples — Relative -->
+    <div class="slide content-slide slide-content-bg" id="slide-11">
+        <h2>Example: Relative Path</h2>
+        <div class="image-center">
+            <img src="images/page13_img0.png" alt="Relative Path Example">
+        </div>
+        <span class="slide-section-label">07</span>
+        <span class="slide-num">11 / 28</span>
+    </div>
+
+    <!-- Slide 12: The .. Shortcut -->
+    <div class="slide content-slide slide-content-bg" id="slide-12">
+        <h2>Shortcut: The <code>..</code> Characters</h2>
+        <div class="two-col">
+            <div class="col">
+                <ul>
+                    <li>The <span class="code-block">..</span> characters represent the <strong>parent directory</strong>.</li>
+                    <li>Use <span class="code-block">cd ..</span> to move up one level in the directory tree.</li>
+                    <li>Can be combined: <span class="code-block">cd ../../</span> moves up two levels.</li>
+                    <li>Can navigate sideways: <span class="code-block">cd ../Downloads</span> goes up one, then into <code>Downloads</code>.</li>
+                </ul>
+            </div>
+            <div class="col-img">
+                <img src="images/page14_img0.png" alt="The .. Shortcut" style="max-height:350px;">
+            </div>
+        </div>
+        <span class="slide-section-label">08</span>
+        <span class="slide-num">12 / 28</span>
+    </div>
+
+    <!-- Slide 13: The . Shortcut -->
+    <div class="slide content-slide slide-content-bg" id="slide-13">
+        <h2>Shortcut: The <code>.</code> Character</h2>
+        <div class="two-col">
+            <div class="col">
+                <ul>
+                    <li>The single period <span class="code-block">.</span> always represents the <strong>current directory</strong>.</li>
+                    <li>For <code>cd</code> this shortcut is not very useful (<code>cd .</code> stays in the same place).</li>
+                    <li>However, <span class="code-block">.</span> is very useful in other contexts:
+                        <ul>
+                            <li><span class="code-block">./script.sh</span> &mdash; run a script in the current directory</li>
+                            <li><span class="code-block">cp /etc/hosts .</span> &mdash; copy a file to the current directory</li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-img">
+                <img src="images/page15_img0.png" alt="The . Shortcut" style="max-height:350px;">
+            </div>
+        </div>
+        <span class="slide-section-label">09</span>
+        <span class="slide-num">13 / 28</span>
+    </div>
+
+    <!-- Slide 14: Recursive Listing -->
+    <div class="slide content-slide slide-content-bg" id="slide-14">
+        <h2>Recursive Listing: <code>ls -R</code></h2>
+        <div class="two-col">
+            <div class="col">
+                <ul>
+                    <li>The <span class="code-block">ls -R</span> command lists directory contents <strong>recursively</strong>.</li>
+                    <li>It shows all files and subdirectories within each directory, descending into each subdirectory.</li>
+                    <li>Useful for getting a complete view of a directory tree.</li>
+                </ul>
+                <div class="callout" style="margin-top:15px;">
+                    <strong>Tip:</strong> For very deep trees, consider using <span class="code-block">tree</span> for a more visual output.
+                </div>
+            </div>
+            <div class="col-img">
+                <img src="images/page17_img0.png" alt="Recursive Listing" style="max-height:350px;">
+            </div>
+        </div>
+        <span class="slide-section-label">10</span>
+        <span class="slide-num">14 / 28</span>
+    </div>
+
+    <!-- Slide 15: Sort Listing Options -->
+    <div class="slide content-slide slide-content-bg" id="slide-15">
+        <h2>Sort Listing Options</h2>
+        <div class="two-col">
+            <div class="col">
+                <p><strong>Sort by size, time, or human-readable format:</strong></p>
+                <ul style="margin-top:10px;">
+                    <li><span class="code-block">ls -lS</span> &mdash; sort by file <strong>size</strong> (largest first)</li>
+                    <li><span class="code-block">ls -lt</span> &mdash; sort by <strong>modification time</strong> (newest first)</li>
+                    <li><span class="code-block">ls -lh</span> &mdash; <strong>human-readable</strong> sizes (KB, MB, GB)</li>
+                </ul>
+            </div>
+            <div class="col">
+                <p><strong>Reverse the sort order:</strong></p>
+                <ul style="margin-top:10px;">
+                    <li><span class="code-block">ls -rlS</span> &mdash; smallest files first</li>
+                    <li><span class="code-block">ls -rlt</span> &mdash; oldest files first</li>
+                    <li><span class="code-block">ls -rlh</span> &mdash; reverse human-readable</li>
+                </ul>
+                <div class="callout" style="margin-top:15px;">
+                    Combine flags freely: <span class="code-block">ls -lShR</span> sorts by size recursively with human-readable output.
+                </div>
+            </div>
+        </div>
+        <span class="slide-section-label">11</span>
+        <span class="slide-num">15 / 28</span>
+    </div>
+
+    <!-- ===================== LAB 2 SLIDES ===================== -->
+
+    <!-- Slide 16: Lab 2 Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-16">
+        <h2>Lab 2 — Hands-on</h2>
+        <p style="font-size:1.3em; color:var(--text-secondary); margin-top:10px; letter-spacing:2px;">Linux Navigation &amp; File Management</p>
+        <p style="font-size:1em; color:var(--text-muted); margin-top:20px;">Duration: 2 Hours &nbsp;|&nbsp; Individual Lab</p>
+        <span class="slide-num">16</span>
+    </div>
+
+    <!-- Slide 17: Lab Objectives -->
+    <div class="slide content-slide slide-content-bg" id="slide-17">
+        <h2>Lab Objectives</h2>
+        <ul>
+            <li>Navigate the Linux filesystem using absolute and relative paths</li>
+            <li>Understand the directory hierarchy and the role of the home directory</li>
+            <li>Use <code>..</code> and <code>.</code> shortcuts effectively for navigation</li>
+            <li>Create multi-level directory structures with <code>mkdir -p</code></li>
+            <li>Move, copy, and organize files across directories</li>
+            <li>List and sort directory contents using <code>ls</code> options (<code>-R</code>, <code>-lS</code>, <code>-lt</code>, <code>-lh</code>)</li>
+        </ul>
+        <div class="callout">
+            <strong>Scenario:</strong> You are a junior sysadmin setting up a company file server. Each task represents a real workplace responsibility.
+        </div>
+        <span class="slide-section-label">LAB 2</span>
+        <span class="slide-num">17 / 28</span>
+    </div>
+
+    <!-- Slide 18: Lab Setup -->
+    <div class="slide content-slide slide-content-bg" id="slide-18">
+        <h2>Lab Setup</h2>
+        <p>Navigate into your existing submission folder and create the <code>lab2</code> directory:</p>
+        <div class="code-block" style="display:block; margin:20px 0;">cd ~/os-se-&lt;YourStudentID&gt;/os-lab-&lt;YourStudentID&gt;<br>mkdir lab2<br>cd lab2</div>
+        <ul style="margin-top:20px;">
+            <li><strong>Documentation:</strong> Same as Lab 1 — <strong>Markdown &amp; Git</strong></li>
+            <li><strong>Screenshots:</strong> Capture terminal output for each task</li>
+            <li><strong>Scenario:</strong> You are a junior sysadmin named Alex at TechCorp Inc.</li>
+        </ul>
+        <span class="slide-section-label">LAB 2</span>
+        <span class="slide-num">18 / 28</span>
+    </div>
+
+    <!-- Slide 19: Task 1 — Basic Navigation -->
+    <div class="slide content-slide slide-content-bg" id="slide-19">
+        <h2>Task 1 — Basic Navigation Warm-Up</h2>
+        <p><strong>Scenario:</strong> Your first time on the terminal. Show you can move around and check your surroundings.</p>
+        <ul style="margin-top:15px;">
+            <li>Check where you are: <span class="code-block">pwd</span></li>
+            <li>List current contents: <span class="code-block">ls</span> and <span class="code-block">ls -la</span></li>
+            <li>Go home: <span class="code-block">cd ~</span></li>
+            <li>Visit root: <span class="code-block">cd /</span> then list contents</li>
+            <li>Return home: <span class="code-block">cd ~</span></li>
+        </ul>
+        <p style="margin-top:10px;"><strong>Output:</strong> <code>task1_basic_navigation.txt</code></p>
+        <span class="slide-section-label">TASK 1</span>
+        <span class="slide-num">19 / 28</span>
+    </div>
+
+    <!-- Slide 20: Task 2 — Explore the File System -->
+    <div class="slide content-slide slide-content-bg" id="slide-20">
+        <h2>Task 2 — Explore the File System</h2>
+        <p><strong>Scenario:</strong> Explore key system directories and document what you find.</p>
+        <ul style="margin-top:15px;">
+            <li>Start from root: <span class="code-block">cd /</span> then <span class="code-block">ls -la</span></li>
+            <li>Explore: <span class="code-block">/etc</span>, <span class="code-block">/var</span>, <span class="code-block">/home</span>, <span class="code-block">/tmp</span></li>
+            <li>Record findings with <span class="code-block">pwd</span> and <span class="code-block">ls</span></li>
+            <li>Return home with <span class="code-block">cd ~</span></li>
+        </ul>
+        <p style="margin-top:10px;"><strong>Output:</strong> <code>task2_filesystem_exploration.txt</code></p>
+        <span class="slide-section-label">TASK 2</span>
+        <span class="slide-num">20 / 28</span>
+    </div>
+
+    <!-- Slide 21: Task 3 — Build Directory Structure -->
+    <div class="slide content-slide slide-content-bg" id="slide-21">
+        <h2>Task 3 — Build Company Directory</h2>
+        <p><strong>Scenario:</strong> Create the company's organized file structure for multiple departments.</p>
+        <div class="code-block" style="display:block; margin:15px 0; font-size:0.95em; line-height:1.6;">mkdir -p techcorp/{hr/{policies,onboarding},engineering/{frontend,backend,devops},marketing/{campaigns,assets}}</div>
+        <ul style="margin-top:10px;">
+            <li>Create files in each department using <span class="code-block">touch</span> and <span class="code-block">echo</span></li>
+            <li>Verify with <span class="code-block">tree</span> or <span class="code-block">ls -R</span></li>
+        </ul>
+        <p style="margin-top:10px;"><strong>Output:</strong> <code>task3_directory_structure.txt</code></p>
+        <span class="slide-section-label">TASK 3</span>
+        <span class="slide-num">21 / 28</span>
+    </div>
+
+    <!-- Slide 22: Task 4 — Navigate with Paths -->
+    <div class="slide content-slide slide-content-bg" id="slide-22">
+        <h2>Task 4 — Navigate with Paths</h2>
+        <p><strong>Scenario:</strong> Navigate between departments using absolute &amp; relative paths.</p>
+        <div class="two-col" style="margin-top:15px;">
+            <div class="col">
+                <p><strong>Guided steps:</strong></p>
+                <ul>
+                    <li>Absolute: <span class="code-block">cd ~/…/techcorp/hr</span></li>
+                    <li>Relative: <span class="code-block">cd ../marketing</span></li>
+                    <li>Shortcut: <span class="code-block">cd -</span></li>
+                </ul>
+            </div>
+            <div class="col">
+                <p><strong>🧩 Challenge:</strong></p>
+                <ul>
+                    <li>Navigate on your own — you're given a <em>goal</em>, you pick the command</li>
+                </ul>
+            </div>
+        </div>
+        <p style="margin-top:10px;"><strong>Output:</strong> <code>task4_navigation_paths.txt</code></p>
+        <span class="slide-section-label">TASK 4</span>
+        <span class="slide-num">22 / 28</span>
+    </div>
+
+    <!-- Slide 23: Task 5 — Organize Files -->
+    <div class="slide content-slide slide-content-bg" id="slide-23">
+        <h2>Task 5 — Organize Files Across Dirs</h2>
+        <p><strong>Scenario:</strong> Misplaced files need reorganizing with <code>cp</code>, <code>mv</code>, <code>rm</code>.</p>
+        <div class="two-col" style="margin-top:15px;">
+            <div class="col">
+                <p><strong>Guided fixes:</strong></p>
+                <ul>
+                    <li>Move: <span class="code-block">mv file ../correct_dir/</span></li>
+                    <li>Copy: <span class="code-block">cp file ../dest/</span></li>
+                    <li>Remove: <span class="code-block">rm file</span></li>
+                </ul>
+            </div>
+            <div class="col">
+                <p><strong>🧩 Challenge:</strong></p>
+                <ul>
+                    <li>More misplaced files — figure out the commands yourself</li>
+                    <li>Create, move, copy, rename, and delete with only a description</li>
+                </ul>
+            </div>
+        </div>
+        <p style="margin-top:10px;"><strong>Output:</strong> <code>task5_file_organization.txt</code></p>
+        <span class="slide-section-label">TASK 5</span>
+        <span class="slide-num">23 / 28</span>
+    </div>
+
+    <!-- Slide 24: Task 6 — Advanced Listing -->
+    <div class="slide content-slide slide-content-bg" id="slide-24">
+        <h2>Task 6 — Advanced Listing &amp; Audit</h2>
+        <p><strong>Scenario:</strong> Audit the file server using advanced <code>ls</code> options.</p>
+        <div class="two-col" style="margin-top:15px;">
+            <div class="col">
+                <p><strong>Guided steps:</strong></p>
+                <ul>
+                    <li><span class="code-block">ls -R</span> — recursive</li>
+                    <li><span class="code-block">ls -lS</span> — by size</li>
+                    <li><span class="code-block">ls -lt</span> — by time</li>
+                    <li><span class="code-block">ls -lh</span> — human-readable</li>
+                </ul>
+            </div>
+            <div class="col">
+                <p><strong>🧩 Challenge:</strong></p>
+                <ul>
+                    <li>Manager asks questions — you pick which <code>ls</code> flags answer them</li>
+                </ul>
+            </div>
+        </div>
+        <p style="margin-top:10px;"><strong>Output:</strong> <code>task6_advanced_listing.txt</code></p>
+        <span class="slide-section-label">TASK 6</span>
+        <span class="slide-num">24 / 28</span>
+    </div>
+
+    <!-- Slide 25: Submission Phase 1 — Push to GitHub -->
+    <div class="slide content-slide slide-content-bg" id="slide-25">
+        <h2>Submission — Phase 1: Push to GitHub</h2>
+        <ul>
+            <li>Verify your structure with <span class="code-block">tree</span></li>
+            <li>Commit and push your work:
+                <div class="code-block" style="display:block; margin:8px 0;">cd ~/os-se-&lt;YourStudentID&gt;<br>git add .<br>git commit -m "Completed Lab 2 — Navigation"<br>git push</div>
+            </li>
+        </ul>
+        <span class="slide-section-label">SUBMIT</span>
+        <span class="slide-num">25 / 28</span>
+    </div>
+
+    <!-- Slide 26: Submission Phase 2 & 3 -->
+    <div class="slide content-slide slide-content-bg" id="slide-26">
+        <h2>Submission — Phase 2 &amp; 3</h2>
+        <div class="two-col">
+            <div class="col">
+                <p><strong>Phase 2: Document in VS Code</strong></p>
+                <ul style="margin-top:10px;">
+                    <li>Clone/pull repo on host machine</li>
+                    <li>Add screenshots to <code>images/</code></li>
+                    <li>Write <code>README.md</code> using template</li>
+                    <li>Push final changes</li>
+                </ul>
+            </div>
+            <div class="col">
+                <p><strong>Phase 3: Pull to Lab Server</strong></p>
+                <ul style="margin-top:10px;">
+                    <li><span class="code-block">ssh user@server</span></li>
+                    <li><span class="code-block">cd ~ && git pull</span></li>
+                    <li>Verify with <span class="code-block">tree</span></li>
+                    <li><span class="code-block">exit</span></li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-section-label">SUBMIT</span>
+        <span class="slide-num">26 / 28</span>
+    </div>
+
+    <!-- Slide 27: About the 🧩 Challenges -->
+    <div class="slide content-slide slide-content-bg" id="slide-27">
+        <h2>About the 🧩 Challenges</h2>
+        <ul>
+            <li>Tasks 4, 5, and 6 each include a <strong>🧩 Challenge</strong> section</li>
+            <li>Challenges tell you <strong>what to achieve</strong>, but not the exact commands</li>
+            <li>You must <strong>figure out the right commands</strong> using what you've learned</li>
+            <li>This is how real sysadmin work operates — you know the tools, you solve the problem</li>
+        </ul>
+        <div class="callout" style="margin-top:20px;">
+            <strong>Tips:</strong> Re-read the guided steps above each challenge. Use <span class="code-block">man</span> pages if unsure about options. Test your commands before recording output.
+        </div>
+        <span class="slide-section-label">LAB 2</span>
+        <span class="slide-num">27 / 28</span>
+    </div>
+
+    <!-- Slide 28: Expected Folder Structure & Summary -->
+    <div class="slide content-slide slide-content-bg" id="slide-28">
+        <h2>Expected Folder Structure</h2>
+        <div class="two-col">
+            <div class="col">
+                <div class="code-block" style="display:block; font-size:0.85em; line-height:1.6;">os-lab-&lt;ID&gt;/<br>&nbsp;&nbsp;└── lab2/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── README.md<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── images/<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── task1.png … task6.png<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task1_basic_navigation.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task2_filesystem_exploration.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task3_directory_structure.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task4_navigation_paths.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task5_file_organization.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── task6_advanced_listing.txt<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── techcorp/ (directory tree)</div>
+            </div>
+            <div class="col">
+                <div class="callout" style="margin-bottom:20px;">
+                    <strong>Checklist before submitting:</strong>
+                </div>
+                <ul>
+                    <li>✅ All 6 <code>.txt</code> output files present</li>
+                    <li>✅ 🧩 Challenge sections completed</li>
+                    <li>✅ <code>techcorp/</code> directory structure created</li>
+                    <li>✅ Screenshots in <code>images/</code></li>
+                    <li>✅ <code>README.md</code> written</li>
+                    <li>✅ Pushed to GitHub</li>
+                    <li>✅ Pulled to lab server</li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-section-label">SUMMARY</span>
+        <span class="slide-num">28 / 28</span>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">&#9664; Prev</button>
+        <div class="nav-info"><span id="slideInfo">1 / 28</span></div>
+        <button class="nav-btn" onclick="nextSlide()">Next &#9654;</button>
+    </div>
+    </div><!-- end page-wrapper -->
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 28;
+
+        // Slide titles for the navigation map
+        const slideTitles = [
+            'Title',
+            'Introduction',
+            'Directory Structure',
+            'Directory Structure',
+            'Home Directory',
+            'Home Directory',
+            'Paths',
+            'Absolute Paths',
+            'Relative Paths',
+            'Example: Absolute',
+            'Example: Relative',
+            'Shortcut: ..',
+            'Shortcut: .',
+            'Recursive Listing',
+            'Sort Listing',
+            'Lab 2 — Hands-on',
+            'Objectives',
+            'Lab Setup',
+            'Task 1: Basic Nav',
+            'Task 2: Explore FS',
+            'Task 3: Build Dirs',
+            'Task 4: Navigate + 🧩',
+            'Task 5: Organize + 🧩',
+            'Task 6: Listing + 🧩',
+            'Phase 1: Push',
+            'Phase 2 & 3',
+            'About Challenges',
+            'Summary & Checklist'
+        ];
+
+        // Build navigation map
+        function buildNavMap() {
+            const lectureContainer = document.getElementById('navMapLecture');
+            const labContainer = document.getElementById('navMapLab');
+            for (let i = 1; i <= totalSlides; i++) {
+                const item = document.createElement('div');
+                item.className = 'nav-map-item';
+                item.setAttribute('data-slide', i);
+                item.innerHTML = '<span class="nm-num">' + i + '</span><span class="nm-title">' + slideTitles[i - 1] + '</span>';
+                item.addEventListener('click', function() {
+                    showSlide(i);
+                });
+                if (i <= 15) lectureContainer.appendChild(item);
+                else labContainer.appendChild(item);
+            }
+        }
+
+        function updateNavMap(n) {
+            document.querySelectorAll('.nav-map-item').forEach(function(item) {
+                item.classList.remove('active');
+                if (parseInt(item.getAttribute('data-slide')) === n) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            });
+        }
+
+        // Nav map toggle
+        const navMap = document.getElementById('navMap');
+        const navMapToggle = document.getElementById('navMapToggle');
+        navMapToggle.addEventListener('click', function() {
+            document.body.classList.toggle('nav-open');
+        });
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+            currentSlide = n;
+
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            document.getElementById('slide-' + n).classList.add('active');
+            document.getElementById('slideInfo').textContent = n + ' / ' + totalSlides;
+            document.getElementById('progressBar').style.width = ((n / totalSlides) * 100) + '%';
+            updateNavMap(n);
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(1);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides);
+            }
+        });
+
+        // Touch support for mobile
+        let touchStartX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        document.addEventListener('touchend', function(e) {
+            const touchEndX = e.changedTouches[0].screenX;
+            const diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide();
+                else prevSlide();
+            }
+        });
+
+        // Add copy buttons to all code blocks
+        document.querySelectorAll('.code-block').forEach(function(block) {
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            var copyIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M5 11H3.5A1.5 1.5 0 0 1 2 9.5V3.5A1.5 1.5 0 0 1 3.5 2h6A1.5 1.5 0 0 1 11 3.5V5"/></svg>';
+            var checkIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8.5l3.5 3.5 6.5-7"/></svg>';
+            btn.innerHTML = copyIcon;
+            btn.title = 'Copy command';
+            btn.setAttribute('aria-label', 'Copy command');
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const text = block.childNodes[0].textContent.trim();
+                navigator.clipboard.writeText(text).then(function() {
+                    btn.innerHTML = checkIcon;
+                    btn.classList.add('copied');
+                    setTimeout(function() {
+                        btn.innerHTML = copyIcon;
+                        btn.classList.remove('copied');
+                    }, 1500);
+                });
+            });
+            block.appendChild(btn);
+        });
+
+        // Theme toggle
+        const themeToggle = document.getElementById('themeToggle');
+        function setTheme(dark) {
+            if (dark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.innerHTML = '&#9788;';
+                localStorage.setItem('slide-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.innerHTML = '&#9790;';
+                localStorage.setItem('slide-theme', 'light');
+            }
+        }
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.documentElement.hasAttribute('data-theme');
+            setTheme(!isDark);
+        });
+        // Load saved theme preference
+        if (localStorage.getItem('slide-theme') === 'dark') {
+            setTheme(true);
+        }
+
+        // Initialize
+        buildNavMap();
+        showSlide(1);
+    </script>
+</body>
+</html>
