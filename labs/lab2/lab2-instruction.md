@@ -39,11 +39,12 @@ cd lab2
 
 ### Documenting Your Work (Taking Screenshots)
 
-Follow the same process as Lab 1:
+Each task in this lab redirects its output into `.txt` files, which serve as your **primary proof of work** for the guided portions. You only need to take screenshots for the **Challenge sections** and your **command history**:
 
-1. **Take Screenshots:** As you complete each task, capture your terminal using your host machine's screenshot tool.
-2. **Save Temporarily:** Save images to a folder on your host machine. Name them clearly (e.g., `task1.png`, `task2.png`).
-3. **Document Later:** You will add these images to a `README.md` file after finishing all terminal tasks.
+1. **Output Files (No Screenshots Needed):** The guided steps in each task automatically save results to `.txt` files (e.g., `task1_basic_navigation.txt`). These files will be committed to your repository as proof of completion.
+2. **Challenge Screenshots:** When you reach the 🧩 **Challenge** sections in Tasks 4, 5, and 6, take a screenshot of your terminal showing the commands you used and their output. Save these as `task4_challenge.png`, `task5_challenge.png`, and `task6_challenge.png`.
+3. **History Screenshot:** After finishing all tasks, run `history | tail -n 50` and take a screenshot. Save it as `history.png`.
+4. **Save All Images:** Save all screenshots to a folder on your host machine. You will add them to an `images/` folder in your `README.md` later.
 
 ### Lab Workflow Overview
 
@@ -751,12 +752,10 @@ os-lab-<YourStudentID>/
 └── lab2/
     ├── README.md
     ├── images/
-    │   ├── task1.png
-    │   ├── task2.png
-    │   ├── task3.png
-    │   ├── task4.png
-    │   ├── task5.png
-    │   └── task6.png
+    │   ├── task4_challenge.png
+    │   ├── task5_challenge.png
+    │   ├── task6_challenge.png
+    │   └── history.png
     ├── task1_basic_navigation.txt
     ├── task2_filesystem_exploration.txt
     ├── task3_directory_structure.txt
