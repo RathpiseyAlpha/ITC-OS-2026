@@ -60,7 +60,25 @@ ITC-OS-2026/
 │   │   ├── ch8.pdf            #   Ch 8 — Semaphores & Sync Problems
 │   │   ├── ch9.pdf            #   Ch 9 — Deadlocks
 │   │   └── ch10.pdf           #   Ch 10 — Memory Management I
-│   └── class-activity/        # In-class exercises (TBA)
+│   │
+│   ├── notes/                 # 📝 Note-taking templates (one per week)
+│   │   ├── README.md          #   Guide & template structure
+│   │   ├── week01-introduction-to-os.md
+│   │   ├── week02-os-structures-interfaces.md
+│   │   ├── week03-processes.md
+│   │   ├── week04-threads-multicore.md
+│   │   ├── week05-cpu-scheduling-1.md
+│   │   ├── week06-cpu-scheduling-2.md
+│   │   ├── week07-critical-sections.md
+│   │   ├── week08-semaphores-sync.md
+│   │   ├── week09-deadlocks.md
+│   │   ├── week10-memory-management.md
+│   │   ├── week11-virtual-memory.md
+│   │   └── week12-file-systems.md
+│   │
+│   └── class-activity/        # 🧪 Hands-on programming activities
+│       ├── README.md          #   Activity index
+│       └── class-activity1.md #   System Calls with POSIX (Linux)
 │
 └── labs/
     ├── lab1/                  # Lab 1 — Exploring OS Basics
@@ -68,8 +86,10 @@ ITC-OS-2026/
     │   ├── README.md
     │   ├── guides/
     │   └── pictures/
-    ├── lab2/                  # Lab 2 — (Coming Soon)
-    │   └── lab2-instruction.md
+    ├── lab2/                  # Lab 2 — Linux Navigation & File Management
+    │   ├── lab2-instruction.md
+    │   ├── README.md
+    │   └── guides/
     └── lab3/                  # Lab 3 — (Coming Soon)
         └── lab3-instruction.md
 ```
@@ -119,8 +139,8 @@ ITC-OS-2026/
 
 | Lab | Title | Status | Link |
 |:---:|-------|:------:|:----:|
-| 1 | Exploring Operating System Basics | ✅ Available | [Instructions](labs/lab1/lab1-instruction) |
-| 2 | *TBA* | 🔜 Coming Soon | [Placeholder](labs/lab2/) |
+| 1 | Exploring Operating System Basics | ✅ Available | [Instructions](labs/lab1/lab1-instruction.md) |
+| 2 | Linux Navigation & File Management | ✅ Available | [Instructions](labs/lab2/lab2-instruction.md) |
 | 3 | *TBA* | 🔜 Coming Soon | [Placeholder](labs/lab3/) |
 
 ### Lab 1 Highlights
@@ -157,7 +177,42 @@ Task 6 ─ Virtualization Detection          (systemd-detect-virt, lscpu)
 
 ---
 
-## 🛠️ Tools & Environment
+## � Lecture Notes Templates
+
+Standardized note-taking templates are provided for every week of the course. Each template includes sections for key concepts, detailed notes, diagrams, comparisons, examples, review questions, and personal reflection.
+
+→ Browse them in [`lectures/notes/`](lectures/notes/)
+
+| Week | Template |
+|:----:|----------|
+| 1 | [Introduction to OS](lectures/notes/week01-introduction-to-os.md) |
+| 2 | [OS Structures & Interfaces](lectures/notes/week02-os-structures-interfaces.md) |
+| 3 | [Processes](lectures/notes/week03-processes.md) |
+| 4 | [Threads & Multicore](lectures/notes/week04-threads-multicore.md) |
+| 5 | [CPU Scheduling I](lectures/notes/week05-cpu-scheduling-1.md) |
+| 6 | [CPU Scheduling II](lectures/notes/week06-cpu-scheduling-2.md) |
+| 7 | [Critical Sections](lectures/notes/week07-critical-sections.md) |
+| 8 | [Semaphores & Sync Problems](lectures/notes/week08-semaphores-sync.md) |
+| 9 | [Deadlocks](lectures/notes/week09-deadlocks.md) |
+| 10 | [Memory Management I](lectures/notes/week10-memory-management.md) |
+| 11 | [Virtual Memory](lectures/notes/week11-virtual-memory.md) |
+| 12 | [File Systems](lectures/notes/week12-file-systems.md) |
+
+---
+
+## 🧪 Class Activities
+
+Hands-on programming activities that accompany the lecture topics.
+
+| # | Activity | Topic | Related Lecture |
+|---|----------|-------|-----------------|
+| 1 | [System Calls in Practice](lectures/class-activity/class-activity1.md) | POSIX System Calls (Linux) + Optional Windows API | Week 2 |
+
+→ Browse them in [`lectures/class-activity/`](lectures/class-activity/)
+
+---
+
+## �🛠️ Tools & Environment
 
 | Tool | Purpose |
 |------|---------|
@@ -183,7 +238,33 @@ $ git init
 $ git remote add origin https://github.com/<YourUsername>/OS-SE-<YourStudentID>.git
 
 # 4. Start working on labs!
+
+# 5. When class activities are assigned, create the activities folder:
+$ mkdir -p os-class-activities-<YourStudentID>/activity1
 ```
+
+### 📂 Your Submission Repo Structure
+
+```
+os-se-<YourStudentID>/
+├── os-lab-<YourStudentID>/                # Lab submissions
+│   ├── lab1/
+│   │   ├── README.md                      # Submission with screenshots
+│   │   └── ...
+│   ├── lab2/
+│   └── ...
+│
+└── os-class-activities-<YourStudentID>/   # Class activity submissions
+    ├── activity1/
+    │   ├── README.md                      # Screenshots + answers + reflection
+    │   ├── screenshots/
+    │   ├── task1/
+    │   ├── task2/
+    │   └── task3/
+    └── ...
+```
+
+> Each activity folder must contain a **README.md** with your name, student ID, and screenshot evidence of your programs running. Templates are provided in each activity's instructions.
 
 ---
 

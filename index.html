@@ -1174,9 +1174,10 @@
                 <span class="terminal-btn btn-close"></span>
                 <span class="terminal-btn btn-min"></span>
                 <span class="terminal-btn btn-max"></span>
-                <span class="terminal-title">root@itc-os:~</span>
+                <span class="terminal-title">root@itc-os:~ — welcome</span>
             </div>
-            <div class="terminal-body ascii-banner">
+            <div class="terminal-body">
+                <div class="ascii-banner">
 <pre>
  ___  ____  _____ ____      _  _____ ___ _   _  ____
 / _ \|  _ \| ____|  _ \    / \|_   _|_ _| \ | |/ ___|
@@ -1190,30 +1191,27 @@
  ___) || |  ___) || | | |___| |  | |___) |
 |____/ |_| |____/ |_| |_____|_|  |_|____/
 </pre>
-                <div style="margin-top: 10px; color: var(--cyan); font-size: 13px;">
-                    Institute of Technology of Cambodia &middot; Department of Information and Communication Engineering
+                    <div style="margin-top: 10px; color: var(--cyan); font-size: 13px;">
+                        Institute of Technology of Cambodia &middot; Department of Information and Communication Engineering
+                    </div>
+                    <div style="color: var(--comment); font-size: 11px; margin-top: 4px;">
+                       Course: SE-019 - Operating Systems &mdash; Instructor: Heng Rathpisey
+                    </div>
                 </div>
-                <div style="color: var(--comment); font-size: 11px; margin-top: 4px;">
-                   Course: SE-019 - Operating Systems &mdash; Instructor: Heng Rathpisey
-                </div>
-            </div>
-        </div>
 
-        <div class="terminal">
-            <div class="terminal-header">
-                <span class="terminal-btn btn-close"></span>
-                <span class="terminal-btn btn-min"></span>
-                <span class="terminal-btn btn-max"></span>
-                <span class="terminal-title">bash — login</span>
-            </div>
-            <div class="terminal-body" id="login-body">
-                <div style="color:var(--comment);font-size:11px;margin-bottom:8px;">ITC-OS kernel 6.1.0-itc (tty1)</div>
-                <div style="margin-bottom:4px;"><span style="color:var(--white);">itc-os-2026</span> login: </div>
-                <div class="login-line">
-                    <span class="login-label">username: </span>
-                    <input type="text" class="login-input" id="login-input" placeholder="enter your name" maxlength="20" autocomplete="off" spellcheck="false">
+                <div style="border-top: 1px dashed var(--green-dark); margin: 16px 0; padding-top: 14px;">
+                    <div style="color:var(--comment);font-size:11px;margin-bottom:8px;">ITC-OS kernel 6.1.0-itc (tty1)</div>
+                    <div style="margin-bottom:4px;"><span style="color:var(--white);">itc-os-2026</span> login: </div>
+                    <div class="login-line">
+                        <span class="login-label">username: </span>
+                        <input type="text" class="login-input" id="login-input" placeholder="enter your name" maxlength="20" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div id="login-output"></div>
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);">
+                        <span style="color:var(--comment); font-size: 11px;">// or skip login:</span>
+                        <span id="guest-login-btn" style="color:var(--cyan); font-size: 12px; cursor:pointer; margin-left: 8px; border-bottom: 1px dashed var(--cyan); transition: all 0.3s;" onmouseover="this.style.color='var(--green)';this.style.borderColor='var(--green)';this.style.textShadow='0 0 8px rgba(0,255,65,0.5)'" onmouseout="this.style.color='var(--cyan)';this.style.borderColor='var(--cyan)';this.style.textShadow='none'" onclick="guestLogin()">continue as guest →</span>
+                    </div>
                 </div>
-                <div id="login-output"></div>
             </div>
         </div>
 
@@ -1236,7 +1234,9 @@
                         <li onclick="navigateTo('labs')">📁 labs</li>
                         <li onclick="navigateTo('lectures')">📁 lectures</li>
                         <li onclick="navigateTo('lectures/files')">📄 slides</li>
-                        <li onclick="viewCourseOutline()">📝 course outline</li>
+                        <li onclick="navigateTo('lectures/notes')">📝 notes</li>
+                        <li onclick="navigateTo('lectures/class-activity')">🧪 activities</li>
+                        <li onclick="viewCourseOutline()">📋 course outline</li>
                     </ul>
                 </div>
                 <div class="sidebar-section">
@@ -1266,8 +1266,8 @@
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;">
                             <span class="output" style="min-width:55px">Labs</span>
-                            <div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:20%"></div></div>
-                            <span class="highlight" style="font-size:10px">1/5</span>
+                            <div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:40%"></div></div>
+                            <span class="highlight" style="font-size:10px">2/5</span>
                         </div>
                     </div>
                 </div>
@@ -1398,22 +1398,10 @@ const FILE_TREE = {
         ]
     },
     'labs/lab2': {
-        dirs: ['guides', 'images'],
+        dirs: ['guides'],
         files: [
             { name: 'lab2-instruction.md', desc: 'Lab 2 instructions' },
             { name: 'README.md', desc: 'Lab 2 submission template' }
-        ]
-    },
-    'labs/lab2/images': {
-        dirs: [],
-        files: [
-            { name: 'task4_challenge.png', desc: 'Screenshot' },
-            { name: 'task4_history.png', desc: 'Screenshot' },
-            { name: 'task5_challenge.png', desc: 'Screenshot' },
-            { name: 'task5_history.png', desc: 'Screenshot' },
-            { name: 'task6_challenge.png', desc: 'Screenshot' },
-            { name: 'task6_history.png', desc: 'Screenshot' },
-            { name: 'full_history.png', desc: 'Screenshot' }
         ]
     },
     'labs/lab2/guides': {
@@ -1444,10 +1432,9 @@ const FILE_TREE = {
         files: [{ name: 'lab3-instruction.md', desc: 'Lab 3 instructions' }]
     },
     'lectures': {
-        dirs: ['class-activity', 'files'],
+        dirs: ['files', 'notes', 'class-activity'],
         files: []
     },
-    'lectures/class-activity': { dirs: [], files: [] },
     'lectures/files': {
         dirs: [],
         files: [
@@ -1461,6 +1448,31 @@ const FILE_TREE = {
             { name: 'ch8.pdf', desc: 'Semaphores & Sync Problems' },
             { name: 'ch9.pdf', desc: 'Deadlocks' },
             { name: 'ch10.pdf', desc: 'Memory Management I' }
+        ]
+    },
+    'lectures/notes': {
+        dirs: [],
+        files: [
+            { name: 'README.md', desc: 'Notes guide & template structure' },
+            { name: 'week01-introduction-to-os.md', desc: 'Week 1 notes template' },
+            { name: 'week02-os-structures-interfaces.md', desc: 'Week 2 notes template' },
+            { name: 'week03-processes.md', desc: 'Week 3 notes template' },
+            { name: 'week04-threads-multicore.md', desc: 'Week 4 notes template' },
+            { name: 'week05-cpu-scheduling-1.md', desc: 'Week 5 notes template' },
+            { name: 'week06-cpu-scheduling-2.md', desc: 'Week 6 notes template' },
+            { name: 'week07-critical-sections.md', desc: 'Week 7 notes template' },
+            { name: 'week08-semaphores-sync.md', desc: 'Week 8 notes template' },
+            { name: 'week09-deadlocks.md', desc: 'Week 9 notes template' },
+            { name: 'week10-memory-management.md', desc: 'Week 10 notes template' },
+            { name: 'week11-virtual-memory.md', desc: 'Week 11 notes template' },
+            { name: 'week12-file-systems.md', desc: 'Week 12 notes template' }
+        ]
+    },
+    'lectures/class-activity': {
+        dirs: [],
+        files: [
+            { name: 'README.md', desc: 'Activity index' },
+            { name: 'class-activity1.md', desc: 'System Calls with POSIX (Linux)' }
         ]
     }
 };
@@ -1600,6 +1612,29 @@ function renderFileView(filePath) {
                         el.setAttribute(attr, baseDir + val);
                     }
                 });
+                // Handle anchor links: scroll within the md-viewer pane instead of changing the URL hash
+                container.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetId = decodeURIComponent(this.getAttribute('href').slice(1));
+                        // Try finding by id directly
+                        let target = container.querySelector('[id="' + targetId.replace(/"/g, '\\"') + '"]');
+                        // Fallback: search heading whose generated id matches (marked slugifies differently sometimes)
+                        if (!target) {
+                            container.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
+                                if (h.id === targetId || h.id === targetId.toLowerCase()) {
+                                    target = h;
+                                }
+                            });
+                        }
+                        if (target) {
+                            // Scroll the parent scrollable pane, not the whole page
+                            const scrollParent = container.closest('.pane-bottom') || container.closest('.terminal-body') || container;
+                            const offset = target.getBoundingClientRect().top - scrollParent.getBoundingClientRect().top + scrollParent.scrollTop;
+                            scrollParent.scrollTo({ top: offset - 10, behavior: 'smooth' });
+                        }
+                    });
+                });
             })
             .catch(() => { container.innerHTML = '<span style="color:var(--red)">Error loading file.</span>'; });
     } else if (ext === 'pdf') {
@@ -1694,7 +1729,7 @@ const bootLines = [
     { text: '  [  OK  ] Started course-materials.service', cls: 'boot-ok' },
     { text: '  [  OK  ] Started lecture-slides.service', cls: 'boot-ok' },
     { text: '  [  OK  ] Started lab-instructions.service', cls: 'boot-ok' },
-    { text: '  [ WARN ] Labs 2-5 pending deployment', cls: 'boot-warn' },
+    { text: '  [ WARN ] Labs 3-5 pending deployment', cls: 'boot-warn' },
     { text: '', cls: 'boot-info' },
     { text: 'ITC Operating Systems 2026 — Ready.', cls: 'boot-ok' },
 ];
@@ -1862,6 +1897,10 @@ function escapeHtml(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
+}
+
+function guestLogin() {
+    performLogin('guest');
 }
 
 (function() {
