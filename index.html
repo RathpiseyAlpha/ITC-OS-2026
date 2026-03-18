@@ -1594,7 +1594,12 @@ function renderFileView(filePath) {
 
     let html = '';
     if (ext === 'md') {
-        html = '<div class="md-viewer" id="md-render" style="max-height:none;flex:1;"></div>';
+        const ghUrl = 'https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/' + filePath;
+        html = '<div style="padding:6px 12px;background:rgba(0,255,65,0.04);border-bottom:1px solid var(--border);font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:6px;">'
+             + '<span style="color:var(--comment);">// navigation links may not work here \u2014</span>'
+             + '<a href="' + ghUrl + '" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);text-decoration:none;border-bottom:1px dashed var(--cyan);transition:color 0.2s;" onmouseover="this.style.color=\'var(--green)\'" onmouseout="this.style.color=\'var(--cyan)\'">view on GitHub \u2197</a>'
+             + '</div>'
+             + '<div class="md-viewer" id="md-render" style="max-height:none;flex:1;"></div>';
         viewerEl.innerHTML = html;
         viewerEl.style.display = 'flex';
         const container = document.getElementById('md-render');
