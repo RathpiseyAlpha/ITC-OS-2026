@@ -330,10 +330,10 @@ Now that you've seen the examples, here is what you need to do. **The library ve
 
 | Task | What You'll Build | You Are Given | You Write | Key System Calls |
 |------|-------------------|--------------|-----------|-----------------|
-| **1. File Creator** | Create a file, write text, close it | `file_creator_lib.c` (complete) | `file_creator_sys.c` | `open`, `write`, `close` |
-| **2. File Reader** | Open a file, read contents, display to terminal | `file_reader_lib.c` (complete) | `file_reader_sys.c` | `open`, `read`, `write`, `close` |
-| **3. Directory Listing** | List files in current directory with sizes | `dir_list_lib.c` (complete) | `dir_list_sys.c` | `opendir`, `readdir`, `stat`, `write`, `close` |
-| **4. strace Analysis** | Trace & compare system calls of both versions | Tasks 1–3 programs | Annotated screenshots + written analysis | `strace` |
+| **1. File Creator & Reader** | Create a file, write text, then read it back | `file_creator_lib.c` + `file_reader_lib.c` (complete) | `file_creator_sys.c` + `file_reader_sys.c` | `open`, `write`, `read`, `close` |
+| **2. Directory Listing** | List files in current directory with sizes | `dir_list_lib.c` (complete) | `dir_list_sys.c` | `opendir`, `readdir`, `stat`, `write`, `close` |
+| **3. strace Analysis** | Trace & compare system calls of both versions | Tasks 1–2 programs | Annotated screenshots + written analysis | `strace` |
+| **4. OS Structure** | Explore how Linux exposes kernel info via `/proc` | Commands provided | Screenshots + written analysis | `/proc`, `uname`, `lsmod` |
 | **Bonus (Optional)** | Redo Task 1 using Windows API | — | `file_creator_win.c` | `CreateFile`, `WriteFile`, `CloseHandle` |
 
 **Both versions must produce identical output.**
