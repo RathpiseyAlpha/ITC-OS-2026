@@ -11,13 +11,15 @@
 >
 > **Before you write a single line of code, read through this ENTIRE document from top to bottom.** Scan every section — the examples, the tasks, the deliverables, the folder structure, and the README template. Understand the full scope of what is expected **before** you start working. Students who skip ahead often miss requirements and waste time redoing work.
 >
+> ⏱️ **Estimated time**: Reading this document takes about **30–40 minutes**. Completing all tasks takes approximately **3.5–5 hours** depending on your experience with C and Linux.
+>
 > **Document structure:**
 > 1. **Objective** — What you'll learn
 > 2. **Prerequisites** — What you need set up
 > 3. **Background: System Calls Explained** — How `write()`, `open()`, `read()`, `close()` work, what file descriptors are, and introductory examples for both Linux and Windows
 > 4. **Task Overview** — Summary of all tasks at a glance
 > 5. **Warm-Up Examples** — Starter code you run first to get comfortable
-> 6. **Tasks 1–4 (Required)** — Detailed instructions; library code is provided, you write the system call version; Task 4 covers `strace` analysis
+> 6. **Tasks 1–4 (Required)** — Detailed instructions; library code is provided, you write the system call version; Task 3 covers `strace` analysis; Task 4 explores OS structure
 > 7. **Optional Bonus** — Windows API version
 > 8. **Deliverables & Submission** — Folder structure, README template, git push
 > 9. **Grading Criteria** — How your work will be evaluated
@@ -33,10 +35,10 @@
 | Background: System Calls | [▶ Background](#background-system-calls-explained) |
 | Warm-Up Examples | [▶ Warm-Up Examples](#warm-up-examples) |
 | Task Overview | [▶ Task Overview](#task-overview) |
-| Task 1: File Creator | [▶ Task 1](#task-1-file-creator) |
-| Task 2: File Reader | [▶ Task 2](#task-2-file-reader--display) |
-| Task 3: Directory Listing | [▶ Task 3](#task-3-directory-listing--file-info) |
-| Task 4: strace Analysis | [▶ Task 4](#task-4-tracing-system-calls-with-strace) |
+| Task 1: File Creator & Reader | [▶ Task 1](#task-1-file-creator--reader) |
+| Task 2: Directory Listing | [▶ Task 2](#task-2-directory-listing--file-info) |
+| Task 3: strace Analysis | [▶ Task 3](#task-3-tracing-system-calls-with-strace) |
+| Task 4: OS Structure | [▶ Task 4](#task-4-exploring-os-structure-through-proc) |
 | Optional Bonus: Windows | [▶ Windows Bonus](#optional-bonus-system-calls-on-windows) |
 | Deliverables & Submission | [▶ Deliverables](#deliverables--submission) |
 | Grading Criteria | [▶ Grading](#grading-criteria) |
@@ -340,7 +342,9 @@ Now that you've seen the examples, here is what you need to do. **The library ve
 
 ## Required Tasks
 
-### Task 1: File Creator
+### Task 1: File Creator & Reader
+
+**Part A — File Creator**
 
 Write a program that:
 - Creates a new file called `output.txt`
@@ -421,10 +425,10 @@ cat output.txt
 
 ---
 
-### Task 2: File Reader & Display
+**Part B — File Reader & Display**
 
-Write a program that:
-- Opens the file `output.txt` (created in Task 1)
+Now write a program that:
+- Opens the file `output.txt` (created in Part A)
 - Reads its contents
 - Displays the contents to the terminal
 - Closes the file
@@ -495,7 +499,7 @@ int main() {
 
 ---
 
-### Task 3: Directory Listing & File Info
+### Task 2: Directory Listing & File Info
 
 Write a program that:
 - Lists all files in the current directory
@@ -581,7 +585,7 @@ int main() {
 
 ---
 
-### Task 4: Tracing System Calls with `strace`
+### Task 3: Tracing System Calls with `strace`
 
 Now that you have both library and system call versions of your programs, let's see **exactly** what the operating system does when each version runs. The `strace` tool intercepts and records every system call a program makes.
 
@@ -615,14 +619,14 @@ strace -e trace=openat,read,write,close ./file_creator_lib 2> strace_lib_task1.t
 strace -e trace=openat,read,write,close ./file_creator_sys 2> strace_sys_task1.txt
 ```
 
-**Step 2 — Run `strace` on both versions of Task 2 (or Task 3):**
+**Step 2 — Run `strace` on the file reader or directory listing programs:**
 
-Pick at least one more task and trace both versions:
+Pick at least one more program pair and trace both versions:
 
 ```bash
-# Example with Task 2
-strace -e trace=openat,read,write,close ./file_reader_lib 2> strace_lib_task2.txt
-strace -e trace=openat,read,write,close ./file_reader_sys 2> strace_sys_task2.txt
+# Example with the file reader (Task 1, Part B)
+strace -e trace=openat,read,write,close ./file_reader_lib 2> strace_lib_reader.txt
+strace -e trace=openat,read,write,close ./file_reader_sys 2> strace_sys_reader.txt
 ```
 
 **Step 3 — Get a system call summary:**
@@ -637,8 +641,8 @@ strace -c ./file_creator_sys 2> strace_summary_sys.txt
 
 **Step 4 — Capture and annotate screenshots:**
 
-1. Take a screenshot of the `strace` output for the **library version** of at least two tasks.
-2. Take a screenshot of the `strace` output for the **system call version** of the same tasks.
+1. Take a screenshot of the `strace` output for the **library version** of at least two programs (e.g., file creator and file reader).
+2. Take a screenshot of the `strace` output for the **system call version** of the same programs.
 3. Take a screenshot of the `strace -c` summary for both versions.
 4. **Highlight or annotate** the key differences in your screenshots (use boxes, arrows, or colored highlights). You can use any tool: Paint, Snipping Tool markup, PowerPoint, or an image editor.
 
@@ -655,6 +659,94 @@ strace -c ./file_creator_sys 2> strace_summary_sys.txt
 2. What extra system calls do you see in the library version that are not in the system call version? What do they do? (e.g., `brk`, `mmap`, `access`, `fstat`)
 3. When the library version calls `fprintf()`, how many actual `write()` system calls does `strace` show? Does it match what you expected? Why or why not?
 4. Based on the `strace` output, explain in your own words: **What is the real difference between a library function and a system call?**
+
+---
+
+### Task 4: Exploring OS Structure through `/proc`
+
+In lecture, you learned that the OS has a layered structure: **hardware → kernel → system calls → user programs**. In this task, you will observe this structure in a running Linux system by exploring the `/proc` virtual filesystem — a window into the kernel's internal state.
+
+#### What is `/proc`?
+
+`/proc` is a **virtual filesystem** — it doesn't store anything on disk. Instead, the kernel generates its contents on the fly when you read them. Each file in `/proc` exposes real-time information about the system: CPU details, memory usage, running processes, loaded kernel modules, and more.
+
+#### Part A — System Information
+
+Run the following commands and capture the output:
+
+```bash
+# Kernel version and system info
+uname -a
+
+# CPU information
+cat /proc/cpuinfo | head -20
+
+# Memory information
+cat /proc/meminfo | head -10
+
+# Kernel version string
+cat /proc/version
+
+# System uptime (in seconds)
+cat /proc/uptime
+```
+
+> 📸 **Take a screenshot** showing the output of all five commands.
+
+#### Part B — Process Information
+
+Every running process has a directory under `/proc/<PID>/`. You can inspect your own process using `/proc/self/`:
+
+```bash
+# Your shell's process status
+cat /proc/self/status | head -20
+
+# Memory map of the current process
+cat /proc/self/maps | head -20
+
+# Command line used to start the process
+cat /proc/self/cmdline | tr '\0' ' '; echo
+
+# List all running processes (traditional view)
+ps aux | head -15
+```
+
+> 📸 **Take a screenshot** showing the output of these commands.
+
+#### Part C — Kernel Modules
+
+The Linux kernel is **modular** — functionality can be loaded and unloaded at runtime:
+
+```bash
+# List currently loaded kernel modules
+lsmod | head -20
+
+# Get details about a specific module (pick one from lsmod output)
+modinfo <module_name>
+```
+
+> 📸 **Take a screenshot** of `lsmod` output and one `modinfo` result.
+
+#### Part D — Draw the OS Layers
+
+Based on what you found in Parts A–C, draw a **layered diagram** of your system's OS structure. Your diagram should include:
+
+1. **Hardware layer** — Label with your actual CPU model (from `/proc/cpuinfo`) and memory size (from `/proc/meminfo`)
+2. **Kernel layer** — Label with your kernel version (from `uname -a`) and list 2–3 loaded modules (from `lsmod`)
+3. **System call interface** — Show where system calls like `open()`, `read()`, `write()` sit
+4. **User space** — Show your shell process and the programs you ran in Tasks 1–2
+
+You can draw this by hand (photo), in a drawing tool (draw.io, PowerPoint, Paint), or as ASCII art.
+
+> 📸 **Include your diagram** in your `screenshots/` folder as `task4_os_layers_diagram.png` (or `.jpg`).
+
+#### Questions (answer in your README)
+
+1. What is `/proc`? Is it a real filesystem on disk? Where does its content come from?
+2. What is the difference between a **monolithic kernel** and a **microkernel**? Based on the `lsmod` output, which type does Linux use?
+3. Look at the output of `cat /proc/self/maps`. What different memory regions do you see? (e.g., heap, stack, shared libraries)
+4. What does the kernel version string (from `uname -a`) tell you? Break down each part.
+5. How does `/proc` demonstrate that the OS acts as an **intermediary** between user programs and hardware?
 
 ---
 
@@ -756,25 +848,23 @@ os-se-<YourStudentID>/
     └── activity1/
         ├── README.md                      # ← Your report: screenshots + answers + reflection
         ├── screenshots/                   # Screenshot images
-        │   ├── task1_lib.png
-        │   ├── task1_sys.png
+        │   ├── task1_creator_lib.png
+        │   ├── task1_creator_sys.png
+        │   ├── task1_reader_lib.png
+        │   ├── task1_reader_sys.png
         │   ├── task2_lib.png
         │   ├── task2_sys.png
-        │   ├── task3_lib.png
-        │   ├── task3_sys.png
-        │   ├── strace_lib_task1.png
-        │   ├── strace_sys_task1.png
-        │   ├── strace_summary_lib.png
-        │   ├── strace_summary_sys.png
+        │   ├── strace_*.png
+        │   ├── task4_system_info.png
+        │   ├── task4_os_layers_diagram.png
         │   └── ...
         ├── task1/
         │   ├── file_creator_lib.c         # Provided (copy from instructions)
         │   ├── file_creator_sys.c         # YOU WRITE THIS
-        │   └── file_creator_win.c         # (optional bonus)
-        ├── task2/
         │   ├── file_reader_lib.c          # Provided (copy from instructions)
-        │   └── file_reader_sys.c          # YOU WRITE THIS
-        └── task3/
+        │   ├── file_reader_sys.c          # YOU WRITE THIS
+        │   └── file_creator_win.c         # (optional bonus)
+        └── task2/
             ├── dir_list_lib.c             # Provided (copy from instructions)
             └── dir_list_sys.c             # YOU WRITE THIS
 ```
@@ -786,7 +876,7 @@ os-se-<YourStudentID>/
 $ cd os-se-<YourStudentID>
 
 # Create the class activities folder structure
-$ mkdir -p os-class-activities-<YourStudentID>/activity1/{task1,task2,task3,task4_strace,screenshots}
+$ mkdir -p os-class-activities-<YourStudentID>/activity1/{task1,task2,task3_strace,task4_os_structure,screenshots}
 
 # Start working
 $ cd os-class-activities-<YourStudentID>/activity1
@@ -842,21 +932,23 @@ Screenshot of running `copyfilesyscall.c` on Linux:
 
 ---
 
-## Task 1: File Creator
+## Task 1: File Creator & Reader
+
+### Part A — File Creator
 
 **Describe your implementation:** [What differences did you notice between the library version and the system call version?]
 
-### Version A — Library Functions (`file_creator_lib.c`)
+**Version A — Library Functions (`file_creator_lib.c`):**
 
 <!-- Screenshot: gcc -o file_creator_lib file_creator_lib.c && ./file_creator_lib && cat output.txt -->
-![Task 1 - Version A](screenshots/task1_lib.png)
+![Task 1A - Library](screenshots/task1_creator_lib.png)
 
-### Version B — POSIX System Calls (`file_creator_sys.c`)
+**Version B — POSIX System Calls (`file_creator_sys.c`):**
 
 <!-- Screenshot: gcc -o file_creator_sys file_creator_sys.c && ./file_creator_sys && cat output.txt -->
-![Task 1 - Version B](screenshots/task1_sys.png)
+![Task 1A - Syscall](screenshots/task1_creator_sys.png)
 
-### Questions
+**Questions:**
 
 1. **What flags did you pass to `open()`? What does each flag mean?**
 
@@ -870,21 +962,19 @@ Screenshot of running `copyfilesyscall.c` on Linux:
 
    > [Your answer]
 
----
-
-## Task 2: File Reader & Display
+### Part B — File Reader & Display
 
 **Describe your implementation:** [Your notes]
 
-### Version A — Library Functions (`file_reader_lib.c`)
+**Version A — Library Functions (`file_reader_lib.c`):**
 
-![Task 2 - Version A](screenshots/task2_lib.png)
+![Task 1B - Library](screenshots/task1_reader_lib.png)
 
-### Version B — POSIX System Calls (`file_reader_sys.c`)
+**Version B — POSIX System Calls (`file_reader_sys.c`):**
 
-![Task 2 - Version B](screenshots/task2_sys.png)
+![Task 1B - Syscall](screenshots/task1_reader_sys.png)
 
-### Questions
+**Questions:**
 
 1. **What does `read()` return? How is this different from `fgets()`?**
 
@@ -896,17 +986,17 @@ Screenshot of running `copyfilesyscall.c` on Linux:
 
 ---
 
-## Task 3: Directory Listing & File Info
+## Task 2: Directory Listing & File Info
 
 **Describe your implementation:** [Your notes]
 
 ### Version A — Library Functions (`dir_list_lib.c`)
 
-![Task 3 - Version A](screenshots/task3_lib.png)
+![Task 2 - Version A](screenshots/task2_lib.png)
 
 ### Version B — System Calls (`dir_list_sys.c`)
 
-![Task 3 - Version B](screenshots/task3_sys.png)
+![Task 2 - Version B](screenshots/task2_sys.png)
 
 ### Questions
 
@@ -946,29 +1036,29 @@ Screenshot of running on Windows:
 
 ---
 
-## Task 4: strace Analysis
+## Task 3: strace Analysis
 
 **Describe what you observed:** [What surprised you about the strace output? How many more system calls did the library version make?]
 
-### strace Output — Library Version (Task 1)
+### strace Output — Library Version (File Creator)
 
 <!-- Screenshot: strace -e trace=openat,read,write,close ./file_creator_lib -->
 <!-- IMPORTANT: Highlight/annotate the key system calls in your screenshot -->
-![strace - Library version Task 1](screenshots/strace_lib_task1.png)
+![strace - Library version File Creator](screenshots/strace_lib_creator.png)
 
-### strace Output — System Call Version (Task 1)
+### strace Output — System Call Version (File Creator)
 
 <!-- Screenshot: strace -e trace=openat,read,write,close ./file_creator_sys -->
 <!-- IMPORTANT: Highlight/annotate the key system calls in your screenshot -->
-![strace - System call version Task 1](screenshots/strace_sys_task1.png)
+![strace - System call version File Creator](screenshots/strace_sys_creator.png)
 
-### strace Output — Library Version (Task 2 or 3)
+### strace Output — Library Version (File Reader or Dir Listing)
 
-![strace - Library version Task 2/3](screenshots/strace_lib_task2.png)
+![strace - Library version](screenshots/strace_lib_reader.png)
 
-### strace Output — System Call Version (Task 2 or 3)
+### strace Output — System Call Version (File Reader or Dir Listing)
 
-![strace - System call version Task 2/3](screenshots/strace_sys_task2.png)
+![strace - System call version](screenshots/strace_sys_reader.png)
 
 ### strace -c Summary Comparison
 
@@ -996,6 +1086,56 @@ Screenshot of running on Windows:
 
 ---
 
+## Task 4: Exploring OS Structure
+
+### System Information
+
+> 📸 Screenshot of `uname -a`, `/proc/cpuinfo`, `/proc/meminfo`, `/proc/version`, `/proc/uptime`:
+
+![System Info](screenshots/task4_system_info.png)
+
+### Process Information
+
+> 📸 Screenshot of `/proc/self/status`, `/proc/self/maps`, `ps aux`:
+
+![Process Info](screenshots/task4_process_info.png)
+
+### Kernel Modules
+
+> 📸 Screenshot of `lsmod` and `modinfo`:
+
+![Kernel Modules](screenshots/task4_modules.png)
+
+### OS Layers Diagram
+
+> 📸 Your diagram of the OS layers, labeled with real data from your system:
+
+![OS Layers Diagram](screenshots/task4_os_layers_diagram.png)
+
+### Questions
+
+1. **What is `/proc`? Is it a real filesystem on disk?**
+
+   > [Your answer]
+
+2. **Monolithic kernel vs. microkernel — which type does Linux use?**
+
+   > [Your answer]
+
+3. **What memory regions do you see in `/proc/self/maps`?**
+
+   > [Your answer]
+
+4. **Break down the kernel version string from `uname -a`.**
+
+   > [Your answer]
+
+5. **How does `/proc` show that the OS is an intermediary between programs and hardware?**
+
+   > [Your answer]
+
+---
+
 ## Reflection
 
 What did you learn from this activity? What was the most surprising difference between library functions and system calls?
@@ -1012,12 +1152,14 @@ What did you learn from this activity? What was the most surprising difference b
 | Criteria | Points |
 |----------|--------|
 | Warm-up examples run successfully (with screenshots) | 5 |
-| Task 1 — System call version compiles and matches library version output | 15 |
-| Task 2 — System call version compiles and matches library version output | 15 |
-| Task 3 — System call version compiles and matches library version output | 15 |
-| Task 4 — strace screenshots with clear highlights and annotations | 15 |
-| Task 4 — strace questions answered with evidence from output | 10 |
-| All other questions (Tasks 1–3) answered thoughtfully in README | 15 |
+| Task 1A — File Creator syscall version compiles and matches output | 10 |
+| Task 1B — File Reader syscall version compiles and matches output | 10 |
+| Task 2 — Directory Listing syscall version compiles and matches output | 10 |
+| Task 3 — strace screenshots with clear highlights and annotations | 10 |
+| Task 3 — strace questions answered with evidence from output | 10 |
+| Task 4 — OS structure screenshots and OS layers diagram | 10 |
+| Task 4 — OS structure questions answered thoughtfully | 10 |
+| All other questions (Tasks 1–2) answered thoughtfully in README | 15 |
 | README is well-organized with clear screenshots | 10 |
 | **Bonus**: Windows API version with screenshot | +10 |
 | **Total** | **100 (+10 bonus)** |
