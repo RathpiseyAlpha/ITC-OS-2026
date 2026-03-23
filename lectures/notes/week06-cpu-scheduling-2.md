@@ -33,27 +33,72 @@ _Write a one-sentence summary of what this topic is about:_
 
 ### 3.1 Round Robin Scheduling
 
+> **🎣 Hook:** What if every process got an equal slice of CPU time, like taking turns in a game? That's Round Robin — but what happens if the time slice is too big? Too small? Finding the sweet spot changes everything.
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - What happens when the time quantum is set to infinity? (Hint: it becomes another algorithm.)
+> - What happens when the time quantum is set extremely small? What's the hidden cost?
+> - How does Round Robin handle I/O-bound vs. CPU-bound processes differently?
+> - Is Round Robin fair? What does "fair" even mean in scheduling?
 
 
 ### 3.2 Priority Scheduling
 
+> **🎣 Hook:** Not all processes are created equal — your virus scanner shouldn't get the same priority as your video call. But who assigns priorities, and what happens to the unlucky low-priority process that never gets to run?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - How are priorities assigned — statically or dynamically?
+> - What is the starvation problem in priority scheduling?
+> - Can priority scheduling be combined with other algorithms?
+> - What real-world systems use strict priority scheduling?
 
 
 ### 3.3 Starvation & Aging
 
+> **🎣 Hook:** Imagine standing in line forever because someone more "important" keeps cutting ahead. That's starvation. So how do you guarantee that every process eventually gets served?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - How does aging work — at what rate should priority increase?
+> - Is starvation a theoretical concern or does it actually happen in real systems?
+> - Does aging completely solve the problem, or are there edge cases?
+> - Which scheduling algorithms are vulnerable to starvation?
 
 
 ### 3.4 Multilevel Queue Scheduling
 
+> **🎣 Hook:** What if you had separate waiting lines for different types of travelers at an airport — first class, business, economy? That's the idea behind multilevel queues. But how do you decide which line gets served first?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - How are processes assigned to queues — can they move between queues?
+> - What scheduling algorithm runs *within* each queue?
+> - How is CPU time divided *between* queues?
+> - What happens to background processes when foreground processes keep arriving?
 
 
 ### 3.5 Multilevel Feedback Queue Scheduling
 
+> **🎣 Hook:** Multilevel queues are rigid — once you're in economy, you stay there. MLFQ fixes this by letting processes move between queues based on their behavior. It's the most sophisticated scheduler we'll study — and it comes with a lot of design knobs.
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - What behavior causes a process to be demoted to a lower queue?
+> - How does MLFQ distinguish between CPU-bound and I/O-bound processes *automatically*?
+> - What parameters define an MLFQ (number of queues, quantum per level, promotion/demotion rules)?
+> - Can a process game the system by voluntarily giving up the CPU right before its quantum expires?
 
 
 ---

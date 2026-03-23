@@ -38,27 +38,70 @@ _Write a one-sentence summary of what this topic is about:_
 
 ### 3.1 Basic Scheduling Concepts
 
+> **🎣 Hook:** Your CPU is the most valuable resource in the system, and dozens of processes are fighting for it. Who gets to use it next — and is there a *fair* way to decide?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - When exactly does the OS need to make a scheduling decision?
+> - What is a CPU burst vs. an I/O burst, and why does this pattern matter for scheduling?
+> - What's the difference between a *long-term*, *short-term*, and *medium-term* scheduler?
 
 
 ### 3.2 Scheduling Criteria
 
+> **🎣 Hook:** Should we optimize for getting the most work done? Or for making each user feel like the system is responsive? These goals often *conflict* — so which one wins?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - Can you maximize throughput AND minimize response time at the same time?
+> - What's the difference between waiting time and turnaround time?
+> - Which criterion matters most for an interactive desktop vs. a batch server?
+> - How do you actually *measure* these criteria in a real system?
 
 
 ### 3.3 FCFS Scheduling
 
+> **🎣 Hook:** "First come, first served" sounds perfectly fair — until one process takes 100ms and makes everyone else wait. Why is the simplest scheduling algorithm often the worst?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - What is the "convoy effect" and why does it hurt FCFS?
+> - Is FCFS preemptive or non-preemptive? What does that mean in practice?
+> - In what scenarios would FCFS actually perform reasonably well?
 
 
 ### 3.4 SJF Scheduling
 
+> **🎣 Hook:** Mathematically, SJF gives the best possible average waiting time. So why don't real operating systems just use it? There's a fatal flaw hiding in plain sight.
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - Why is SJF provably optimal for average waiting time?
+> - How can you know the *next* CPU burst length in advance? (Hint: you can't — so how do you approximate it?)
+> - What is exponential averaging and how does it predict burst time?
+> - Can SJF cause starvation? For which type of processes?
 
 
 ### 3.5 SRTF (Preemptive SJF)
 
+> **🎣 Hook:** What if a brand-new short job arrives while a longer job is already running? Should we kick the running job off the CPU? SRTF says *yes* — but at what cost?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - How does SRTF differ from SJF in behavior when a new process arrives?
+> - Does SRTF always produce a better average waiting time than SJF?
+> - What's the overhead of frequent preemptions (context switches)?
+> - How would you handle a tie when two processes have the same remaining time?
 
 
 ---

@@ -36,10 +36,21 @@ _Write a one-sentence summary of what this topic is about:_
 
 ### 3.1 The Critical Section Problem
 
+> **🎣 Hook:** Two threads both try to update the same bank balance at the same time. One adds $100, the other subtracts $50. The final balance? It depends on *who goes first* — and sometimes, the answer is just wrong. How do you prevent this chaos?
+
 _Notes:_
 
 
+> **❓ Questions You Should Be Asking:**
+> - What exactly is a "critical section" — is it a concept or an actual piece of code?
+> - Why doesn't this problem exist on a single-threaded system?
+> - How does interleaving of instructions at the hardware level cause race conditions?
+> - Can you always tell by looking at code whether it has a critical section problem?
+
+
 ### 3.2 Requirements for a Solution
+
+> **🎣 Hook:** You can't just slap a lock on everything — a correct solution must satisfy *three* strict requirements. Miss even one, and your solution is broken. What are they, and why is each one essential?
 
 _Notes:_
 
@@ -47,19 +58,52 @@ _Notes:_
 2. **Progress**:
 3. **Bounded Waiting**:
 
+> **❓ Questions You Should Be Asking:**
+> - If you only guarantee mutual exclusion but not progress, what goes wrong?
+> - What does "bounded waiting" protect against — and for whom?
+> - Can a solution satisfy mutual exclusion and progress but fail bounded waiting? Give an example.
+> - Are these requirements sufficient for a *good* solution, or just a *correct* one?
+
 ### 3.3 Peterson's Solution
 
+> **🎣 Hook:** In 1981, Gary Peterson came up with an elegant two-process solution using just two variables and no hardware support. It's beautiful, it works in theory — and it fails on modern CPUs. Why?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - How do the `flag[]` array and `turn` variable work together to guarantee mutual exclusion?
+> - Why does Peterson's solution break on modern hardware? (Hint: instruction reordering.)
+> - Does Peterson's solution satisfy all three requirements (mutual exclusion, progress, bounded waiting)?
+> - Can Peterson's solution be extended to more than two processes?
 
 
 ### 3.4 Hardware Solutions (Test-and-Set, CAS)
 
+> **🎣 Hook:** Software-only solutions are fragile. What if the CPU itself gave you an instruction that atomically checks-and-sets a value in one uninterruptible step? That's exactly what modern CPUs provide.
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - Why must test-and-set be *atomic* — what breaks if it isn't?
+> - How does Compare-and-Swap (CAS) differ from Test-and-Set?
+> - Do hardware solutions alone satisfy bounded waiting? Why or why not?
+> - What is the performance cost of these atomic instructions on multi-core systems?
 
 
 ### 3.5 Mutex Locks
 
+> **🎣 Hook:** Atomic instructions are great for hardware, but programmers need something higher-level. Enter the mutex lock: `acquire()` before the critical section, `release()` after. Simple — but what happens if you forget to release?
+
 _Notes:_
+
+
+> **❓ Questions You Should Be Asking:**
+> - What is the difference between a mutex and a spinlock?
+> - When is busy waiting (spinning) acceptable, and when is it wasteful?
+> - What happens if a thread holding a mutex crashes — is the lock released?
+> - On a single-core system, does a spinlock ever make sense?
 
 
 ---
