@@ -6,7 +6,7 @@
 | **Lab Title** | Wildcards, Links, Boot Loader Exploration & Shared Libraries |
 | **Chapter** | OS Structures & Bootstrap Process |
 | **Duration** | 3 Hours |
-| **Lab Type** | Individual + Pair (Task 7) |
+| **Lab Type** | Individual + Pair (Task 5) |
 
 ---
 
@@ -19,11 +19,10 @@
 > 2. **Task Overview** — Summary of all tasks at a glance
 > 3. **Lab Setup** — Repository and folder preparation
 > 4. **Quick Reference Tables** — Command cheat sheets for each topic
-> 5. **Tasks 1–5 (Required, Individual)** — Wildcards, Links, GRUB exploration, Shared objects, Boot recovery
-> 6. **Task 6 (Required, Individual)** — GRUB customization on your own VM
-> 7. **Task 7 (Required, Pair)** — Create and register a custom shared library
-> 8. **Deliverables & Submission** — Folder structure, README template, git push
-> 9. **Screenshot Checklist** — Every screenshot you need, in one place
+> 5. **Tasks 1–4 (Required, Individual)** — Wildcards, Links, GRUB (exploration + customization + boot recovery), Shared objects
+> 6. **Task 5 (Required, Pair)** — Create and register a custom shared library collaboratively
+> 7. **Deliverables & Submission** — Folder structure, README template, git push
+> 8. **Screenshot Checklist** — Every screenshot you need, in one place
 
 ---
 
@@ -37,11 +36,9 @@
 | Quick Reference | [▶ Quick Reference](#quick-reference-wildcards) |
 | Task 1: Wildcards | [▶ Task 1](#task-1--mastering-wildcards) |
 | Task 2: Links | [▶ Task 2](#task-2--hard-links-and-symbolic-links) |
-| Task 3: GRUB Exploration | [▶ Task 3](#task-3--grub-bootloader-exploration) |
+| Task 3: GRUB (Explore + Customize + Recovery) | [▶ Task 3](#task-3--grub-exploration-customization--boot-recovery) |
 | Task 4: Shared Objects | [▶ Task 4](#task-4--shared-objects-dynamic-libraries-exploration) |
-| Task 5: Boot Recovery | [▶ Task 5](#task-5--simulate-a-safe-boot-break-and-recovery-vm-only) |
-| Task 6: GRUB Customization | [▶ Task 6](#task-6--grub-customization-vm-only) |
-| Task 7: Build a Shared Library (Pair) | [▶ Task 7](#task-7--build-and-register-a-shared-library-pair-task) |
+| Task 5: Build a Shared Library (Pair) | [▶ Task 5](#task-5--build--register-a-shared-library-pair-task) |
 | Submission | [▶ Submission](#final-submission-github-and-vs-code-documentation) |
 | Screenshot Checklist | [▶ Screenshot Checklist](#screenshot-checklist) |
 
@@ -72,11 +69,9 @@ After completing this lab, students will be able to:
 |:---:|-------|:----:|:-----------:|-------------|:------------:|
 | **1** | Mastering Wildcards | Individual | WSL / Server | `*`, `?`, `[]`, `{}`, `ls`, `cp`, `rm` | `task1_wildcards.txt` |
 | **2** | Hard Links & Symbolic Links | Individual | WSL / Server | `ln`, `ln -s`, `ls -li`, `stat`, `readlink` | `task2_links.txt` |
-| **3** | GRUB Bootloader Exploration | Individual | WSL / Server | `cat`, `ls`, `uname -r`, `dmesg`, `head` | `task3_grub.txt` |
+| **3** | GRUB: Explore, Customize & Recover | Individual | WSL + **VM** | `cat`, `dmesg`, `/etc/default/grub`, `update-grub`, GRUB CLI | `task3_grub.txt` + screenshots |
 | **4** | Shared Objects Exploration | Individual | WSL / Server | `ldd`, `ldconfig -p`, `file`, `readelf` | `task4_shared_objects.txt` |
-| **5** | Boot Break & Recovery | Individual | **VM only** | GRUB CLI, `update-grub`, `mount` | `task5_boot_recovery.txt` + screenshots |
-| **6** | GRUB Customization | Individual | **VM only** | `/etc/default/grub`, `update-grub` | `task6_grub_custom.txt` + screenshots |
-| **7** | Build a Shared Library | **Pair** | WSL / Server | `gcc -shared`, `ldconfig`, `ldd` | `task7_shared_library.txt` |
+| **5** | Build a Shared Library | **Pair** | WSL / Server | `gcc -shared -fPIC`, `ldconfig`, `ldd` | `task5_shared_library.txt` |
 
 ---
 
@@ -92,12 +87,12 @@ cd lab3
 
 ### Documenting Your Work (Taking Screenshots)
 
-Each task in this lab redirects its output into `.txt` files, which serve as your **primary proof of work** for the guided portions. You also need screenshots for challenges, VM tasks, and GRUB customization:
+Each task in this lab redirects its output into `.txt` files, which serve as your **primary proof of work** for the guided portions. You also need screenshots for challenges, VM tasks, and the pair task:
 
 1. **Output Files (No Screenshots Needed for Guided Steps):** The guided steps in each task automatically save results to `.txt` files (e.g., `task1_wildcards.txt`). These files will be committed to your repository as proof of completion.
-2. **Challenge Screenshots:** When you reach the 🧩 **Challenge** sections in Tasks 1, 2, and 4, take a screenshot of your terminal showing the commands you used and their output.
-3. **VM Screenshots (Tasks 5 & 6):** Boot recovery and GRUB customization involve the VM console/display, so they must be documented with screenshots.
-4. **Pair Task Screenshot (Task 7):** Take a screenshot showing the shared library compilation, registration, and test program output.
+2. **Challenge Screenshots:** When you reach the 🧩 **Challenge** sections in Tasks 1, 2, 3, and 4, take a screenshot of your terminal showing the commands you used and their output.
+3. **VM Screenshots (Task 3 Parts B & C):** GRUB customization and boot recovery involve the VM console/display, so they must be documented with screenshots.
+4. **Pair Task Screenshot (Task 5):** Take screenshots showing the API design session and the integration test with both partners' work.
 5. **Full History Screenshot:** After finishing all tasks, run `history | tail -n 100` and take a screenshot.
 6. **Save All Images:** Save all screenshots to a folder on your host machine. You will add them to an `images/` folder in your `README.md` later.
 
@@ -109,33 +104,32 @@ Each task in this lab redirects its output into `.txt` files, which serve as you
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                          WSL / Linux Terminal                                │
 │                                                                              │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌──────────┐          │
-│  │ Task 1  │  │ Task 2  │  │ Task 3  │  │ Task 4  │  │ Task 7   │          │
-│  │Wildcards│─▶│  Links  │─▶│  GRUB   │─▶│ Shared  │─▶│ Build .so│          │
-│  │         │  │         │  │ Explore │  │ Objects │  │  (Pair)  │          │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └────┬─────┘          │
-│                                                             │                │
-│                                                             ▼                │
-│                                                      ┌───────────┐           │
-│                                                      │ git push  │           │
-│                                                      │ to GitHub │           │
-│                                                      └─────┬─────┘           │
-└─────────────────────────────────────────────────────────────┼────────────────┘
-                                                              │
-                 ┌────────────────────────────────────────────┘
-                 │
-                 ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                          VM (VirtualBox / VMware)                             │
-│                                                                              │
-│  ┌──────────┐   ┌──────────┐                                                │
-│  │ Task 5   │──▶│ Task 6   │                                                │
-│  │Boot Break│   │GRUB Skin │                                                │
-│  │& Recovery│   │& Timeout │                                                │
-│  └──────────┘   └──────────┘                                                │
-└──────────────────────────────────────────────────────────────────────────────┘
-                 │
-                 ▼
+│  ┌─────────┐  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │ Task 1  │  │ Task 2  │  │ Task 3A  │  │ Task 4   │  │ Task 5   │        │
+│  │Wildcards│─▶│  Links  │─▶│  GRUB    │─▶│ Shared   │─▶│ Build .so│        │
+│  │         │  │         │  │ Explore  │  │ Objects  │  │  (Pair)  │        │
+│  └─────────┘  └─────────┘  └─────┬────┘  └──────────┘  └────┬─────┘        │
+│                                   │                           │              │
+│                                   ▼                           ▼              │
+│                            ┌─────────────┐             ┌───────────┐         │
+│                            │ Continue to │             │ git push  │         │
+│                            │ VM (3B, 3C) │             │ to GitHub │         │
+│                            └──────┬──────┘             └─────┬─────┘         │
+└───────────────────────────────────┼──────────────────────────┼───────────────┘
+                                    │                          │
+┌───────────────────────────────────┼──────────────────────────┘
+│                                   ▼
+│  ┌──────────────────────────────────────────────────────────────────────────┐
+│  │                          VM (VirtualBox / VMware)                        │
+│  │                                                                          │
+│  │  ┌──────────┐   ┌──────────┐   ┌──────────┐                             │
+│  │  │ Task 3B  │──▶│ Task 3C  │──▶│ Challenge│                             │
+│  │  │   GRUB   │   │Boot Break│   │  (GRUB)  │                             │
+│  │  │Customize │   │& Recovery│   │          │                             │
+│  │  └──────────┘   └──────────┘   └──────────┘                             │
+│  └──────────────────────────────────────────────────────────────────────────┘
+│
+▼
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                         Host OS (Windows / Mac)                              │
 │                                                                              │
@@ -500,19 +494,11 @@ echo "--- Challenge Links ---" >> task2_links.txt
 
 ---
 
-## Task 3 — GRUB Bootloader Exploration
+## Task 3 — GRUB: Exploration, Customization & Boot Recovery
 
-**Scenario:** A senior engineer tells you: *"Every sysadmin needs to understand how Linux boots. If a server can't boot, nothing else matters. Start by reading our GRUB configuration and understanding what each piece does."*
+**Scenario:** A senior engineer tells you: *"Every sysadmin needs to understand how Linux boots. If a server can't boot, nothing else matters. I need you to first read and understand our GRUB configuration, then customize the boot menu on our training VM so it's branded for TechCorp, and finally practice emergency boot recovery — because if a production server can't start, you need to know how to fix it WITHOUT reinstalling the OS."*
 
-**Purpose:** Explore the GRUB (GRand Unified Bootloader) configuration and understand the Linux boot sequence from power-on to a running OS. This task connects directly to the **Bootstrap Process** concept from Week 1 lectures.
-
-**Commands Used:**
-
-- `cat` / `less` — view file contents
-- `ls` — list directory contents
-- `grub-mkconfig` — generate/preview GRUB configuration
-- `uname -r` — display current kernel version
-- `dmesg` — display kernel boot messages
+**Purpose:** Explore the GRUB (GRand Unified Bootloader) configuration, customize the boot menu, and practice emergency recovery. This task covers the full lifecycle of bootloader administration — from reading and understanding, to modifying, to breaking and fixing. It connects directly to the **Bootstrap Process** concept from Week 1 lectures.
 
 > **Background — The Linux Boot Sequence:**
 >
@@ -532,6 +518,25 @@ echo "--- Challenge Links ---" >> task2_links.txt
 > 3. **The kernel** initializes hardware, mounts the root filesystem, and starts the first process.
 > 4. **init/systemd** starts all system services in the correct order.
 > 5. The **login prompt** appears — the system is ready for use.
+
+**Commands Used:**
+
+- `cat` / `less` — view file contents
+- `ls` — list directory contents
+- `uname -r` — display current kernel version
+- `dmesg` — display kernel boot messages
+- `vi` or `nano` — text editor
+- `/etc/default/grub` — main GRUB defaults file
+- `/etc/grub.d/` — custom menu scripts directory
+- `sudo update-grub` — regenerate `grub.cfg`
+- VM snapshot tools (VirtualBox: `Snapshots` panel)
+- GRUB command line (`grub>`) — manual boot commands
+- `mount`, `chroot` — repair commands in rescue mode
+- `grub-install`, `update-grub` — reinstall/reconfigure GRUB
+
+---
+
+### Part A — Bootloader Exploration (WSL / Server)
 
 **Instructions:**
 
@@ -609,7 +614,352 @@ echo "--- Challenge Links ---" >> task2_links.txt
 
    > These scripts are run by `grub-mkconfig` to build the final `grub.cfg`. Each script handles a different part of the menu (e.g., `10_linux` adds Linux entries, `30_os-prober` detects other operating systems).
 
-**Output File:** `task3_grub.txt`
+---
+
+### Part B — GRUB Customization (VM Only)
+
+> ⚠️ **This part and Part C must be performed only on a virtual machine** (VirtualBox, VMware, or a cloud VM). **Never** perform these steps on a physical machine or your primary development system.
+
+#### Step 1 — Take a VM Snapshot (Safety Net)
+
+Before making any changes to the VM, create a snapshot so you can always restore it:
+
+- **VirtualBox:** Machine → Take Snapshot → Name it `"Before Boot Lab"`
+- **VMware:** VM → Snapshot → Take Snapshot
+
+> 📸 **Screenshot `task3_snapshot.png`:** Take a screenshot showing your snapshot has been created.
+
+#### Step 2 — Change the GRUB Timeout
+
+1. Open the GRUB defaults file:
+
+   ```bash
+   sudo nano /etc/default/grub
+   ```
+
+2. Find the `GRUB_TIMEOUT` line and change it to show the menu for **10 seconds**:
+
+   ```
+   GRUB_TIMEOUT=10
+   ```
+
+3. Also find `GRUB_CMDLINE_LINUX_DEFAULT` — remove `quiet splash` temporarily so you can see boot messages:
+
+   ```
+   GRUB_CMDLINE_LINUX_DEFAULT=""
+   ```
+
+4. Save the file and regenerate the GRUB configuration:
+
+   ```bash
+   sudo update-grub
+   ```
+
+5. Record what you changed:
+
+   ```bash
+   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   echo "=== Part B: GRUB Customization ===" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   echo "--- Modified /etc/default/grub ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   cat /etc/default/grub >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   ```
+
+> 📸 **Screenshot `task3_timeout.png`:** Take a screenshot showing the modified `/etc/default/grub`.
+
+#### Step 3 — Add a Custom GRUB Menu Entry
+
+Custom menu entries are added by creating a script in `/etc/grub.d/`. Scripts are numbered (e.g., `10_linux`, `30_os-prober`) and executed in order when `update-grub` runs.
+
+1. Create a custom entry script:
+
+   ```bash
+   sudo nano /etc/grub.d/40_custom_techcorp
+   ```
+
+2. Add the following content:
+
+   ```bash
+   #!/bin/sh
+   exec tail -n +3 $0
+   # Custom GRUB menu entry for TechCorp Training VM
+
+   menuentry "TechCorp Training VM — Boot Standard" {
+       set root=(hd0,msdos1)
+       linux /boot/vmlinuz-$(uname -r) root=/dev/sda1
+       initrd /boot/initrd.img-$(uname -r)
+   }
+   ```
+
+   > **Note:** Adjust `(hd0,msdos1)` and `/dev/sda1` to match your VM's partition layout — you will discover the correct values in Part C, Step 5. Replace `$(uname -r)` with the actual kernel version string if the script does not expand it correctly.
+
+3. Make the script executable and regenerate GRUB:
+
+   ```bash
+   sudo chmod +x /etc/grub.d/40_custom_techcorp
+   sudo update-grub
+   ```
+
+4. Record the new menu:
+
+   ```bash
+   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   echo "--- Custom script /etc/grub.d/40_custom_techcorp ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   cat /etc/grub.d/40_custom_techcorp >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   ```
+
+5. Reboot and verify the new entry appears in the GRUB menu:
+
+   ```bash
+   sudo reboot
+   ```
+
+> 📸 **Screenshot `task3_custom_entry.png`:** Take a screenshot of the GRUB menu showing your custom "TechCorp Training VM" entry.
+
+#### Step 4 — Add a GRUB Background Image
+
+GRUB supports custom background images in `png`, `tga`, or `jpg` format. The image should ideally be **640×480** for the best compatibility. Here is how to set one:
+
+1. After booting, install the GRUB splash tool (if not already installed):
+
+   ```bash
+   sudo apt install grub2-splashimages 2>/dev/null || echo "Package not available — using custom image"
+   ```
+
+2. **Option A — Use a pre-installed splash image (if available):**
+
+   ```bash
+   ls /usr/share/images/grub/ 2>/dev/null
+   ```
+
+   If images exist, copy one:
+
+   ```bash
+   sudo cp /usr/share/images/grub/<image_name>.tga /boot/grub/splash.tga
+   ```
+
+   **Option B — Create a simple custom image with ImageMagick:**
+
+   ```bash
+   sudo apt install imagemagick -y 2>/dev/null
+   convert -size 640x480 xc:'#1a1a2e' \
+     -fill white -gravity center -pointsize 36 \
+     -annotate +0+0 'TechCorp Server' \
+     /tmp/grub_bg.png
+   sudo cp /tmp/grub_bg.png /boot/grub/grub_bg.png
+   ```
+
+   **Option C — Use any `.png` image you have** (transfer it to your VM via shared folders or `scp`). Resize it to 640×480 if it's larger.
+
+3. Tell GRUB to use a background image by editing the defaults:
+
+   ```bash
+   sudo nano /etc/default/grub
+   ```
+
+   Add or modify the following line (use the correct filename from above):
+
+   ```
+   GRUB_BACKGROUND="/boot/grub/grub_bg.png"
+   ```
+
+4. Regenerate and reboot:
+
+   ```bash
+   sudo update-grub
+   sudo reboot
+   ```
+
+5. Record the final configuration:
+
+   ```bash
+   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   echo "--- Final /etc/default/grub (with background) ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   cat /etc/default/grub >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   ```
+
+> 📸 **Screenshot `task3_background.png`:** Take a screenshot of the GRUB menu showing the custom background image.
+
+---
+
+### Part C — Boot Break & Recovery (VM Only)
+
+> **Background — Linux Recovery Modes:**
+>
+> | Mode | How to Enter | What It Does |
+> |---|---|---|
+> | **Recovery Mode** | Select from GRUB menu → "Advanced options" → "(recovery mode)" | Boots into single-user mode with limited services; root shell access |
+> | **GRUB Command Line** | Press `c` at the GRUB menu | Manual boot commands when GRUB menu entries are broken |
+> | **Live USB Rescue** | Boot from external USB/ISO | Full rescue environment when GRUB itself is destroyed |
+
+#### Step 5 — Explore the GRUB Menu
+
+1. Reboot your VM:
+
+   ```bash
+   sudo reboot
+   ```
+
+2. During startup, **hold `Shift`** (BIOS systems) or press **`Esc`** (UEFI systems) to access the GRUB menu.
+
+3. You should see a menu with entries like:
+   - `Ubuntu`
+   - `Advanced options for Ubuntu`
+   - `TechCorp Training VM — Boot Standard` (from Part B)
+
+4. Select **`Advanced options for Ubuntu`** and observe the available kernel entries and recovery mode options. **Do not select anything yet** — just take note of what you see.
+
+> 📸 **Screenshot `task3_recovery.png`:** Take a screenshot showing the GRUB advanced options and then boot into recovery mode → select `root` → run `whoami`, `mount | grep "on / "`, and `uname -r`. Capture the recovery shell output.
+
+#### Step 6 — Boot into Recovery Mode
+
+1. From the **Advanced options** menu, select the entry ending in **`(recovery mode)`**.
+
+2. The system will boot into a **Recovery Menu** with options like:
+   - `resume` — Resume normal boot
+   - `clean` — Try to free up disk space
+   - `fsck` — Check all file systems
+   - `root` — Drop to root shell prompt
+   - `grub` — Update GRUB bootloader
+
+3. Select **`root`** to drop into a root shell.
+
+4. In the root shell, verify the system status:
+
+   ```bash
+   whoami
+   mount | grep "on / "
+   uname -r
+   ```
+
+5. Resume normal boot:
+
+   ```bash
+   reboot
+   ```
+
+#### Step 7 — Simulate a GRUB Configuration Break
+
+After rebooting back to normal mode:
+
+1. **Back up** the current GRUB configuration:
+
+   ```bash
+   cp /boot/grub/grub.cfg /boot/grub/grub.cfg.bak
+   ```
+
+2. **"Break" GRUB** by renaming the configuration file:
+
+   ```bash
+   mv /boot/grub/grub.cfg /boot/grub/grub.cfg.broken
+   ```
+
+3. **Reboot** to see the effect:
+
+   ```bash
+   reboot
+   ```
+
+4. After reboot, instead of the normal GRUB menu, you should see the **GRUB command line prompt** (`grub>`), because GRUB can no longer find its configuration.
+
+> 📸 **Screenshot `task3_break.png`:** Take a screenshot showing the `grub>` prompt.
+
+#### Step 8 — Manual Boot from GRUB Command Line
+
+At the `grub>` prompt, you will manually boot the system:
+
+1. **Find available partitions:**
+
+   ```
+   ls
+   ```
+
+   > This will show something like `(hd0) (hd0,msdos1)` or `(hd0,gpt2)`.
+
+2. **Identify the root partition** (try each one until you find the one with Linux files):
+
+   ```
+   ls (hd0,msdos1)/
+   ```
+
+   > Look for directories like `boot/`, `etc/`, `home/`, `usr/`. That is your root partition.
+
+3. **Set the root and boot the kernel manually:**
+
+   ```
+   set root=(hd0,msdos1)
+   linux /boot/vmlinuz-<kernel-version> root=/dev/sda1
+   initrd /boot/initrd.img-<kernel-version>
+   boot
+   ```
+
+   > Replace `<kernel-version>` with the actual kernel version you noted earlier (e.g., `5.15.0-91-generic`). Replace `(hd0,msdos1)` and `/dev/sda1` with the correct values for your VM.
+
+> 📸 **Screenshot `task3_manual_boot.png`:** Take a screenshot showing the manual GRUB commands and the system starting to boot.
+
+#### Step 9 — Restore the GRUB Configuration
+
+Once the system boots (you may need to log in):
+
+1. **Restore the backed-up configuration:**
+
+   ```bash
+   sudo mv /boot/grub/grub.cfg.broken /boot/grub/grub.cfg
+   ```
+
+   Or, regenerate it completely:
+
+   ```bash
+   sudo update-grub
+   ```
+
+2. **Verify the configuration is back and reboot:**
+
+   ```bash
+   ls -la /boot/grub/grub.cfg
+   head -5 /boot/grub/grub.cfg
+   sudo reboot
+   ```
+
+3. After normal boot, record the result:
+
+   ```bash
+   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   echo "=== Part C: Boot Recovery ===" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   echo "Boot recovery successful on $(date)" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   uname -r >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   uptime >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task3_grub.txt
+   ```
+
+> 📸 **Screenshot `task3_restored.png`:** Take a screenshot showing the restored configuration (`ls -la`, `head`) and the system booted normally with `uname -r` and `uptime`.
+
+---
+
+### 🧩 Challenge — GRUB on Your Own
+
+```bash
+echo "--- Challenge GRUB ---" >> task3_grub.txt
+```
+
+**You are still on your VM.** Only the goal is described — you decide the commands.
+
+3a. **Change the default boot entry.** Modify `GRUB_DEFAULT` in `/etc/default/grub` so that the **second menu entry** (index `1`) boots by default instead of the first. Run `update-grub`, reboot, and observe which entry is highlighted. Record what you changed and what happened.
+
+3b. **Customize the GRUB color scheme.** Add the following settings to `/etc/default/grub` and choose your own color values (options: `black`, `blue`, `green`, `cyan`, `red`, `magenta`, `brown`, `light-gray`, `dark-gray`, `light-blue`, `light-green`, `light-cyan`, `light-red`, `light-magenta`, `yellow`, `white`):
+
+   ```
+   GRUB_COLOR_NORMAL="light-gray/black"
+   GRUB_COLOR_HIGHLIGHT="yellow/blue"
+   ```
+
+   Run `update-grub`, reboot, and capture the new color scheme.
+
+3c. **Find the root partition UUID.** Search inside `/boot/grub/grub.cfg` for the UUID of your root partition using `grep`. Record the UUID and explain how GRUB uses it to find the root filesystem.
+
+> Append all your results to `task3_grub.txt`.
+
+> 📸 **Screenshot `task3_challenge.png`:** Take a screenshot showing the GRUB menu with your custom color scheme and the `grep` output for the UUID.
+
+**Output File:** `task3_grub.txt` and screenshots `task3_snapshot.png` through `task3_challenge.png`
 
 ---
 
@@ -769,368 +1119,13 @@ echo "--- Challenge Shared Objects ---" >> task4_shared_objects.txt
 
 ---
 
-## Task 5 — Simulate a Safe Boot "Break" and Recovery (VM Only)
+## Task 5 — Build & Register a Shared Library (Pair Task)
 
-**Scenario:** Your manager says: *"We have a training VM that I want you to practice on. I need you to simulate a boot failure, enter rescue mode, and restore normal boot. This is a critical skill — if a production server can't boot, you need to know how to fix it WITHOUT reinstalling the OS."*
+**Scenario:** A senior developer approaches you and your partner: *"We're building a set of monitoring utilities for TechCorp servers. I need you two to design a shared library API together, then split up — one of you implements the library while the other writes the test program. Neither of you can succeed alone: the library author needs the tester to verify it works, and the tester needs the library to compile against. This is how real teams develop shared components."*
 
-**Purpose:** Practice emergency boot recovery in a safe, controlled environment. You will intentionally "break" the GRUB configuration on a virtual machine, enter rescue mode, and restore normal booting.
+**Purpose:** Apply what you learned about shared objects in Task 4 by collaboratively designing, implementing, testing, and installing a custom `.so` shared library. This task requires genuine coordination — partners depend on each other's work and cannot complete the task independently.
 
-> ⚠️ **WARNING:** This task must be performed **only on a virtual machine** (VirtualBox, VMware, or a cloud VM). **Never** perform these steps on a physical machine or your primary development system. Take a VM snapshot before starting so you can always roll back.
-
-**Commands Used:**
-
-- VM snapshot tools (VirtualBox: `Snapshots` panel)
-- GRUB menu (hold `Shift` during boot, or `Esc` for UEFI)
-- Recovery mode boot options
-- `mount`, `chroot` — repair commands in rescue mode
-- `grub-install`, `update-grub` — reinstall/reconfigure GRUB
-
-> **Background — Linux Recovery Modes:**
->
-> | Mode | How to Enter | What It Does |
-> |---|---|---|
-> | **Recovery Mode** | Select from GRUB menu → "Advanced options" → "(recovery mode)" | Boots into single-user mode with limited services; root shell access |
-> | **GRUB Command Line** | Press `c` at the GRUB menu | Manual boot commands when GRUB menu entries are broken |
-> | **Live USB Rescue** | Boot from external USB/ISO | Full rescue environment when GRUB itself is destroyed |
-
-**Instructions:**
-
-### Step 1 — Take a VM Snapshot (Safety Net)
-
-Before anything else, create a snapshot of your VM so you can always restore it:
-
-- **VirtualBox:** Machine → Take Snapshot → Name it `"Before Boot Lab"`
-- **VMware:** VM → Snapshot → Take Snapshot
-
-> 📸 **Screenshot `task5_step1.png`:** Take a screenshot showing your snapshot has been created.
-
-### Step 2 — Explore the Current GRUB Menu
-
-1. Reboot your VM:
-
-   ```bash
-   sudo reboot
-   ```
-
-2. During startup, **hold `Shift`** (BIOS systems) or press **`Esc`** (UEFI systems) to access the GRUB menu.
-
-3. You should see a menu with entries like:
-   - `Ubuntu`
-   - `Advanced options for Ubuntu`
-
-4. Select **`Advanced options for Ubuntu`** and observe the available kernel entries and recovery mode options. **Do not select anything yet** — just take note of what you see.
-
-> 📸 **Screenshot `task5_step2.png`:** Take a screenshot of the GRUB menu showing the available entries.
-
-### Step 3 — Boot into Recovery Mode
-
-1. From the **Advanced options** menu, select the entry ending in **`(recovery mode)`**.
-
-2. The system will boot into a **Recovery Menu** with options like:
-   - `resume` — Resume normal boot
-   - `clean` — Try to free up disk space
-   - `fsck` — Check all file systems
-   - `root` — Drop to root shell prompt
-   - `grub` — Update GRUB bootloader
-
-3. Select **`root`** to drop into a root shell.
-
-4. In the root shell, verify the system status:
-
-   ```bash
-   whoami
-   mount | grep "on / "
-   uname -r
-   ```
-
-> 📸 **Screenshot `task5_step3.png`:** Take a screenshot showing the recovery menu, and another showing the root shell.
-
-### Step 4 — Simulate a GRUB Configuration Break
-
-From the recovery root shell (or after rebooting back to normal mode):
-
-1. **Back up** the current GRUB configuration:
-
-   ```bash
-   cp /boot/grub/grub.cfg /boot/grub/grub.cfg.bak
-   ```
-
-2. **"Break" GRUB** by renaming the configuration file:
-
-   ```bash
-   mv /boot/grub/grub.cfg /boot/grub/grub.cfg.broken
-   ```
-
-3. **Reboot** to see the effect:
-
-   ```bash
-   reboot
-   ```
-
-4. After reboot, instead of the normal GRUB menu, you should see the **GRUB command line prompt** (`grub>`), because GRUB can no longer find its configuration.
-
-> 📸 **Screenshot `task5_step4.png`:** Take a screenshot showing the `grub>` prompt.
-
-### Step 5 — Manual Boot from GRUB Command Line
-
-At the `grub>` prompt, you will manually boot the system:
-
-1. **Find available partitions:**
-
-   ```
-   ls
-   ```
-
-   > This will show something like `(hd0) (hd0,msdos1)` or `(hd0,gpt2)`.
-
-2. **Identify the root partition** (try each one until you find the one with Linux files):
-
-   ```
-   ls (hd0,msdos1)/
-   ```
-
-   > Look for directories like `boot/`, `etc/`, `home/`, `usr/`. That is your root partition.
-
-3. **Set the root and boot the kernel manually:**
-
-   ```
-   set root=(hd0,msdos1)
-   linux /boot/vmlinuz-<kernel-version> root=/dev/sda1
-   initrd /boot/initrd.img-<kernel-version>
-   boot
-   ```
-
-   > Replace `<kernel-version>` with the actual kernel version you noted in Step 2 (e.g., `5.15.0-91-generic`). Replace `(hd0,msdos1)` and `/dev/sda1` with the correct values for your VM.
-
-> 📸 **Screenshot `task5_step5.png`:** Take a screenshot showing the manual GRUB commands and the system starting to boot.
-
-### Step 6 — Restore the GRUB Configuration
-
-Once the system boots (you may need to log in):
-
-1. **Restore the backed-up configuration:**
-
-   ```bash
-   sudo mv /boot/grub/grub.cfg.broken /boot/grub/grub.cfg
-   ```
-
-   Or, regenerate it completely:
-
-   ```bash
-   sudo update-grub
-   ```
-
-2. **Verify the configuration is back:**
-
-   ```bash
-   ls -la /boot/grub/grub.cfg
-   head -5 /boot/grub/grub.cfg
-   ```
-
-> 📸 **Screenshot `task5_step6.png`:** Take a screenshot showing the restored configuration.
-
-### Step 7 — Verify Normal Boot
-
-1. Reboot the VM:
-
-   ```bash
-   sudo reboot
-   ```
-
-2. Confirm that the GRUB menu appears normally and the system boots without issues.
-
-3. After login, run:
-
-   ```bash
-   echo "Boot recovery successful on $(date)" > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task5_boot_recovery.txt
-   uname -r >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task5_boot_recovery.txt
-   uptime >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task5_boot_recovery.txt
-   ```
-
-> 📸 **Screenshot `task5_step7.png`:** Take a screenshot showing the system has booted normally and the output of the commands above.
-
-**Output File:** `task5_boot_recovery.txt` and screenshots `task5_step1.png` through `task5_step7.png`
-
----
-
-## Task 6 — GRUB Customization (VM Only)
-
-**Scenario:** After demonstrating your boot recovery skills, your manager says: *"Nice work. Now I want you to customize the GRUB menu on the training VM so it's immediately obvious this is a TechCorp server. Change the menu title, set the timeout, and add a custom background image. We brand all our servers this way."*
-
-**Purpose:** Learn to customize the GRUB bootloader appearance and behavior by editing `/etc/default/grub` and creating a custom menu entry script. This builds directly on the exploration you did in Task 3.
-
-> ⚠️ **This task must be performed on your VM (VirtualBox / VMware).** Make sure your VM snapshot from Task 5 is still available as a safety net.
-
-**Commands Used:**
-
-- `vi` or `nano` — text editor
-- `/etc/default/grub` — main GRUB defaults file
-- `/etc/grub.d/` — custom menu scripts directory
-- `sudo update-grub` — regenerate `grub.cfg`
-- `convert`, `wget` — (optional) for background image
-
-**Instructions:**
-
-### Step 1 — Change the GRUB Timeout
-
-1. Open the GRUB defaults file:
-
-   ```bash
-   sudo nano /etc/default/grub
-   ```
-
-2. Find the `GRUB_TIMEOUT` line and change it to show the menu for **10 seconds**:
-
-   ```
-   GRUB_TIMEOUT=10
-   ```
-
-3. Also find `GRUB_CMDLINE_LINUX_DEFAULT` — remove `quiet splash` temporarily so you can see boot messages:
-
-   ```
-   GRUB_CMDLINE_LINUX_DEFAULT=""
-   ```
-
-4. Save the file and regenerate the GRUB configuration:
-
-   ```bash
-   sudo update-grub
-   ```
-
-5. Record what you changed:
-
-   ```bash
-   echo "=== Task 6: GRUB Customization ===" > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   echo "--- Modified /etc/default/grub ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   cat /etc/default/grub >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   ```
-
-> 📸 **Screenshot `task6_step1.png`:** Take a screenshot showing the modified `/etc/default/grub`.
-
-### Step 2 — Add a Custom GRUB Menu Entry
-
-Custom menu entries are added by creating a script in `/etc/grub.d/`. Scripts are numbered (e.g., `10_linux`, `30_os-prober`) and executed in order when `update-grub` runs.
-
-1. Create a custom entry script:
-
-   ```bash
-   sudo nano /etc/grub.d/40_custom_techcorp
-   ```
-
-2. Add the following content:
-
-   ```bash
-   #!/bin/sh
-   exec tail -n +3 $0
-   # Custom GRUB menu entry for TechCorp Training VM
-
-   menuentry "TechCorp Training VM — Boot Standard" {
-       set root=(hd0,msdos1)
-       linux /boot/vmlinuz-$(uname -r) root=/dev/sda1
-       initrd /boot/initrd.img-$(uname -r)
-   }
-   ```
-
-   > **Note:** Adjust `(hd0,msdos1)` and `/dev/sda1` to match your VM's partition layout — use the values you discovered in Task 5, Step 5. Replace `$(uname -r)` with the actual kernel version string if the script does not expand it correctly.
-
-3. Make the script executable and regenerate GRUB:
-
-   ```bash
-   sudo chmod +x /etc/grub.d/40_custom_techcorp
-   sudo update-grub
-   ```
-
-4. Record the new menu:
-
-   ```bash
-   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   echo "--- Custom script /etc/grub.d/40_custom_techcorp ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   cat /etc/grub.d/40_custom_techcorp >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   ```
-
-5. Reboot and verify the new entry appears in the GRUB menu:
-
-   ```bash
-   sudo reboot
-   ```
-
-> 📸 **Screenshot `task6_step2.png`:** Take a screenshot of the GRUB menu showing your custom "TechCorp Training VM" entry.
-
-### Step 3 — Add a GRUB Background Image
-
-GRUB supports custom background images in `png`, `tga`, or `jpg` format. The image should ideally be **640×480** for the best compatibility. Here is how to set one:
-
-1. After booting, install the GRUB splash tool (if not already installed):
-
-   ```bash
-   sudo apt install grub2-splashimages 2>/dev/null || echo "Package not available — using custom image"
-   ```
-
-2. **Option A — Use a pre-installed splash image (if available):**
-
-   ```bash
-   ls /usr/share/images/grub/ 2>/dev/null
-   ```
-
-   If images exist, copy one:
-
-   ```bash
-   sudo cp /usr/share/images/grub/<image_name>.tga /boot/grub/splash.tga
-   ```
-
-   **Option B — Create a simple custom image with ImageMagick:**
-
-   ```bash
-   sudo apt install imagemagick -y 2>/dev/null
-   convert -size 640x480 xc:'#1a1a2e' \
-     -fill white -gravity center -pointsize 36 \
-     -annotate +0+0 'TechCorp Server' \
-     /tmp/grub_bg.png
-   sudo cp /tmp/grub_bg.png /boot/grub/grub_bg.png
-   ```
-
-   **Option C — Use any `.png` image you have** (transfer it to your VM via shared folders or `scp`). Resize it to 640×480 if it's larger.
-
-3. Tell GRUB to use a background image by editing the defaults:
-
-   ```bash
-   sudo nano /etc/default/grub
-   ```
-
-   Add or modify the following line (use the correct filename from above):
-
-   ```
-   GRUB_BACKGROUND="/boot/grub/grub_bg.png"
-   ```
-
-4. Regenerate and reboot:
-
-   ```bash
-   sudo update-grub
-   sudo reboot
-   ```
-
-5. Record the final configuration:
-
-   ```bash
-   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   echo "--- Final /etc/default/grub (with background) ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   cat /etc/default/grub >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
-   ```
-
-> 📸 **Screenshot `task6_step3.png`:** Take a screenshot of the GRUB menu showing the custom background image.
-
-**Output File:** `task6_grub_custom.txt` and screenshots `task6_step1.png` through `task6_step3.png`
-
----
-
-## Task 7 — Build and Register a Shared Library (Pair Task)
-
-**Scenario:** A senior developer approaches you and your partner: *"We're building a set of monitoring utilities for TechCorp servers. I need you two to create a small shared library that provides a system info function. One of you writes the library code and the other writes the test program. Then install it system-wide so any program can use it."*
-
-**Purpose:** Apply what you learned about shared objects in Task 4 by writing, compiling, installing, and registering a custom `.so` shared library. This task is done **in pairs** — coordinate with your assigned partner.
-
-> 👥 **Pair Task:** Work with your partner. Decide who does **Role A** (library author) and **Role B** (test program author). Both partners should type the commands on their own system and verify the results. Both partners submit the same output.
+> 👥 **Pair Task:** Work **side by side** with your partner (or on a call). You will coordinate throughout. Decide who starts as **Role A** (Library Author) and **Role B** (Test Author). You will **swap roles** in Phase 4.
 
 **Commands Used:**
 
@@ -1142,17 +1137,17 @@ GRUB supports custom background images in `png`, `tga`, or `jpg` format. The ima
 
 **Instructions:**
 
-### Step 1 — Create the Project Layout
+### Phase 1 — Design the API Together (Both Partners)
+
+Sit together and **agree on the library's API**. Discuss what each function should do, its name, parameters, and return type. Then **both partners** create the same header file on their own system:
 
 ```bash
 mkdir -p shared_lib_lab
 cd shared_lib_lab
-echo "=== Task 7: Build and Register a Shared Library ===" > ../task7_shared_library.txt
+echo "=== Task 5: Build and Register a Shared Library ===" > ../task5_shared_library.txt
 ```
 
-### Step 2 — Write the Library Source Code (Role A)
-
-Create the **header file** that declares the library's functions:
+Create the **header file** — this is the contract both partners must follow:
 
 ```bash
 cat > techcorp_sysinfo.h << 'EOF'
@@ -1172,7 +1167,24 @@ int tc_get_cpu_count(void);
 EOF
 ```
 
-Create the **library implementation**:
+Record the API design:
+
+```bash
+echo "--- API Design (header file) ---" >> ../task5_shared_library.txt
+cat techcorp_sysinfo.h >> ../task5_shared_library.txt
+```
+
+> 📸 **Screenshot `task5_pair_design.png`:** Take a screenshot showing **both partners' screens** with the same header file open. This proves you designed the API together.
+
+---
+
+### Phase 2 — Divide & Build (Work Separately)
+
+**From this point, partners work on their own systems WITHOUT showing each other their code.** Partner A writes the implementation; Partner B writes the test. Neither sees the other's work until Phase 3.
+
+#### Partner A — Implement the Library
+
+Create the **library implementation** that fulfills the API contract:
 
 ```bash
 cat > techcorp_sysinfo.c << 'EOF'
@@ -1213,25 +1225,27 @@ int tc_get_cpu_count(void) {
 EOF
 ```
 
-### Step 3 — Compile the Shared Library
+Compile the shared library:
 
 ```bash
-# Compile to position-independent object code
 gcc -fPIC -c techcorp_sysinfo.c -o techcorp_sysinfo.o
-
-# Link into a shared library
 gcc -shared -o libtechcorp_sysinfo.so techcorp_sysinfo.o
 
-echo "--- Compiled shared library ---" >> ../task7_shared_library.txt
-file libtechcorp_sysinfo.so >> ../task7_shared_library.txt
-ls -l libtechcorp_sysinfo.so >> ../task7_shared_library.txt
+echo "" >> ../task5_shared_library.txt
+echo "--- Partner A: Compiled shared library ---" >> ../task5_shared_library.txt
+file libtechcorp_sysinfo.so >> ../task5_shared_library.txt
+ls -l libtechcorp_sysinfo.so >> ../task5_shared_library.txt
 ```
 
 > **Explanation:**
 > - `-fPIC` means **Position-Independent Code** — required for shared libraries so the code can be loaded at any memory address.
 > - `-shared` tells `gcc` to produce a `.so` file instead of a regular executable.
 
-### Step 4 — Write a Test Program (Role B)
+**Partner A: STOP here. Do not write a test program. Wait for Partner B.**
+
+#### Partner B — Write the Test Program
+
+Using **only the header file** (you have NOT seen Partner A's `.c` implementation), write a test program that exercises every function in the API:
 
 ```bash
 cat > sysinfo_test.c << 'EOF'
@@ -1247,27 +1261,138 @@ int main(void) {
     return 0;
 }
 EOF
+
+echo "" >> ../task5_shared_library.txt
+echo "--- Partner B: Test program written ---" >> ../task5_shared_library.txt
+cat sysinfo_test.c >> ../task5_shared_library.txt
 ```
 
-### Step 5 — Compile and Link the Test Program (local test first)
+**Partner B: STOP here. You cannot compile yet — you need Partner A's `.so` file.**
+
+---
+
+### Phase 3 — Integrate & Debug (Both Partners Together)
+
+Now come back together. Partner A shares their compiled `.so` file with Partner B (e.g., copy it to Partner B's `shared_lib_lab/` directory via `scp`, USB, or shared folder). Partner B also shares their `sysinfo_test.c` with Partner A.
+
+**On Partner B's system** (or whichever machine has both files):
 
 ```bash
-# Compile, linking against the local shared library
+# Compile the test program linking against the shared library
 gcc sysinfo_test.c -L. -ltechcorp_sysinfo -o sysinfo_test
 
-echo "" >> ../task7_shared_library.txt
-echo "--- ldd on test program (before install) ---" >> ../task7_shared_library.txt
-ldd ./sysinfo_test >> ../task7_shared_library.txt 2>&1
+echo "" >> ../task5_shared_library.txt
+echo "--- Integration: ldd on test program (before install) ---" >> ../task5_shared_library.txt
+ldd ./sysinfo_test >> ../task5_shared_library.txt 2>&1
 
 # Run with LD_LIBRARY_PATH pointing to the current directory
-echo "" >> ../task7_shared_library.txt
-echo "--- Test run (using LD_LIBRARY_PATH) ---" >> ../task7_shared_library.txt
-LD_LIBRARY_PATH=. ./sysinfo_test >> ../task7_shared_library.txt
+echo "" >> ../task5_shared_library.txt
+echo "--- Integration: Test run (using LD_LIBRARY_PATH) ---" >> ../task5_shared_library.txt
+LD_LIBRARY_PATH=. ./sysinfo_test >> ../task5_shared_library.txt
 ```
 
-> **Note:** Without `LD_LIBRARY_PATH=.`, the program would fail with `cannot open shared object file` because the dynamic linker doesn't search the current directory by default.
+> **If the test fails or gives unexpected output:** Debug together. Check that the header file matches on both systems, that the `.so` compiled cleanly, and that the test calls the functions correctly. This debugging is a key part of the pair experience.
 
-### Step 6 — Install the Library System-Wide
+---
+
+### Phase 4 — Swap Roles: Extend the Library
+
+Now **swap roles**: Partner B adds a new function to the library, and Partner A writes a test for it.
+
+#### Partner B — Add a New Function
+
+1. First, **both partners** update the header file to add a new function:
+
+   ```bash
+   cat > techcorp_sysinfo.h << 'EOF'
+   #ifndef TECHCORP_SYSINFO_H
+   #define TECHCORP_SYSINFO_H
+
+   const char* tc_get_hostname(void);
+   const char* tc_get_uptime(void);
+   int tc_get_cpu_count(void);
+
+   // NEW — Returns total memory in MB
+   long tc_get_memory_mb(void);
+
+   #endif
+   EOF
+   ```
+
+2. **Partner B** implements the new function in a separate file:
+
+   ```bash
+   cat > techcorp_memory.c << 'EOF'
+   #include "techcorp_sysinfo.h"
+   #include <stdio.h>
+
+   long tc_get_memory_mb(void) {
+       FILE *fp = fopen("/proc/meminfo", "r");
+       if (fp) {
+           long mem_kb = 0;
+           if (fscanf(fp, "MemTotal: %ld kB", &mem_kb) == 1) {
+               fclose(fp);
+               return mem_kb / 1024;
+           }
+           fclose(fp);
+       }
+       return -1;
+   }
+   EOF
+   ```
+
+3. **Partner B** recompiles the full library (combining both `.c` files):
+
+   ```bash
+   gcc -fPIC -c techcorp_sysinfo.c -o techcorp_sysinfo.o
+   gcc -fPIC -c techcorp_memory.c -o techcorp_memory.o
+   gcc -shared -o libtechcorp_sysinfo.so techcorp_sysinfo.o techcorp_memory.o
+
+   echo "" >> ../task5_shared_library.txt
+   echo "--- Phase 4: Partner B recompiled library with new function ---" >> ../task5_shared_library.txt
+   file libtechcorp_sysinfo.so >> ../task5_shared_library.txt
+   ```
+
+#### Partner A — Write a Test for the New Function
+
+Using only the updated header file, **Partner A** writes a new test:
+
+```bash
+cat > sysinfo_test_v2.c << 'EOF'
+#include <stdio.h>
+#include "techcorp_sysinfo.h"
+
+int main(void) {
+    printf("=== TechCorp System Info Report v2 ===\n");
+    printf("Hostname : %s\n", tc_get_hostname());
+    printf("Uptime   : %s\n", tc_get_uptime());
+    printf("CPU Cores: %d\n", tc_get_cpu_count());
+    printf("Memory   : %ld MB\n", tc_get_memory_mb());
+    printf("======================================\n");
+    return 0;
+}
+EOF
+
+echo "" >> ../task5_shared_library.txt
+echo "--- Phase 4: Partner A wrote v2 test ---" >> ../task5_shared_library.txt
+cat sysinfo_test_v2.c >> ../task5_shared_library.txt
+```
+
+**Integrate again** — compile and test on the same system:
+
+```bash
+gcc sysinfo_test_v2.c -L. -ltechcorp_sysinfo -o sysinfo_test_v2
+
+echo "" >> ../task5_shared_library.txt
+echo "--- Phase 4: v2 test run ---" >> ../task5_shared_library.txt
+LD_LIBRARY_PATH=. ./sysinfo_test_v2 >> ../task5_shared_library.txt
+```
+
+---
+
+### Phase 5 — Install System-Wide (Both Partners)
+
+Install the final library so any program on the system can use it:
 
 ```bash
 # Copy the library to the system library directory
@@ -1277,26 +1402,18 @@ sudo cp libtechcorp_sysinfo.so /usr/local/lib/
 sudo ldconfig
 
 # Verify it is registered
-echo "" >> ../task7_shared_library.txt
-echo "--- ldconfig cache search for techcorp ---" >> ../task7_shared_library.txt
-ldconfig -p | grep techcorp >> ../task7_shared_library.txt
+echo "" >> ../task5_shared_library.txt
+echo "--- System-wide install: ldconfig cache ---" >> ../task5_shared_library.txt
+ldconfig -p | grep techcorp >> ../task5_shared_library.txt
+
+# Re-test WITHOUT LD_LIBRARY_PATH
+echo "" >> ../task5_shared_library.txt
+echo "--- System-wide test (no LD_LIBRARY_PATH) ---" >> ../task5_shared_library.txt
+ldd ./sysinfo_test_v2 >> ../task5_shared_library.txt 2>&1
+./sysinfo_test_v2 >> ../task5_shared_library.txt
 ```
 
-### Step 7 — Re-test Without LD_LIBRARY_PATH
-
-```bash
-echo "" >> ../task7_shared_library.txt
-echo "--- ldd on test program (after install) ---" >> ../task7_shared_library.txt
-ldd ./sysinfo_test >> ../task7_shared_library.txt 2>&1
-
-echo "" >> ../task7_shared_library.txt
-echo "--- Test run (system-wide, no LD_LIBRARY_PATH) ---" >> ../task7_shared_library.txt
-./sysinfo_test >> ../task7_shared_library.txt
-```
-
-> The dynamic linker should now find `libtechcorp_sysinfo.so` in `/usr/local/lib/` via the cache — no `LD_LIBRARY_PATH` needed.
-
-### Step 8 — Clean Up (Optional)
+### Clean Up (Optional)
 
 If you want to remove the system-wide library after the lab:
 
@@ -1305,13 +1422,13 @@ sudo rm /usr/local/lib/libtechcorp_sysinfo.so
 sudo ldconfig
 ```
 
-### Step 9 — Document Your Partner
+### Document Your Partner
 
 ```bash
-echo "" >> ../task7_shared_library.txt
-echo "--- Pair Information ---" >> ../task7_shared_library.txt
-echo "Role A (Library Author): <Partner A Name> - <Student ID>" >> ../task7_shared_library.txt
-echo "Role B (Test Program Author): <Partner B Name> - <Student ID>" >> ../task7_shared_library.txt
+echo "" >> ../task5_shared_library.txt
+echo "--- Pair Information ---" >> ../task5_shared_library.txt
+echo "Role A (Library Author → v2 Tester): <Partner A Name> - <Student ID>" >> ../task5_shared_library.txt
+echo "Role B (Test Author → v2 Library Extender): <Partner B Name> - <Student ID>" >> ../task5_shared_library.txt
 ```
 
 Return to the lab3 directory:
@@ -1320,9 +1437,9 @@ Return to the lab3 directory:
 cd ..
 ```
 
-> 📸 **Screenshot `task7_pair.png`:** Take a screenshot showing the compilation steps, `ldconfig` registration, `ldd` output, and the test program running successfully. Both partners should have this screenshot.
+> 📸 **Screenshot `task5_pair_integration.png`:** Take a screenshot showing the final integration test — `ldconfig -p | grep techcorp`, `ldd ./sysinfo_test_v2`, and the test program running with all four fields (hostname, uptime, CPU cores, memory). Both partners should have this screenshot.
 
-**Output File:** `task7_shared_library.txt` and screenshot `task7_pair.png`
+**Output File:** `task5_shared_library.txt` and screenshots `task5_pair_design.png`, `task5_pair_integration.png`
 
 ---
 
@@ -1417,18 +1534,18 @@ Use this checklist to make sure you have every required screenshot before moving
 |:-:|----------|:----:|-----------------|
 | 1 | `task1_challenge.png` | 1 | Terminal showing your challenge wildcard commands (1a–1d) and output |
 | 2 | `task2_challenge.png` | 2 | Terminal showing your challenge link commands (2a–2c) and output |
-| 3 | `task4_challenge.png` | 4 | Terminal showing your challenge shared objects commands (4a–4d) and output |
-| 4 | `task5_step1.png` | 5 | VM snapshot creation confirmation |
-| 5 | `task5_step2.png` | 5 | GRUB menu with available entries |
-| 6 | `task5_step3.png` | 5 | Recovery menu + root shell with `whoami`, `mount`, `uname -r` |
-| 7 | `task5_step4.png` | 5 | The `grub>` prompt after breaking GRUB |
-| 8 | `task5_step5.png` | 5 | Manual GRUB commands and system starting to boot |
-| 9 | `task5_step6.png` | 5 | Restored `grub.cfg` confirmation (`ls -la`, `head`) |
-| 10 | `task5_step7.png` | 5 | Normal boot confirmation with `uname -r` and `uptime` |
-| 11 | `task6_step1.png` | 6 | Modified `/etc/default/grub` with new timeout |
-| 12 | `task6_step2.png` | 6 | GRUB menu showing custom "TechCorp" entry |
-| 13 | `task6_step3.png` | 6 | GRUB menu with custom background image |
-| 14 | `task7_pair.png` | 7 | Compilation, `ldconfig` registration, `ldd`, and test program output |
+| 3 | `task3_snapshot.png` | 3B | VM snapshot creation confirmation before any VM changes |
+| 4 | `task3_timeout.png` | 3B | Modified `/etc/default/grub` with `GRUB_TIMEOUT=10` |
+| 5 | `task3_custom_entry.png` | 3B | GRUB menu showing custom "TechCorp Training VM" entry |
+| 6 | `task3_background.png` | 3B | GRUB menu with custom background image |
+| 7 | `task3_recovery.png` | 3C | GRUB advanced options + recovery shell with `whoami`, `mount`, `uname -r` |
+| 8 | `task3_break.png` | 3C | The `grub>` prompt after breaking GRUB |
+| 9 | `task3_manual_boot.png` | 3C | Manual GRUB commands and system starting to boot |
+| 10 | `task3_restored.png` | 3C | Restored config + normal boot with `uname -r` and `uptime` |
+| 11 | `task3_challenge.png` | 3 | GRUB menu with custom colors + `grep` UUID output |
+| 12 | `task4_challenge.png` | 4 | Terminal showing your challenge shared objects commands (4a–4d) and output |
+| 13 | `task5_pair_design.png` | 5 | Both partners' screens showing the agreed header file (API design) |
+| 14 | `task5_pair_integration.png` | 5 | Final integration: `ldconfig`, `ldd`, and v2 test program output |
 | 15 | `full_history.png` | All | Output of `history \| tail -n 100` at the end of the lab |
 
 **Total screenshots: 15**
@@ -1447,26 +1564,24 @@ os-se-<YourStudentID>/
         ├── images/
         │   ├── task1_challenge.png
         │   ├── task2_challenge.png
+        │   ├── task3_snapshot.png
+        │   ├── task3_timeout.png
+        │   ├── task3_custom_entry.png
+        │   ├── task3_background.png
+        │   ├── task3_recovery.png
+        │   ├── task3_break.png
+        │   ├── task3_manual_boot.png
+        │   ├── task3_restored.png
+        │   ├── task3_challenge.png
         │   ├── task4_challenge.png
-        │   ├── task5_step1.png
-        │   ├── task5_step2.png
-        │   ├── task5_step3.png
-        │   ├── task5_step4.png
-        │   ├── task5_step5.png
-        │   ├── task5_step6.png
-        │   ├── task5_step7.png
-        │   ├── task6_step1.png
-        │   ├── task6_step2.png
-        │   ├── task6_step3.png
-        │   ├── task7_pair.png
+        │   ├── task5_pair_design.png
+        │   ├── task5_pair_integration.png
         │   └── full_history.png
         ├── task1_wildcards.txt
         ├── task2_links.txt
         ├── task3_grub.txt
         ├── task4_shared_objects.txt
-        ├── task5_boot_recovery.txt
-        ├── task6_grub_custom.txt
-        ├── task7_shared_library.txt
+        ├── task5_shared_library.txt
         ├── task_history.txt
         ├── wildcard_lab/
         │   ├── report01.txt ... report10.txt
@@ -1487,10 +1602,14 @@ os-se-<YourStudentID>/
         └── shared_lib_lab/
             ├── techcorp_sysinfo.h
             ├── techcorp_sysinfo.c
+            ├── techcorp_memory.c
             ├── techcorp_sysinfo.o
+            ├── techcorp_memory.o
             ├── libtechcorp_sysinfo.so
             ├── sysinfo_test.c
-            └── sysinfo_test
+            ├── sysinfo_test
+            ├── sysinfo_test_v2.c
+            └── sysinfo_test_v2
 ```
 
 > **Tip:** Run `tree lab3` from your `os-lab-<YourStudentID>` directory to verify your structure matches the one above before submitting.

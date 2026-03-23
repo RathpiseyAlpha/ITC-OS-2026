@@ -960,7 +960,7 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
     <!-- Slide 21: Lab Tasks Section Header -->
     <div class="slide section-slide slide-section-bg" id="slide-21">
         <h2>Lab Tasks</h2>
-        <p class="section-desc">7 tasks &mdash; 5 individual + 1 VM + 1 pair</p>
+        <p class="section-desc">5 tasks &mdash; 4 individual + 1 pair</p>
         <span class="slide-num">21</span>
     </div>
 
@@ -992,47 +992,46 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
         <span class="slide-num">22 / 28</span>
     </div>
 
-    <!-- Slide 23: Tasks 3-4 Summary -->
+    <!-- Slide 23: Task 3 Part A - GRUB Exploration -->
     <div class="slide content-slide slide-content-bg" id="slide-23">
-        <h2>Tasks 3 &amp; 4: GRUB &amp; Shared Objects</h2>
-        <div class="two-col">
-            <div class="col">
-                <p style="color:var(--accent); font-weight:600;">Task 3 &mdash; GRUB Exploration</p>
-                <ul>
-                    <li>Check kernel version: <span class="code-block">uname -r</span></li>
-                    <li>Read <span class="code-block">/boot/grub/grub.cfg</span></li>
-                    <li>Inspect <span class="code-block">/etc/default/grub</span></li>
-                    <li>List kernels in <span class="code-block">/boot/</span></li>
-                    <li>View boot messages: <span class="code-block">dmesg</span></li>
-                </ul>
-            </div>
-            <div class="col">
-                <p style="color:var(--accent); font-weight:600;">Task 4 &mdash; Shared Objects</p>
-                <ul>
-                    <li><span class="code-block">ldd /bin/ls</span> <span class="code-block">ldd /bin/bash</span></li>
-                    <li>Explore <span class="code-block">/lib/x86_64-linux-gnu/</span></li>
-                    <li>Search cache: <span class="code-block">ldconfig -p</span></li>
-                    <li>Inspect linker config + <span class="code-block">/proc/$$/maps</span></li>
-                    <li>&#x1F9E9; Challenge: investigate on your own</li>
-                </ul>
-            </div>
+        <h2>Task 3 Part A: GRUB Exploration (WSL)</h2>
+        <ul>
+            <li>Check kernel version: <span class="code-block">uname -r</span></li>
+            <li>Read <span class="code-block">/boot/grub/grub.cfg</span></li>
+            <li>Inspect <span class="code-block">/etc/default/grub</span></li>
+            <li>List kernels in <span class="code-block">/boot/</span></li>
+            <li>View boot messages: <span class="code-block">dmesg</span></li>
+        </ul>
+        <div class="callout">
+            Task 3 has <strong>3 parts</strong>: Part A in WSL, Parts B &amp; C in a VM.
         </div>
         <span class="slide-section-label">LAB</span>
         <span class="slide-num">23 / 28</span>
     </div>
 
-    <!-- Slide 24: Task 5 - Boot Recovery -->
+    <!-- Slide 24: Task 3 Parts B & C - GRUB Customization & Recovery -->
     <div class="slide content-slide slide-content-bg" id="slide-24">
-        <h2>Task 5: Boot Break &amp; Recovery (VM)</h2>
-        <ul>
-            <li><strong>Step 1:</strong> Take a VM snapshot (safety net)</li>
-            <li><strong>Step 2:</strong> Explore the GRUB menu (hold Shift at boot)</li>
-            <li><strong>Step 3:</strong> Boot into recovery mode &rarr; root shell</li>
-            <li><strong>Step 4:</strong> &ldquo;Break&rdquo; GRUB by renaming <span class="code-block">grub.cfg</span></li>
-            <li><strong>Step 5:</strong> Manual boot from <span class="code-block">grub&gt;</span> prompt</li>
-            <li><strong>Step 6:</strong> Restore config with <span class="code-block">sudo update-grub</span></li>
-            <li><strong>Step 7:</strong> Verify normal boot</li>
-        </ul>
+        <h2>Task 3 Parts B &amp; C: GRUB VM Tasks</h2>
+        <div class="two-col">
+            <div class="col">
+                <p style="color:var(--accent); font-weight:600;">Part B &mdash; Customization</p>
+                <ul>
+                    <li>Take a VM snapshot first</li>
+                    <li>Set <span class="code-block">GRUB_TIMEOUT=10</span></li>
+                    <li>Create custom menu entry</li>
+                    <li>Add a background image</li>
+                </ul>
+            </div>
+            <div class="col">
+                <p style="color:var(--accent); font-weight:600;">Part C &mdash; Boot Recovery</p>
+                <ul>
+                    <li>Boot into recovery mode</li>
+                    <li>&ldquo;Break&rdquo; GRUB by renaming config</li>
+                    <li>Manual boot from <span class="code-block">grub&gt;</span></li>
+                    <li>Restore with <span class="code-block">update-grub</span></li>
+                </ul>
+            </div>
+        </div>
         <div class="callout callout-warn">
             <strong>&#x26A0; VM ONLY!</strong> Never do this on a physical machine. Always take a snapshot first.
         </div>
@@ -1040,36 +1039,34 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
         <span class="slide-num">24 / 28</span>
     </div>
 
-    <!-- Slide 25: Task 6 - GRUB Customization -->
+    <!-- Slide 25: Task 4 - Shared Objects -->
     <div class="slide content-slide slide-content-bg" id="slide-25">
-        <h2>Task 6: GRUB Customization (VM)</h2>
+        <h2>Task 4: Shared Objects</h2>
         <ul>
-            <li><strong>Step 1:</strong> Change <span class="code-block">GRUB_TIMEOUT=10</span> in <span class="code-block">/etc/default/grub</span></li>
-            <li><strong>Step 2:</strong> Create custom menu entry in <span class="code-block">/etc/grub.d/40_custom_techcorp</span></li>
-            <li><strong>Step 3:</strong> Add a background image (<span class="code-block">GRUB_BACKGROUND</span>)
-                <ul>
-                    <li>Use grub2-splashimages, ImageMagick, or your own PNG</li>
-                    <li>Recommended size: 640&times;480</li>
-                </ul>
-            </li>
-            <li>After each change: <span class="code-block">sudo update-grub</span> &rarr; reboot &rarr; verify</li>
+            <li><span class="code-block">ldd /bin/ls</span> and <span class="code-block">ldd /bin/bash</span></li>
+            <li>Explore <span class="code-block">/lib/x86_64-linux-gnu/</span></li>
+            <li>Search the cache: <span class="code-block">ldconfig -p | grep libc</span></li>
+            <li>Inspect linker config in <span class="code-block">/etc/ld.so.conf.d/</span></li>
+            <li>View memory maps: <span class="code-block">/proc/$$/maps</span></li>
+            <li>&#x1F9E9; Challenge: investigate <span class="code-block">ssh</span>/<span class="code-block">curl</span> libraries on your own</li>
         </ul>
         <span class="slide-section-label">LAB</span>
         <span class="slide-num">25 / 28</span>
     </div>
 
-    <!-- Slide 26: Task 7 - Build Shared Library (Pair) -->
+    <!-- Slide 26: Task 5 - Build Shared Library (Pair) -->
     <div class="slide content-slide slide-content-bg" id="slide-26">
-        <h2>Task 7: Build a Shared Library (Pair)</h2>
+        <h2>Task 5: Build a Shared Library (Pair)</h2>
         <ul>
-            <li>&#x1F465; <strong>Role A:</strong> Write the library (<span class="code-block">techcorp_sysinfo.c</span> + <span class="code-block">.h</span>)</li>
-            <li>&#x1F465; <strong>Role B:</strong> Write the test program (<span class="code-block">sysinfo_test.c</span>)</li>
-            <li>Compile: <span class="code-block">gcc -fPIC -c</span> &rarr; <span class="code-block">gcc -shared -o .so</span></li>
-            <li>Test locally: <span class="code-block">LD_LIBRARY_PATH=. ./sysinfo_test</span></li>
-            <li>Install: <span class="code-block">sudo cp .so /usr/local/lib/ &amp;&amp; sudo ldconfig</span></li>
-            <li>Verify: <span class="code-block">ldconfig -p | grep techcorp</span> &amp; <span class="code-block">ldd ./sysinfo_test</span></li>
-            <li>Run without LD_LIBRARY_PATH &rarr; success!</li>
+            <li><strong>Phase 1:</strong> Design API together &mdash; agree on <span class="code-block">techcorp_sysinfo.h</span></li>
+            <li><strong>Phase 2:</strong> Divide &amp; build separately &mdash; A writes <span class="code-block">.c</span>, B writes test</li>
+            <li><strong>Phase 3:</strong> Integrate &amp; debug together &mdash; compile, link, run</li>
+            <li><strong>Phase 4:</strong> Swap roles &mdash; B adds <span class="code-block">tc_get_memory_mb</span>, A tests v2</li>
+            <li><strong>Phase 5:</strong> Install system-wide &mdash; <span class="code-block">sudo ldconfig</span></li>
         </ul>
+        <div class="callout">
+            &#x1F465; <strong>Genuine pair work:</strong> neither partner can finish without the other&rsquo;s piece.
+        </div>
         <span class="slide-section-label">LAB</span>
         <span class="slide-num">26 / 28</span>
     </div>
@@ -1101,9 +1098,7 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
 ├── task2_links.txt
 ├── task3_grub.txt
 ├── task4_shared_objects.txt
-├── task5_boot_recovery.txt
-├── task6_grub_custom.txt
-├── task7_shared_library.txt
+├── task5_shared_library.txt
 ├── task_history.txt
 ├── wildcard_lab/
 ├── csv_archive/
@@ -1111,19 +1106,22 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
 └── shared_lib_lab/
     ├── techcorp_sysinfo.h
     ├── techcorp_sysinfo.c
+    ├── techcorp_memory.c
     ├── libtechcorp_sysinfo.so
     ├── sysinfo_test.c
-    └── sysinfo_test</div>
+    ├── sysinfo_test
+    ├── sysinfo_test_v2.c
+    └── sysinfo_test_v2</div>
             </div>
             <div class="col">
                 <div class="callout" style="margin-bottom:20px;">
                     <strong>Checklist before submitting:</strong>
                 </div>
                 <ul>
-                    <li>&#x2705; All 8 <code>.txt</code> output files present</li>
+                    <li>&#x2705; All 6 <code>.txt</code> output files present</li>
                     <li>&#x2705; 15 screenshots in <code>images/</code></li>
                     <li>&#x2705; <code>README.md</code> completed</li>
-                    <li>&#x2705; Partner info in Task 7 output</li>
+                    <li>&#x2705; Partner info in Task 5 output</li>
                     <li>&#x2705; <code>shared_lib_lab/</code> with source &amp; binary</li>
                     <li>&#x2705; Pushed to GitHub</li>
                     <li>&#x2705; Pulled to lab server</li>
@@ -1171,10 +1169,10 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
             'Build a Shared Lib',
             'Lab Tasks',
             'Tasks 1 & 2',
-            'Tasks 3 & 4',
-            'Task 5: Boot Recovery',
-            'Task 6: GRUB Custom',
-            'Task 7: Pair Library',
+            'Task 3A: GRUB Explore',
+            'Task 3B/C: GRUB VM',
+            'Task 4: Shared Objects',
+            'Task 5: Pair Library',
             'Submission Workflow',
             'Folder & Checklist'
         ];

@@ -2,8 +2,8 @@
 
 - **Student Name:** [Your Name Here]
 - **Student ID:** [Your Student ID Here]
-- **Partner Name (Task 7):** [Partner Name Here]
-- **Partner ID (Task 7):** [Partner Student ID Here]
+- **Partner Name (Task 5):** [Partner Name Here]
+- **Partner ID (Task 5):** [Partner Student ID Here]
 
 ---
 
@@ -15,9 +15,7 @@ During the lab, each task redirected its output into `.txt` files. These files a
 - [ ] `task2_links.txt`
 - [ ] `task3_grub.txt`
 - [ ] `task4_shared_objects.txt`
-- [ ] `task5_boot_recovery.txt`
-- [ ] `task6_grub_custom.txt`
-- [ ] `task7_shared_library.txt`
+- [ ] `task5_shared_library.txt`
 - [ ] `task_history.txt`
 
 ---
@@ -46,7 +44,88 @@ Show the terminal where you ran your link challenge commands **2a–2c** (creati
 
 ---
 
-### Screenshot 3 — Task 4 Challenge: Shared Objects
+### Screenshot 3 — Task 3 Part B: VM Snapshot
+
+Show your VM's snapshot panel confirming the "Before Boot Lab" snapshot was created before starting any VM changes.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Snapshot](images/task3_snapshot.png)
+
+---
+
+### Screenshot 4 — Task 3 Part B: GRUB Timeout Config
+
+Show the modified `/etc/default/grub` with `GRUB_TIMEOUT=10` and the cleared `GRUB_CMDLINE_LINUX_DEFAULT`.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Timeout](images/task3_timeout.png)
+
+---
+
+### Screenshot 5 — Task 3 Part B: Custom GRUB Entry
+
+Show the GRUB menu displaying your custom "TechCorp Training VM — Boot Standard" entry.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Custom Entry](images/task3_custom_entry.png)
+
+---
+
+### Screenshot 6 — Task 3 Part B: GRUB Background Image
+
+Show the GRUB menu with your custom background image visible behind the menu text.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Background](images/task3_background.png)
+
+---
+
+### Screenshot 7 — Task 3 Part C: Recovery Mode
+
+Show the GRUB advanced options and the recovery root shell with the output of `whoami`, `mount | grep "on / "`, and `uname -r`.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Recovery](images/task3_recovery.png)
+
+---
+
+### Screenshot 8 — Task 3 Part C: Broken GRUB
+
+Show the `grub>` command line prompt that appears after the GRUB configuration was removed.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Break](images/task3_break.png)
+
+---
+
+### Screenshot 9 — Task 3 Part C: Manual Boot
+
+Show the manual GRUB commands you typed (`set root`, `linux`, `initrd`, `boot`) and the system beginning to start up.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Manual Boot](images/task3_manual_boot.png)
+
+---
+
+### Screenshot 10 — Task 3 Part C: Restored & Normal Boot
+
+Show the output of `ls -la /boot/grub/grub.cfg` and `head -5 /boot/grub/grub.cfg` confirming the configuration was restored, plus `uname -r` and `uptime` after normal boot.
+
+<!-- Insert your screenshot below: -->
+![Task 3 Restored](images/task3_restored.png)
+
+---
+
+### Screenshot 11 — Task 3 Challenge: GRUB Customization
+
+Show the GRUB menu with your custom color scheme (challenge 3b) and the `grep` output for the root partition UUID (challenge 3c).
+
+<!-- Insert your screenshot below: -->
+![Task 3 Challenge](images/task3_challenge.png)
+
+---
+
+### Screenshot 12 — Task 4 Challenge: Shared Objects
 
 Show the terminal where you ran your shared objects challenge commands **4a–4d** (inspecting `ssh`/`curl` libraries, listing `libm*` files, following the `libc.so.6` symlink chain, and compiling/inspecting a test program). Show the `ldd` and `readlink` output.
 
@@ -55,102 +134,21 @@ Show the terminal where you ran your shared objects challenge commands **4a–4d
 
 ---
 
-### Screenshot 4 — Task 5 Step 1: VM Snapshot
+### Screenshot 13 — Task 5: Pair API Design
 
-Show your VM's snapshot panel confirming the "Before Boot Lab" snapshot was created.
+Show **both partners' screens** with the agreed header file (`techcorp_sysinfo.h`) open, proving the API was designed collaboratively.
 
 <!-- Insert your screenshot below: -->
-![Task 5 Step 1](images/task5_step1.png)
+![Task 5 Pair Design](images/task5_pair_design.png)
 
 ---
 
-### Screenshot 5 — Task 5 Step 2: GRUB Menu
+### Screenshot 14 — Task 5: Pair Integration Test
 
-Show the GRUB boot menu with the available kernel entries and "Advanced options" visible.
-
-<!-- Insert your screenshot below: -->
-![Task 5 Step 2](images/task5_step2.png)
-
----
-
-### Screenshot 6 — Task 5 Step 3: Recovery Mode
-
-Show the Recovery Menu options and the root shell with the output of `whoami`, `mount | grep "on / "`, and `uname -r`.
+Show the final integration test: `ldconfig -p | grep techcorp` showing registration, `ldd ./sysinfo_test_v2` showing the library is resolved, and the v2 test program output displaying hostname, uptime, CPU cores, and memory.
 
 <!-- Insert your screenshot below: -->
-![Task 5 Step 3](images/task5_step3.png)
-
----
-
-### Screenshot 7 — Task 5 Step 4: Broken GRUB
-
-Show the `grub>` command line prompt that appears after the GRUB configuration was removed.
-
-<!-- Insert your screenshot below: -->
-![Task 5 Step 4](images/task5_step4.png)
-
----
-
-### Screenshot 8 — Task 5 Step 5: Manual Boot
-
-Show the manual GRUB commands you typed (`set root`, `linux`, `initrd`, `boot`) and the system beginning to start up.
-
-<!-- Insert your screenshot below: -->
-![Task 5 Step 5](images/task5_step5.png)
-
----
-
-### Screenshot 9 — Task 5 Step 6: Restored GRUB
-
-Show the output of `ls -la /boot/grub/grub.cfg` and `head -5 /boot/grub/grub.cfg` confirming the configuration was restored.
-
-<!-- Insert your screenshot below: -->
-![Task 5 Step 6](images/task5_step6.png)
-
----
-
-### Screenshot 10 — Task 5 Step 7: Normal Boot
-
-Show the system booted normally with the output of `uname -r` and `uptime`.
-
-<!-- Insert your screenshot below: -->
-![Task 5 Step 7](images/task5_step7.png)
-
----
-
-### Screenshot 11 — Task 6 Step 1: GRUB Timeout Config
-
-Show the modified `/etc/default/grub` with `GRUB_TIMEOUT=10` and the cleared `GRUB_CMDLINE_LINUX_DEFAULT`.
-
-<!-- Insert your screenshot below: -->
-![Task 6 Step 1](images/task6_step1.png)
-
----
-
-### Screenshot 12 — Task 6 Step 2: Custom GRUB Entry
-
-Show the GRUB menu displaying your custom "TechCorp Training VM — Boot Standard" entry.
-
-<!-- Insert your screenshot below: -->
-![Task 6 Step 2](images/task6_step2.png)
-
----
-
-### Screenshot 13 — Task 6 Step 3: GRUB Background Image
-
-Show the GRUB menu with your custom background image visible behind the menu text.
-
-<!-- Insert your screenshot below: -->
-![Task 6 Step 3](images/task6_step3.png)
-
----
-
-### Screenshot 14 — Task 7: Shared Library (Pair Task)
-
-Show the terminal with: (1) the `gcc` compilation of the shared library, (2) `ldconfig -p | grep techcorp` showing registration, (3) `ldd ./sysinfo_test` showing the library is resolved, and (4) the test program output displaying hostname, uptime, and CPU count.
-
-<!-- Insert your screenshot below: -->
-![Task 7 Pair](images/task7_pair.png)
+![Task 5 Pair Integration](images/task5_pair_integration.png)
 
 ---
 
