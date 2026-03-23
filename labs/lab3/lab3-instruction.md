@@ -953,20 +953,400 @@ Once the system boots (you may need to log in):
 
 ---
 
+## Task 6 — GRUB Customization (VM Only)
+
+**Scenario:** After demonstrating your boot recovery skills, your manager says: *"Nice work. Now I want you to customize the GRUB menu on the training VM so it's immediately obvious this is a TechCorp server. Change the menu title, set the timeout, and add a custom background image. We brand all our servers this way."*
+
+**Purpose:** Learn to customize the GRUB bootloader appearance and behavior by editing `/etc/default/grub` and creating a custom menu entry script. This builds directly on the exploration you did in Task 3.
+
+> ⚠️ **This task must be performed on your VM (VirtualBox / VMware).** Make sure your VM snapshot from Task 5 is still available as a safety net.
+
+**Commands Used:**
+
+- `vi` or `nano` — text editor
+- `/etc/default/grub` — main GRUB defaults file
+- `/etc/grub.d/` — custom menu scripts directory
+- `sudo update-grub` — regenerate `grub.cfg`
+- `convert`, `wget` — (optional) for background image
+
+**Instructions:**
+
+### Step 1 — Change the GRUB Timeout
+
+1. Open the GRUB defaults file:
+
+   ```bash
+   sudo nano /etc/default/grub
+   ```
+
+2. Find the `GRUB_TIMEOUT` line and change it to show the menu for **10 seconds**:
+
+   ```
+   GRUB_TIMEOUT=10
+   ```
+
+3. Also find `GRUB_CMDLINE_LINUX_DEFAULT` — remove `quiet splash` temporarily so you can see boot messages:
+
+   ```
+   GRUB_CMDLINE_LINUX_DEFAULT=""
+   ```
+
+4. Save the file and regenerate the GRUB configuration:
+
+   ```bash
+   sudo update-grub
+   ```
+
+5. Record what you changed:
+
+   ```bash
+   echo "=== Task 6: GRUB Customization ===" > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   echo "--- Modified /etc/default/grub ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   cat /etc/default/grub >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   ```
+
+> 📸 **Screenshot `task6_step1.png`:** Take a screenshot showing the modified `/etc/default/grub`.
+
+### Step 2 — Add a Custom GRUB Menu Entry
+
+Custom menu entries are added by creating a script in `/etc/grub.d/`. Scripts are numbered (e.g., `10_linux`, `30_os-prober`) and executed in order when `update-grub` runs.
+
+1. Create a custom entry script:
+
+   ```bash
+   sudo nano /etc/grub.d/40_custom_techcorp
+   ```
+
+2. Add the following content:
+
+   ```bash
+   #!/bin/sh
+   exec tail -n +3 $0
+   # Custom GRUB menu entry for TechCorp Training VM
+
+   menuentry "TechCorp Training VM — Boot Standard" {
+       set root=(hd0,msdos1)
+       linux /boot/vmlinuz-$(uname -r) root=/dev/sda1
+       initrd /boot/initrd.img-$(uname -r)
+   }
+   ```
+
+   > **Note:** Adjust `(hd0,msdos1)` and `/dev/sda1` to match your VM's partition layout — use the values you discovered in Task 5, Step 5. Replace `$(uname -r)` with the actual kernel version string if the script does not expand it correctly.
+
+3. Make the script executable and regenerate GRUB:
+
+   ```bash
+   sudo chmod +x /etc/grub.d/40_custom_techcorp
+   sudo update-grub
+   ```
+
+4. Record the new menu:
+
+   ```bash
+   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   echo "--- Custom script /etc/grub.d/40_custom_techcorp ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   cat /etc/grub.d/40_custom_techcorp >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   ```
+
+5. Reboot and verify the new entry appears in the GRUB menu:
+
+   ```bash
+   sudo reboot
+   ```
+
+> 📸 **Screenshot `task6_step2.png`:** Take a screenshot of the GRUB menu showing your custom "TechCorp Training VM" entry.
+
+### Step 3 — Add a GRUB Background Image
+
+GRUB supports custom background images in `png`, `tga`, or `jpg` format. The image should ideally be **640×480** for the best compatibility. Here is how to set one:
+
+1. After booting, install the GRUB splash tool (if not already installed):
+
+   ```bash
+   sudo apt install grub2-splashimages 2>/dev/null || echo "Package not available — using custom image"
+   ```
+
+2. **Option A — Use a pre-installed splash image (if available):**
+
+   ```bash
+   ls /usr/share/images/grub/ 2>/dev/null
+   ```
+
+   If images exist, copy one:
+
+   ```bash
+   sudo cp /usr/share/images/grub/<image_name>.tga /boot/grub/splash.tga
+   ```
+
+   **Option B — Create a simple custom image with ImageMagick:**
+
+   ```bash
+   sudo apt install imagemagick -y 2>/dev/null
+   convert -size 640x480 xc:'#1a1a2e' \
+     -fill white -gravity center -pointsize 36 \
+     -annotate +0+0 'TechCorp Server' \
+     /tmp/grub_bg.png
+   sudo cp /tmp/grub_bg.png /boot/grub/grub_bg.png
+   ```
+
+   **Option C — Use any `.png` image you have** (transfer it to your VM via shared folders or `scp`). Resize it to 640×480 if it's larger.
+
+3. Tell GRUB to use a background image by editing the defaults:
+
+   ```bash
+   sudo nano /etc/default/grub
+   ```
+
+   Add or modify the following line (use the correct filename from above):
+
+   ```
+   GRUB_BACKGROUND="/boot/grub/grub_bg.png"
+   ```
+
+4. Regenerate and reboot:
+
+   ```bash
+   sudo update-grub
+   sudo reboot
+   ```
+
+5. Record the final configuration:
+
+   ```bash
+   echo "" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   echo "--- Final /etc/default/grub (with background) ---" >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   cat /etc/default/grub >> ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab3/task6_grub_custom.txt
+   ```
+
+> 📸 **Screenshot `task6_step3.png`:** Take a screenshot of the GRUB menu showing the custom background image.
+
+**Output File:** `task6_grub_custom.txt` and screenshots `task6_step1.png` through `task6_step3.png`
+
+---
+
+## Task 7 — Build and Register a Shared Library (Pair Task)
+
+**Scenario:** A senior developer approaches you and your partner: *"We're building a set of monitoring utilities for TechCorp servers. I need you two to create a small shared library that provides a system info function. One of you writes the library code and the other writes the test program. Then install it system-wide so any program can use it."*
+
+**Purpose:** Apply what you learned about shared objects in Task 4 by writing, compiling, installing, and registering a custom `.so` shared library. This task is done **in pairs** — coordinate with your assigned partner.
+
+> 👥 **Pair Task:** Work with your partner. Decide who does **Role A** (library author) and **Role B** (test program author). Both partners should type the commands on their own system and verify the results. Both partners submit the same output.
+
+**Commands Used:**
+
+- `gcc -shared -fPIC` — compile a position-independent shared object
+- `sudo cp` — install the library to a system directory
+- `sudo ldconfig` — refresh the shared library cache
+- `ldd` — verify library linking
+- `gcc -L -l` — compile a program linking against a custom library
+
+**Instructions:**
+
+### Step 1 — Create the Project Layout
+
+```bash
+mkdir -p shared_lib_lab
+cd shared_lib_lab
+echo "=== Task 7: Build and Register a Shared Library ===" > ../task7_shared_library.txt
+```
+
+### Step 2 — Write the Library Source Code (Role A)
+
+Create the **header file** that declares the library's functions:
+
+```bash
+cat > techcorp_sysinfo.h << 'EOF'
+#ifndef TECHCORP_SYSINFO_H
+#define TECHCORP_SYSINFO_H
+
+// Returns the hostname of the machine
+const char* tc_get_hostname(void);
+
+// Returns the current uptime in a human-readable string
+const char* tc_get_uptime(void);
+
+// Returns the number of CPU cores
+int tc_get_cpu_count(void);
+
+#endif
+EOF
+```
+
+Create the **library implementation**:
+
+```bash
+cat > techcorp_sysinfo.c << 'EOF'
+#include "techcorp_sysinfo.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+static char hostname_buf[256];
+static char uptime_buf[128];
+
+const char* tc_get_hostname(void) {
+    if (gethostname(hostname_buf, sizeof(hostname_buf)) == 0)
+        return hostname_buf;
+    return "unknown";
+}
+
+const char* tc_get_uptime(void) {
+    FILE *fp = fopen("/proc/uptime", "r");
+    if (fp) {
+        double up_seconds;
+        if (fscanf(fp, "%lf", &up_seconds) == 1) {
+            int hours = (int)(up_seconds / 3600);
+            int minutes = ((int)up_seconds % 3600) / 60;
+            snprintf(uptime_buf, sizeof(uptime_buf),
+                     "%d hours, %d minutes", hours, minutes);
+        }
+        fclose(fp);
+        return uptime_buf;
+    }
+    return "unknown";
+}
+
+int tc_get_cpu_count(void) {
+    return (int)sysconf(_SC_NPROCESSORS_ONLN);
+}
+EOF
+```
+
+### Step 3 — Compile the Shared Library
+
+```bash
+# Compile to position-independent object code
+gcc -fPIC -c techcorp_sysinfo.c -o techcorp_sysinfo.o
+
+# Link into a shared library
+gcc -shared -o libtechcorp_sysinfo.so techcorp_sysinfo.o
+
+echo "--- Compiled shared library ---" >> ../task7_shared_library.txt
+file libtechcorp_sysinfo.so >> ../task7_shared_library.txt
+ls -l libtechcorp_sysinfo.so >> ../task7_shared_library.txt
+```
+
+> **Explanation:**
+> - `-fPIC` means **Position-Independent Code** — required for shared libraries so the code can be loaded at any memory address.
+> - `-shared` tells `gcc` to produce a `.so` file instead of a regular executable.
+
+### Step 4 — Write a Test Program (Role B)
+
+```bash
+cat > sysinfo_test.c << 'EOF'
+#include <stdio.h>
+#include "techcorp_sysinfo.h"
+
+int main(void) {
+    printf("=== TechCorp System Info Report ===\n");
+    printf("Hostname : %s\n", tc_get_hostname());
+    printf("Uptime   : %s\n", tc_get_uptime());
+    printf("CPU Cores: %d\n", tc_get_cpu_count());
+    printf("===================================\n");
+    return 0;
+}
+EOF
+```
+
+### Step 5 — Compile and Link the Test Program (local test first)
+
+```bash
+# Compile, linking against the local shared library
+gcc sysinfo_test.c -L. -ltechcorp_sysinfo -o sysinfo_test
+
+echo "" >> ../task7_shared_library.txt
+echo "--- ldd on test program (before install) ---" >> ../task7_shared_library.txt
+ldd ./sysinfo_test >> ../task7_shared_library.txt 2>&1
+
+# Run with LD_LIBRARY_PATH pointing to the current directory
+echo "" >> ../task7_shared_library.txt
+echo "--- Test run (using LD_LIBRARY_PATH) ---" >> ../task7_shared_library.txt
+LD_LIBRARY_PATH=. ./sysinfo_test >> ../task7_shared_library.txt
+```
+
+> **Note:** Without `LD_LIBRARY_PATH=.`, the program would fail with `cannot open shared object file` because the dynamic linker doesn't search the current directory by default.
+
+### Step 6 — Install the Library System-Wide
+
+```bash
+# Copy the library to the system library directory
+sudo cp libtechcorp_sysinfo.so /usr/local/lib/
+
+# Refresh the shared library cache
+sudo ldconfig
+
+# Verify it is registered
+echo "" >> ../task7_shared_library.txt
+echo "--- ldconfig cache search for techcorp ---" >> ../task7_shared_library.txt
+ldconfig -p | grep techcorp >> ../task7_shared_library.txt
+```
+
+### Step 7 — Re-test Without LD_LIBRARY_PATH
+
+```bash
+echo "" >> ../task7_shared_library.txt
+echo "--- ldd on test program (after install) ---" >> ../task7_shared_library.txt
+ldd ./sysinfo_test >> ../task7_shared_library.txt 2>&1
+
+echo "" >> ../task7_shared_library.txt
+echo "--- Test run (system-wide, no LD_LIBRARY_PATH) ---" >> ../task7_shared_library.txt
+./sysinfo_test >> ../task7_shared_library.txt
+```
+
+> The dynamic linker should now find `libtechcorp_sysinfo.so` in `/usr/local/lib/` via the cache — no `LD_LIBRARY_PATH` needed.
+
+### Step 8 — Clean Up (Optional)
+
+If you want to remove the system-wide library after the lab:
+
+```bash
+sudo rm /usr/local/lib/libtechcorp_sysinfo.so
+sudo ldconfig
+```
+
+### Step 9 — Document Your Partner
+
+```bash
+echo "" >> ../task7_shared_library.txt
+echo "--- Pair Information ---" >> ../task7_shared_library.txt
+echo "Role A (Library Author): <Partner A Name> - <Student ID>" >> ../task7_shared_library.txt
+echo "Role B (Test Program Author): <Partner B Name> - <Student ID>" >> ../task7_shared_library.txt
+```
+
+Return to the lab3 directory:
+
+```bash
+cd ..
+```
+
+> 📸 **Screenshot `task7_pair.png`:** Take a screenshot showing the compilation steps, `ldconfig` registration, `ldd` output, and the test program running successfully. Both partners should have this screenshot.
+
+**Output File:** `task7_shared_library.txt` and screenshot `task7_pair.png`
+
+---
+
 ## Final Submission: GitHub and VS Code Documentation
 
-You have finished the terminal work. Now push your folder to GitHub and document it.
+You have finished all terminal work. Now push your folder to GitHub and document it.
 
 ### Phase 1: Push Your Terminal Work to GitHub (From WSL)
 
-1. Verify your folder structure with `tree`:
+1. Capture your terminal history:
+
+   ```bash
+   echo "=== Full Command History ===" > task_history.txt
+   history | tail -n 100 >> task_history.txt
+   ```
+
+2. Verify your folder structure with `tree`:
 
    ```bash
    cd ~/os-se-<YourStudentID>/os-lab-<YourStudentID>
    tree lab3
    ```
 
-2. Commit and push your work:
+3. Commit and push your work:
 
    ```bash
    cd ~/os-se-<YourStudentID>
@@ -988,7 +1368,7 @@ You have finished the terminal work. Now push your folder to GitHub and document
 
 3. **Add Images:** Inside the `lab3` folder, create a new folder called `images`. Drag and drop all screenshots into this `images` folder.
 
-4. **Create README:** Inside the `lab3` folder, create a `README.md` file. Use the Lab 3 README template provided by your instructor. You can preview the file in VS Code by pressing <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd>.
+4. **Create README:** Inside the `lab3` folder, create a `README.md` file. Use the Lab 3 README template provided by your instructor (see `README.md` in the lab3 folder). You can preview the file in VS Code by pressing <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>V</kbd>.
 
 5. **Final Push:**
 
@@ -1029,6 +1409,32 @@ You have finished the terminal work. Now push your folder to GitHub and document
 
 ---
 
+## Screenshot Checklist
+
+Use this checklist to make sure you have every required screenshot before moving to the documentation phase. Save all screenshots to your `lab3/images/` folder.
+
+| # | Filename | Task | What to Capture |
+|:-:|----------|:----:|-----------------|
+| 1 | `task1_challenge.png` | 1 | Terminal showing your challenge wildcard commands (1a–1d) and output |
+| 2 | `task2_challenge.png` | 2 | Terminal showing your challenge link commands (2a–2c) and output |
+| 3 | `task4_challenge.png` | 4 | Terminal showing your challenge shared objects commands (4a–4d) and output |
+| 4 | `task5_step1.png` | 5 | VM snapshot creation confirmation |
+| 5 | `task5_step2.png` | 5 | GRUB menu with available entries |
+| 6 | `task5_step3.png` | 5 | Recovery menu + root shell with `whoami`, `mount`, `uname -r` |
+| 7 | `task5_step4.png` | 5 | The `grub>` prompt after breaking GRUB |
+| 8 | `task5_step5.png` | 5 | Manual GRUB commands and system starting to boot |
+| 9 | `task5_step6.png` | 5 | Restored `grub.cfg` confirmation (`ls -la`, `head`) |
+| 10 | `task5_step7.png` | 5 | Normal boot confirmation with `uname -r` and `uptime` |
+| 11 | `task6_step1.png` | 6 | Modified `/etc/default/grub` with new timeout |
+| 12 | `task6_step2.png` | 6 | GRUB menu showing custom "TechCorp" entry |
+| 13 | `task6_step3.png` | 6 | GRUB menu with custom background image |
+| 14 | `task7_pair.png` | 7 | Compilation, `ldconfig` registration, `ldd`, and test program output |
+| 15 | `full_history.png` | All | Output of `history \| tail -n 100` at the end of the lab |
+
+**Total screenshots: 15**
+
+---
+
 ## Expected Folder Structure
 
 After completing all tasks and documentation, your `lab3` folder should look like this:
@@ -1049,47 +1455,42 @@ os-se-<YourStudentID>/
         │   ├── task5_step5.png
         │   ├── task5_step6.png
         │   ├── task5_step7.png
+        │   ├── task6_step1.png
+        │   ├── task6_step2.png
+        │   ├── task6_step3.png
+        │   ├── task7_pair.png
         │   └── full_history.png
         ├── task1_wildcards.txt
         ├── task2_links.txt
         ├── task3_grub.txt
         ├── task4_shared_objects.txt
         ├── task5_boot_recovery.txt
+        ├── task6_grub_custom.txt
+        ├── task7_shared_library.txt
+        ├── task_history.txt
         ├── wildcard_lab/
-        │   ├── report01.txt
-        │   ├── report02.txt
-        │   ├── report03.txt
-        │   ├── report10.txt
-        │   ├── summary.txt
-        │   ├── notes.txt
-        │   ├── readme.txt
-        │   ├── data01.csv
-        │   ├── data02.csv
-        │   ├── data03.csv
-        │   ├── image1.png
-        │   ├── image2.png
-        │   ├── image3.jpg
-        │   ├── image4.jpg
-        │   ├── config.yaml
-        │   ├── config.yml
-        │   ├── settings.json
-        │   ├── backup1.tar.gz
-        │   ├── backup2.tar.gz
-        │   └── memo_{mon,tue,wed,thu,fri}.txt
+        │   ├── report01.txt ... report10.txt
+        │   ├── summary.txt, notes.txt, readme.txt
+        │   ├── data01.csv ... data03.csv
+        │   ├── image1.png ... image4.jpg
+        │   ├── config.yaml, config.yml, settings.json
+        │   ├── backup1.tar.gz, backup2.tar.gz
+        │   └── memo_mon.txt ... memo_fri.txt
         ├── csv_archive/
-        │   ├── data01.csv
-        │   ├── data02.csv
-        │   └── data03.csv
-        └── links_lab/
-            ├── config_hardlink.txt
-            ├── config_symlink.txt
-            ├── shared_data.txt
-            ├── hr_data.txt
-            ├── eng_data.txt
-            ├── projects/
-            │   └── frontend/
-            │       └── index.html
-            └── web_shortcut -> projects/frontend
+        │   └── data01.csv ... data03.csv
+        ├── links_lab/
+        │   ├── config_hardlink.txt
+        │   ├── config_symlink.txt -> (broken)
+        │   ├── shared_data.txt, hr_data.txt, eng_data.txt
+        │   ├── projects/frontend/index.html
+        │   └── web_shortcut -> projects/frontend
+        └── shared_lib_lab/
+            ├── techcorp_sysinfo.h
+            ├── techcorp_sysinfo.c
+            ├── techcorp_sysinfo.o
+            ├── libtechcorp_sysinfo.so
+            ├── sysinfo_test.c
+            └── sysinfo_test
 ```
 
 > **Tip:** Run `tree lab3` from your `os-lab-<YourStudentID>` directory to verify your structure matches the one above before submitting.

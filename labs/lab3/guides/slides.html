@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operating Systems - Lab 3: Wildcards, Links, GRUB &amp; Shared Libraries</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f0f2f5;
+            --text-primary: #1a1a2e;
+            --text-secondary: #3a3a5c;
+            --text-muted: #6b7280;
+            --accent: #e94560;
+            --accent2: #0d9488;
+            --bg-title: linear-gradient(135deg, #e8eaf6, #c5cae9, #e3f2fd);
+            --bg-section: linear-gradient(135deg, #e3f2fd, #bbdefb, #e8eaf6);
+            --bg-content: linear-gradient(135deg, #f5f7fa, #e8ecf1, #f0f2f5);
+            --bg-nav-btn: #e0e5ec;
+            --border-nav: #c5cae9;
+            --bg-code: #eef2f7;
+            --border-code: #c5cae9;
+            --code-color: #0d9488;
+            --bg-callout: #e3f2fd;
+            --border-callout: #0d9488;
+            --callout-text: #3a3a5c;
+            --shadow: rgba(0, 0, 0, 0.12);
+            --slide-num-color: #9ca3af;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #0d9488;
+            --list-sub-color: #6b7280;
+            --person-name: #0d9488;
+            --person-years: #6b7280;
+            --nav-info-color: #9ca3af;
+            --progress-bg: linear-gradient(90deg, #e94560, #0d9488);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --bg-body: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #ccd6f6;
+            --text-muted: #4a5568;
+            --accent: #e94560;
+            --accent2: #64ffda;
+            --bg-title: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --bg-section: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            --bg-content: linear-gradient(135deg, #0d1117, #161b22, #1a1a2e);
+            --bg-nav-btn: #16213e;
+            --border-nav: #30363d;
+            --bg-code: #0d1117;
+            --border-code: #30363d;
+            --code-color: #64ffda;
+            --bg-callout: #16213e;
+            --border-callout: #64ffda;
+            --callout-text: #a8b2d1;
+            --shadow: rgba(0, 0, 0, 0.5);
+            --slide-num-color: #4a5568;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #64ffda;
+            --list-sub-color: #8892b0;
+            --person-name: #64ffda;
+            --person-years: #8892b0;
+            --nav-info-color: #4a5568;
+            --progress-bg: linear-gradient(90deg, #e94560, #64ffda);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        body.nav-open .page-wrapper {
+            margin-left: 280px;
+        }
+
+        .page-wrapper {
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 60px 80px;
+            position: relative;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        /* Slide backgrounds */
+        .slide-title-bg {
+            background: var(--bg-title);
+        }
+
+        .slide-section-bg {
+            background: var(--bg-section);
+        }
+
+        .slide-content-bg {
+            background: var(--bg-content);
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-slide h1 {
+            font-size: 3.5em;
+            font-weight: 700;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-slide h2 {
+            font-size: 1.8em;
+            font-weight: 300;
+            color: var(--text-secondary);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .title-slide .subtitle {
+            font-size: 1.2em;
+            color: var(--text-muted);
+            margin-top: 15px;
+            letter-spacing: 2px;
+        }
+
+        /* Section header slides */
+        .section-slide {
+            text-align: center;
+            align-items: center;
+        }
+
+        .section-slide h2 {
+            font-size: 3em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .section-slide .slide-number {
+            font-size: 1.2em;
+            color: var(--text-muted);
+        }
+
+        .section-slide .section-desc {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-top: 15px;
+            max-width: 700px;
+        }
+
+        /* Content slides */
+        .content-slide h2 {
+            font-size: 2.4em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9456040;
+            padding-bottom: 15px;
+        }
+
+        .content-slide ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .content-slide ul li {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            padding: 8px 0 8px 30px;
+            position: relative;
+        }
+
+        .content-slide ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .content-slide ul li ul {
+            margin-top: 5px;
+        }
+
+        .content-slide ul li ul li {
+            font-size: 0.95em;
+            color: var(--list-sub-color);
+            padding: 4px 0 4px 30px;
+        }
+
+        .content-slide ul li ul li::before {
+            content: '◦';
+            color: var(--accent2);
+        }
+
+        .content-slide p {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: flex;
+            gap: 50px;
+            align-items: flex-start;
+            flex: 1;
+        }
+
+        .two-col .col {
+            flex: 1;
+        }
+
+        .two-col .col-img {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .two-col .col-img img {
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.05em;
+            color: var(--code-color);
+            margin: 8px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .code-multi {
+            display: block;
+            white-space: pre;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-code);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            line-height: 1;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .copy-btn.copied {
+            background: var(--accent2);
+            border-color: var(--accent2);
+            color: #fff;
+        }
+
+        /* Slide number indicator */
+        .slide-num {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 1em;
+            color: var(--slide-num-color);
+        }
+
+        .slide-section-label {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-size: 0.9em;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Callout box */
+        .callout {
+            background: var(--bg-callout);
+            border-left: 4px solid var(--border-callout);
+            border-radius: 0 8px 8px 0;
+            padding: 20px 25px;
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: var(--callout-text);
+        }
+
+        .callout-warn {
+            border-left-color: #f59e0b;
+            background: #fef9c320;
+        }
+
+        /* Table styling */
+        .slide-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 1em;
+        }
+
+        .slide-table th {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            padding: 10px 15px;
+            text-align: left;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .slide-table td {
+            border: 1px solid var(--border-code);
+            padding: 8px 15px;
+            color: var(--text-secondary);
+            font-size: 0.95em;
+        }
+
+        .slide-table tr:nth-child(even) td {
+            background: var(--bg-code);
+        }
+
+        /* Diagram styling */
+        .diagram-box {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 10px;
+            padding: 30px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.1em;
+            color: var(--code-color);
+            text-align: center;
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+
+        .highlight-green {
+            color: var(--accent2);
+        }
+
+        .highlight-red {
+            color: var(--accent);
+        }
+
+        .highlight-yellow {
+            color: #ffd700;
+        }
+
+        .note-text {
+            font-size: 1em;
+            color: var(--list-sub-color);
+            font-style: italic;
+            margin-top: 15px;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--progress-bg);
+            transition: width 0.3s ease, left 0.3s ease;
+            z-index: 100;
+        }
+
+        body.nav-open .progress-bar {
+            left: 280px;
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+            transition: left 0.3s ease;
+        }
+
+        body.nav-open .nav-controls {
+            left: calc(50% + 140px);
+        }
+
+        .nav-btn {
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-info {
+            display: flex;
+            align-items: center;
+            color: var(--nav-info-color);
+            font-size: 0.9em;
+            padding: 0 10px;
+        }
+
+        /* Slide navigation map sidebar */
+        .nav-map-toggle {
+            position: fixed;
+            top: 15px;
+            left: 65px;
+            z-index: 300;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-body);
+            border-right: 1px solid var(--border-nav);
+            z-index: 250;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            padding: 70px 0 30px 0;
+        }
+
+        body.nav-open .nav-map {
+            transform: translateX(0);
+        }
+
+        body.nav-open .theme-toggle {
+            left: 295px;
+        }
+
+        body.nav-open .nav-map-toggle {
+            left: 345px;
+        }
+
+        .theme-toggle,
+        .nav-map-toggle {
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-header {
+            padding: 0 20px 15px;
+            font-size: 0.75em;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-nav);
+            margin-bottom: 8px;
+        }
+
+        .nav-map-section {
+            padding: 8px 20px 4px;
+            font-size: 0.7em;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .nav-map-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .nav-map-item:hover {
+            background: var(--bg-code);
+            border-left-color: var(--accent2);
+        }
+
+        .nav-map-item.active {
+            background: var(--bg-callout);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .nav-map-item .nm-num {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-muted);
+        }
+
+        .nav-map-item.active .nm-num {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map-item .nm-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Scrollbar styling for nav map */
+        .nav-map::-webkit-scrollbar {
+            width: 4px;
+        }
+        .nav-map::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .nav-map::-webkit-scrollbar-thumb {
+            background: var(--border-nav);
+            border-radius: 2px;
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 200;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">&#9790;</button>
+    <button class="nav-map-toggle" id="navMapToggle" title="Slide navigation map" aria-label="Slide navigation map">&#9776;</button>
+
+    <!-- Slide Navigation Map -->
+    <nav class="nav-map" id="navMap">
+        <div class="nav-map-header">Slide Map</div>
+        <div class="nav-map-section">Concepts</div>
+        <div id="navMapConcepts"></div>
+        <div class="nav-map-section" style="margin-top:6px;">Lab Tasks</div>
+        <div id="navMapLab"></div>
+    </nav>
+
+    <div class="page-wrapper">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Slide 1: Title Slide -->
+    <div class="slide title-slide slide-title-bg active" id="slide-1">
+        <h1>Lab 3</h1>
+        <h2>Wildcards, Links, GRUB &amp; Shared Libraries</h2>
+        <p class="subtitle">OS Structures &amp; Bootstrap Process &mdash; Hands-on</p>
+        <span class="slide-num">01</span>
+    </div>
+
+    <!-- Slide 2: Lab Objectives -->
+    <div class="slide content-slide slide-content-bg" id="slide-2">
+        <h2>Lab Objectives</h2>
+        <ul>
+            <li>Use wildcards (<span class="code-block">* ? [] {}</span>) to manage files efficiently</li>
+            <li>Create and inspect hard links and symbolic links</li>
+            <li>Explore the GRUB bootloader and Linux boot sequence</li>
+            <li>Customize GRUB menu, timeout, and background image</li>
+            <li>Investigate shared libraries with <span class="code-block">ldd</span> and <span class="code-block">ldconfig</span></li>
+            <li>Build, install, and register a custom <span class="code-block">.so</span> shared library</li>
+            <li>Simulate a boot break and recover using GRUB rescue</li>
+        </ul>
+        <span class="slide-section-label">OVERVIEW</span>
+        <span class="slide-num">2 / 28</span>
+    </div>
+
+    <!-- Slide 3: Task Overview Table -->
+    <div class="slide content-slide slide-content-bg" id="slide-3">
+        <h2>Task Overview</h2>
+        <table class="slide-table">
+            <tr>
+                <th>Task</th>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Environment</th>
+                <th>Output</th>
+            </tr>
+            <tr><td>1</td><td>Mastering Wildcards</td><td>Individual</td><td>WSL / Server</td><td>task1_wildcards.txt</td></tr>
+            <tr><td>2</td><td>Hard &amp; Symbolic Links</td><td>Individual</td><td>WSL / Server</td><td>task2_links.txt</td></tr>
+            <tr><td>3</td><td>GRUB Exploration</td><td>Individual</td><td>WSL / Server</td><td>task3_grub.txt</td></tr>
+            <tr><td>4</td><td>Shared Objects</td><td>Individual</td><td>WSL / Server</td><td>task4_shared_objects.txt</td></tr>
+            <tr><td>5</td><td>Boot Break &amp; Recovery</td><td>Individual</td><td>VM only</td><td>task5_boot_recovery.txt</td></tr>
+            <tr><td>6</td><td>GRUB Customization</td><td>Individual</td><td>VM only</td><td>task6_grub_custom.txt</td></tr>
+            <tr><td>7</td><td>Build a Shared Library</td><td>Pair</td><td>WSL / Server</td><td>task7_shared_library.txt</td></tr>
+        </table>
+        <span class="slide-section-label">OVERVIEW</span>
+        <span class="slide-num">3 / 28</span>
+    </div>
+
+    <!-- Slide 4: Wildcards Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-4">
+        <h2>Wildcards</h2>
+        <p class="section-desc">Pattern matching for efficient file management</p>
+        <span class="slide-num">04</span>
+    </div>
+
+    <!-- Slide 5: Wildcards - Reference Table -->
+    <div class="slide content-slide slide-content-bg" id="slide-5">
+        <h2>Wildcard Patterns</h2>
+        <table class="slide-table">
+            <tr><th>Pattern</th><th>Symbol</th><th>Meaning</th><th>Example</th></tr>
+            <tr><td>Match any</td><td><span class="code-block">*</span></td><td>Zero or more characters</td><td><span class="code-block">*.txt</span> &rarr; all .txt files</td></tr>
+            <tr><td>Single char</td><td><span class="code-block">?</span></td><td>Exactly one character</td><td><span class="code-block">file?.txt</span> &rarr; file1.txt</td></tr>
+            <tr><td>Char set</td><td><span class="code-block">[abc]</span></td><td>One from set</td><td><span class="code-block">file[123].txt</span></td></tr>
+            <tr><td>Char range</td><td><span class="code-block">[a-z]</span></td><td>One in range</td><td><span class="code-block">[A-Z]*.txt</span></td></tr>
+            <tr><td>Negate</td><td><span class="code-block">[!abc]</span></td><td>NOT in set</td><td><span class="code-block">file[!0-9].txt</span></td></tr>
+            <tr><td>Braces</td><td><span class="code-block">{a,b}</span></td><td>Generate multiple</td><td><span class="code-block">file.{txt,log}</span></td></tr>
+        </table>
+        <div class="callout">
+            <strong>Key distinction:</strong> <span class="code-block">[...]</span> matches <em>one character</em> from a set. <span class="code-block">{...}</span> generates <em>multiple separate strings</em> (brace expansion happens before globbing).
+        </div>
+        <span class="slide-section-label">WILDCARDS</span>
+        <span class="slide-num">5 / 28</span>
+    </div>
+
+    <!-- Slide 6: Wildcards Examples -->
+    <div class="slide content-slide slide-content-bg" id="slide-6">
+        <h2>Wildcards in Action</h2>
+        <ul>
+            <li>List all text files: <span class="code-block">ls *.txt</span></li>
+            <li>List reports 01&ndash;03 only: <span class="code-block">ls report0[1-3].txt</span></li>
+            <li>Skip January logs: <span class="code-block">ls log_[!j]*.log</span></li>
+            <li>Create 5 files at once: <span class="code-block">touch memo_{mon,tue,wed,thu,fri}.txt</span></li>
+            <li>Copy all CSVs: <span class="code-block">cp *.csv archive/</span></li>
+            <li>Remove all temp files: <span class="code-block">rm *.tmp</span></li>
+        </ul>
+        <div class="callout callout-warn">
+            <strong>Caution:</strong> Always double-check <span class="code-block">rm</span> with wildcards! Use <span class="code-block">ls *.tmp</span> first to preview what will be deleted.
+        </div>
+        <span class="slide-section-label">WILDCARDS</span>
+        <span class="slide-num">6 / 28</span>
+    </div>
+
+    <!-- Slide 7: Links Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-7">
+        <h2>Links</h2>
+        <p class="section-desc">Hard links &amp; symbolic links &mdash; the difference matters</p>
+        <span class="slide-num">07</span>
+    </div>
+
+    <!-- Slide 8: Inodes Explained -->
+    <div class="slide content-slide slide-content-bg" id="slide-8">
+        <h2>Understanding Inodes</h2>
+        <ul>
+            <li>Every file is identified by an <strong>inode</strong> &mdash; a unique number storing metadata (permissions, size, disk location)</li>
+            <li>The <em>filename</em> is just a directory entry pointing to an inode</li>
+            <li>Multiple names can point to the same inode &rarr; <strong>hard links</strong></li>
+            <li>A file&rsquo;s data is deleted only when the <strong>last</strong> hard link is removed</li>
+        </ul>
+        <div class="diagram-box">
+            filename_A &nbsp;&rarr;&nbsp; <span class="highlight-green">inode 12345</span> &nbsp;&rarr;&nbsp; [disk data]<br>
+            filename_B &nbsp;&rarr;&nbsp; <span class="highlight-green">inode 12345</span> &nbsp;&rarr;&nbsp; [same data!]<br>
+            symlink_C &nbsp;&rarr;&nbsp; <span class="highlight-red">inode 99999</span> &nbsp;&rarr;&nbsp; "path: filename_A"
+        </div>
+        <span class="slide-section-label">LINKS</span>
+        <span class="slide-num">8 / 28</span>
+    </div>
+
+    <!-- Slide 9: Hard vs Symbolic Links -->
+    <div class="slide content-slide slide-content-bg" id="slide-9">
+        <h2>Hard Links vs. Symbolic Links</h2>
+        <table class="slide-table">
+            <tr><th>Aspect</th><th>Hard Link</th><th>Symbolic Link</th></tr>
+            <tr><td>Command</td><td><span class="code-block">ln target link</span></td><td><span class="code-block">ln -s target link</span></td></tr>
+            <tr><td>Inode</td><td>Same as original</td><td>Different (own inode)</td></tr>
+            <tr><td>Delete original</td><td>Data survives</td><td>Link <span class="highlight-red">breaks</span></td></tr>
+            <tr><td>Cross filesystems</td><td>No</td><td>Yes</td></tr>
+            <tr><td>Link to directories</td><td>No (usually)</td><td>Yes</td></tr>
+            <tr><td>Identify with <code>ls -l</code></td><td>No arrow shown</td><td>Shows <code>-&gt;</code> target</td></tr>
+        </table>
+        <div class="callout">
+            <strong>Inspect links:</strong> <span class="code-block">ls -li</span> (show inodes) &bull; <span class="code-block">stat file</span> (link count) &bull; <span class="code-block">readlink -f link</span> (follow chain)
+        </div>
+        <span class="slide-section-label">LINKS</span>
+        <span class="slide-num">9 / 28</span>
+    </div>
+
+    <!-- Slide 10: Links Demo -->
+    <div class="slide content-slide slide-content-bg" id="slide-10">
+        <h2>Links &mdash; Key Experiment</h2>
+        <div class="code-block code-multi">echo "config data" > original.txt
+ln original.txt hardlink.txt        # hard link
+ln -s original.txt symlink.txt      # symbolic link
+ls -li                               # compare inodes
+rm original.txt                      # delete original
+cat hardlink.txt                     # still works!
+cat symlink.txt                      # broken!</div>
+        <div class="callout callout-warn">
+            <strong>Real-world example:</strong> <span class="code-block">ls -la /usr/bin/python*</span> &mdash; Python binaries are commonly managed via symlinks.
+        </div>
+        <span class="slide-section-label">LINKS</span>
+        <span class="slide-num">10 / 28</span>
+    </div>
+
+    <!-- Slide 11: GRUB Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-11">
+        <h2>GRUB &amp; Boot Process</h2>
+        <p class="section-desc">From power-on to login prompt</p>
+        <span class="slide-num">11</span>
+    </div>
+
+    <!-- Slide 12: Linux Boot Sequence -->
+    <div class="slide content-slide slide-content-bg" id="slide-12">
+        <h2>Linux Boot Sequence</h2>
+        <div class="diagram-box">
+            <span class="highlight-red">BIOS/UEFI</span> &rarr; <span class="highlight-green">GRUB</span> &rarr; <span class="highlight-yellow">Kernel</span> &rarr; init/systemd &rarr; Login
+        </div>
+        <ul>
+            <li><strong>BIOS/UEFI:</strong> Power-On Self Test (POST), finds boot device</li>
+            <li><strong>GRUB:</strong> Loads from boot device, presents menu, loads kernel</li>
+            <li><strong>Kernel:</strong> Initializes hardware, mounts root FS, starts first process (PID 1)</li>
+            <li><strong>init/systemd:</strong> Starts system services in correct order</li>
+            <li><strong>Login:</strong> User space ready</li>
+        </ul>
+        <span class="slide-section-label">BOOT</span>
+        <span class="slide-num">12 / 28</span>
+    </div>
+
+    <!-- Slide 13: GRUB Configuration -->
+    <div class="slide content-slide slide-content-bg" id="slide-13">
+        <h2>GRUB Configuration Files</h2>
+        <table class="slide-table">
+            <tr><th>File / Directory</th><th>Purpose</th><th>Edit?</th></tr>
+            <tr><td><span class="code-block">/boot/grub/grub.cfg</span></td><td>Auto-generated GRUB menu config</td><td><span class="highlight-red">NEVER</span></td></tr>
+            <tr><td><span class="code-block">/etc/default/grub</span></td><td>Admin settings (timeout, kernel params)</td><td><span class="highlight-green">YES</span></td></tr>
+            <tr><td><span class="code-block">/etc/grub.d/</span></td><td>Scripts that generate grub.cfg</td><td><span class="highlight-green">YES</span> (custom entries)</td></tr>
+            <tr><td><span class="code-block">/boot/vmlinuz-*</span></td><td>Compressed Linux kernel image</td><td>No</td></tr>
+            <tr><td><span class="code-block">/boot/initrd.img-*</span></td><td>Initial RAM disk</td><td>No</td></tr>
+        </table>
+        <div class="callout">
+            After editing <span class="code-block">/etc/default/grub</span>, always run: <span class="code-block">sudo update-grub</span>
+        </div>
+        <span class="slide-section-label">BOOT</span>
+        <span class="slide-num">13 / 28</span>
+    </div>
+
+    <!-- Slide 14: GRUB Key Settings -->
+    <div class="slide content-slide slide-content-bg" id="slide-14">
+        <h2>GRUB Key Settings</h2>
+        <table class="slide-table">
+            <tr><th>Setting</th><th>Meaning</th><th>Example</th></tr>
+            <tr><td><span class="code-block">GRUB_DEFAULT</span></td><td>Which entry to boot (0 = first)</td><td>0</td></tr>
+            <tr><td><span class="code-block">GRUB_TIMEOUT</span></td><td>Seconds to wait at menu</td><td>10</td></tr>
+            <tr><td><span class="code-block">GRUB_CMDLINE_LINUX_DEFAULT</span></td><td>Kernel params for normal boot</td><td>"quiet splash"</td></tr>
+            <tr><td><span class="code-block">GRUB_BACKGROUND</span></td><td>Path to background image</td><td>/boot/grub/bg.png</td></tr>
+        </table>
+        <ul>
+            <li>Custom menu entries go in: <span class="code-block">/etc/grub.d/40_custom</span></li>
+            <li>GRUB supports <span class="code-block">.png</span>, <span class="code-block">.tga</span>, <span class="code-block">.jpg</span> background images (640&times;480 recommended)</li>
+        </ul>
+        <span class="slide-section-label">BOOT</span>
+        <span class="slide-num">14 / 28</span>
+    </div>
+
+    <!-- Slide 15: GRUB Recovery -->
+    <div class="slide content-slide slide-content-bg" id="slide-15">
+        <h2>GRUB Recovery Modes</h2>
+        <table class="slide-table">
+            <tr><th>Mode</th><th>Enter Via</th><th>Purpose</th></tr>
+            <tr><td>Recovery Mode</td><td>GRUB menu &rarr; Advanced &rarr; (recovery)</td><td>Root shell, fsck, limited services</td></tr>
+            <tr><td>GRUB Command Line</td><td>Press <strong>c</strong> at GRUB menu</td><td>Manual boot when menu is broken</td></tr>
+            <tr><td>Live USB</td><td>Boot from external ISO</td><td>Full rescue when GRUB is destroyed</td></tr>
+        </table>
+        <div class="callout">
+            <strong>Manual boot from <code>grub&gt;</code>:</strong>
+        </div>
+        <div class="code-block code-multi">set root=(hd0,msdos1)
+linux /boot/vmlinuz-5.15.0-91 root=/dev/sda1
+initrd /boot/initrd.img-5.15.0-91
+boot</div>
+        <span class="slide-section-label">BOOT</span>
+        <span class="slide-num">15 / 28</span>
+    </div>
+
+    <!-- Slide 16: Shared Objects Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-16">
+        <h2>Shared Libraries</h2>
+        <p class="section-desc">Dynamic linking &amp; .so files</p>
+        <span class="slide-num">16</span>
+    </div>
+
+    <!-- Slide 17: Static vs Dynamic Linking -->
+    <div class="slide content-slide slide-content-bg" id="slide-17">
+        <h2>Static vs. Dynamic Linking</h2>
+        <table class="slide-table">
+            <tr><th>Aspect</th><th>Static Linking</th><th>Dynamic Linking</th></tr>
+            <tr><td>When linked</td><td>Compile time</td><td>Runtime (program start)</td></tr>
+            <tr><td>Library code</td><td>Embedded in executable</td><td>Loaded from <span class="code-block">.so</span> files</td></tr>
+            <tr><td>Executable size</td><td>Larger</td><td>Smaller</td></tr>
+            <tr><td>Memory usage</td><td>Each program has own copy</td><td>Programs share one copy</td></tr>
+            <tr><td>Updates</td><td>Must recompile</td><td>Update .so &rarr; all benefit</td></tr>
+            <tr><td>File extension</td><td><span class="code-block">.a</span> (archive)</td><td><span class="code-block">.so</span> (shared object)</td></tr>
+        </table>
+        <span class="slide-section-label">SHARED LIBS</span>
+        <span class="slide-num">17 / 28</span>
+    </div>
+
+    <!-- Slide 18: Dynamic Linker Process -->
+    <div class="slide content-slide slide-content-bg" id="slide-18">
+        <h2>How the Dynamic Linker Works</h2>
+        <div class="diagram-box">
+            Program starts &rarr; Kernel loads ELF &rarr; <span class="highlight-green">ld-linux.so</span> (dynamic linker)<br>
+            &darr;<br>
+            Reads program headers &rarr; Finds required <span class="highlight-green">.so</span> files<br>
+            &darr;<br>
+            Search order: <span class="highlight-yellow">LD_LIBRARY_PATH</span> &rarr; <span class="highlight-yellow">/etc/ld.so.cache</span> &rarr; <span class="highlight-yellow">/lib, /usr/lib</span><br>
+            &darr;<br>
+            Maps libraries into process address space &rarr; <span class="highlight-green">Program runs!</span>
+        </div>
+        <span class="slide-section-label">SHARED LIBS</span>
+        <span class="slide-num">18 / 28</span>
+    </div>
+
+    <!-- Slide 19: Key Commands for Shared Libraries -->
+    <div class="slide content-slide slide-content-bg" id="slide-19">
+        <h2>Shared Library Commands</h2>
+        <ul>
+            <li><span class="code-block">ldd /bin/ls</span> &mdash; list all shared library dependencies</li>
+            <li><span class="code-block">ldconfig -p | grep libc</span> &mdash; search the library cache</li>
+            <li><span class="code-block">sudo ldconfig</span> &mdash; refresh the cache after installing a new .so</li>
+            <li><span class="code-block">file /lib/x86_64-linux-gnu/libc.so.6</span> &mdash; identify file type (ELF)</li>
+            <li><span class="code-block">readelf -h /bin/ls</span> &mdash; examine ELF headers</li>
+            <li><span class="code-block">cat /proc/$$/maps | grep '.so'</span> &mdash; show loaded libraries in current shell</li>
+        </ul>
+        <span class="slide-section-label">SHARED LIBS</span>
+        <span class="slide-num">19 / 28</span>
+    </div>
+
+    <!-- Slide 20: Building a Shared Library -->
+    <div class="slide content-slide slide-content-bg" id="slide-20">
+        <h2>Building a Custom Shared Library</h2>
+        <div class="code-block code-multi"># Step 1: Compile to position-independent object code
+gcc -fPIC -c mylib.c -o mylib.o
+
+# Step 2: Link into a shared library
+gcc -shared -o libmylib.so mylib.o
+
+# Step 3: Install system-wide
+sudo cp libmylib.so /usr/local/lib/
+sudo ldconfig
+
+# Step 4: Compile a program using the library
+gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
+        <div class="callout">
+            <strong>-fPIC</strong> = Position-Independent Code (required for .so files so they can load at any address)
+        </div>
+        <span class="slide-section-label">SHARED LIBS</span>
+        <span class="slide-num">20 / 28</span>
+    </div>
+
+    <!-- Slide 21: Lab Tasks Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-21">
+        <h2>Lab Tasks</h2>
+        <p class="section-desc">7 tasks &mdash; 5 individual + 1 VM + 1 pair</p>
+        <span class="slide-num">21</span>
+    </div>
+
+    <!-- Slide 22: Tasks 1-2 Summary -->
+    <div class="slide content-slide slide-content-bg" id="slide-22">
+        <h2>Tasks 1 &amp; 2: Wildcards &amp; Links</h2>
+        <div class="two-col">
+            <div class="col">
+                <p style="color:var(--accent); font-weight:600;">Task 1 &mdash; Wildcards</p>
+                <ul>
+                    <li>Create a playground with various file types</li>
+                    <li>Practice <span class="code-block">*</span> <span class="code-block">?</span> <span class="code-block">[]</span> <span class="code-block">{}</span> <span class="code-block">[!...]</span></li>
+                    <li>Copy, list, and delete with patterns</li>
+                    <li>&#x1F9E9; Challenge: apply wildcards on your own</li>
+                </ul>
+            </div>
+            <div class="col">
+                <p style="color:var(--accent); font-weight:600;">Task 2 &mdash; Links</p>
+                <ul>
+                    <li>Create hard links and symbolic links</li>
+                    <li>Compare inodes with <span class="code-block">ls -li</span></li>
+                    <li>Delete original &rarr; observe behavior</li>
+                    <li>Explore real-world symlinks in <span class="code-block">/usr/bin</span></li>
+                    <li>&#x1F9E9; Challenge: multi-link and delete test</li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-section-label">LAB</span>
+        <span class="slide-num">22 / 28</span>
+    </div>
+
+    <!-- Slide 23: Tasks 3-4 Summary -->
+    <div class="slide content-slide slide-content-bg" id="slide-23">
+        <h2>Tasks 3 &amp; 4: GRUB &amp; Shared Objects</h2>
+        <div class="two-col">
+            <div class="col">
+                <p style="color:var(--accent); font-weight:600;">Task 3 &mdash; GRUB Exploration</p>
+                <ul>
+                    <li>Check kernel version: <span class="code-block">uname -r</span></li>
+                    <li>Read <span class="code-block">/boot/grub/grub.cfg</span></li>
+                    <li>Inspect <span class="code-block">/etc/default/grub</span></li>
+                    <li>List kernels in <span class="code-block">/boot/</span></li>
+                    <li>View boot messages: <span class="code-block">dmesg</span></li>
+                </ul>
+            </div>
+            <div class="col">
+                <p style="color:var(--accent); font-weight:600;">Task 4 &mdash; Shared Objects</p>
+                <ul>
+                    <li><span class="code-block">ldd /bin/ls</span> <span class="code-block">ldd /bin/bash</span></li>
+                    <li>Explore <span class="code-block">/lib/x86_64-linux-gnu/</span></li>
+                    <li>Search cache: <span class="code-block">ldconfig -p</span></li>
+                    <li>Inspect linker config + <span class="code-block">/proc/$$/maps</span></li>
+                    <li>&#x1F9E9; Challenge: investigate on your own</li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-section-label">LAB</span>
+        <span class="slide-num">23 / 28</span>
+    </div>
+
+    <!-- Slide 24: Task 5 - Boot Recovery -->
+    <div class="slide content-slide slide-content-bg" id="slide-24">
+        <h2>Task 5: Boot Break &amp; Recovery (VM)</h2>
+        <ul>
+            <li><strong>Step 1:</strong> Take a VM snapshot (safety net)</li>
+            <li><strong>Step 2:</strong> Explore the GRUB menu (hold Shift at boot)</li>
+            <li><strong>Step 3:</strong> Boot into recovery mode &rarr; root shell</li>
+            <li><strong>Step 4:</strong> &ldquo;Break&rdquo; GRUB by renaming <span class="code-block">grub.cfg</span></li>
+            <li><strong>Step 5:</strong> Manual boot from <span class="code-block">grub&gt;</span> prompt</li>
+            <li><strong>Step 6:</strong> Restore config with <span class="code-block">sudo update-grub</span></li>
+            <li><strong>Step 7:</strong> Verify normal boot</li>
+        </ul>
+        <div class="callout callout-warn">
+            <strong>&#x26A0; VM ONLY!</strong> Never do this on a physical machine. Always take a snapshot first.
+        </div>
+        <span class="slide-section-label">LAB</span>
+        <span class="slide-num">24 / 28</span>
+    </div>
+
+    <!-- Slide 25: Task 6 - GRUB Customization -->
+    <div class="slide content-slide slide-content-bg" id="slide-25">
+        <h2>Task 6: GRUB Customization (VM)</h2>
+        <ul>
+            <li><strong>Step 1:</strong> Change <span class="code-block">GRUB_TIMEOUT=10</span> in <span class="code-block">/etc/default/grub</span></li>
+            <li><strong>Step 2:</strong> Create custom menu entry in <span class="code-block">/etc/grub.d/40_custom_techcorp</span></li>
+            <li><strong>Step 3:</strong> Add a background image (<span class="code-block">GRUB_BACKGROUND</span>)
+                <ul>
+                    <li>Use grub2-splashimages, ImageMagick, or your own PNG</li>
+                    <li>Recommended size: 640&times;480</li>
+                </ul>
+            </li>
+            <li>After each change: <span class="code-block">sudo update-grub</span> &rarr; reboot &rarr; verify</li>
+        </ul>
+        <span class="slide-section-label">LAB</span>
+        <span class="slide-num">25 / 28</span>
+    </div>
+
+    <!-- Slide 26: Task 7 - Build Shared Library (Pair) -->
+    <div class="slide content-slide slide-content-bg" id="slide-26">
+        <h2>Task 7: Build a Shared Library (Pair)</h2>
+        <ul>
+            <li>&#x1F465; <strong>Role A:</strong> Write the library (<span class="code-block">techcorp_sysinfo.c</span> + <span class="code-block">.h</span>)</li>
+            <li>&#x1F465; <strong>Role B:</strong> Write the test program (<span class="code-block">sysinfo_test.c</span>)</li>
+            <li>Compile: <span class="code-block">gcc -fPIC -c</span> &rarr; <span class="code-block">gcc -shared -o .so</span></li>
+            <li>Test locally: <span class="code-block">LD_LIBRARY_PATH=. ./sysinfo_test</span></li>
+            <li>Install: <span class="code-block">sudo cp .so /usr/local/lib/ &amp;&amp; sudo ldconfig</span></li>
+            <li>Verify: <span class="code-block">ldconfig -p | grep techcorp</span> &amp; <span class="code-block">ldd ./sysinfo_test</span></li>
+            <li>Run without LD_LIBRARY_PATH &rarr; success!</li>
+        </ul>
+        <span class="slide-section-label">LAB</span>
+        <span class="slide-num">26 / 28</span>
+    </div>
+
+    <!-- Slide 27: Submission Workflow -->
+    <div class="slide content-slide slide-content-bg" id="slide-27">
+        <h2>Submission Workflow</h2>
+        <ul>
+            <li><strong>Phase 1 (WSL):</strong> <span class="code-block">git add . &amp;&amp; git commit &amp;&amp; git push</span></li>
+            <li><strong>Phase 2 (VS Code):</strong> Pull, add images/ folder, write README.md, push</li>
+            <li><strong>Phase 3 (Lab Server):</strong> SSH in, <span class="code-block">git pull</span>, verify with <span class="code-block">tree lab3</span></li>
+        </ul>
+        <div class="callout">
+            <strong>15 screenshots required!</strong> Check the Screenshot Checklist in the instruction document.
+        </div>
+        <span class="slide-section-label">SUBMIT</span>
+        <span class="slide-num">27 / 28</span>
+    </div>
+
+    <!-- Slide 28: Expected Folder Structure & Summary -->
+    <div class="slide content-slide slide-content-bg" id="slide-28">
+        <h2>Expected Folder Structure</h2>
+        <div class="two-col">
+            <div class="col">
+                <div class="code-block code-multi" style="font-size:0.8em; line-height:1.5;">lab3/
+├── README.md
+├── images/ (15 screenshots)
+├── task1_wildcards.txt
+├── task2_links.txt
+├── task3_grub.txt
+├── task4_shared_objects.txt
+├── task5_boot_recovery.txt
+├── task6_grub_custom.txt
+├── task7_shared_library.txt
+├── task_history.txt
+├── wildcard_lab/
+├── csv_archive/
+├── links_lab/
+└── shared_lib_lab/
+    ├── techcorp_sysinfo.h
+    ├── techcorp_sysinfo.c
+    ├── libtechcorp_sysinfo.so
+    ├── sysinfo_test.c
+    └── sysinfo_test</div>
+            </div>
+            <div class="col">
+                <div class="callout" style="margin-bottom:20px;">
+                    <strong>Checklist before submitting:</strong>
+                </div>
+                <ul>
+                    <li>&#x2705; All 8 <code>.txt</code> output files present</li>
+                    <li>&#x2705; 15 screenshots in <code>images/</code></li>
+                    <li>&#x2705; <code>README.md</code> completed</li>
+                    <li>&#x2705; Partner info in Task 7 output</li>
+                    <li>&#x2705; <code>shared_lib_lab/</code> with source &amp; binary</li>
+                    <li>&#x2705; Pushed to GitHub</li>
+                    <li>&#x2705; Pulled to lab server</li>
+                    <li>&#x2705; Link submitted to course portal</li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-section-label">SUMMARY</span>
+        <span class="slide-num">28 / 28</span>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">&#9664; Prev</button>
+        <div class="nav-info"><span id="slideInfo">1 / 28</span></div>
+        <button class="nav-btn" onclick="nextSlide()">Next &#9654;</button>
+    </div>
+    </div><!-- end page-wrapper -->
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 28;
+
+        // Slide titles for the navigation map
+        const slideTitles = [
+            'Title',
+            'Lab Objectives',
+            'Task Overview',
+            'Wildcards',
+            'Wildcard Patterns',
+            'Wildcards in Action',
+            'Links',
+            'Understanding Inodes',
+            'Hard vs Symbolic',
+            'Links Demo',
+            'GRUB & Boot',
+            'Boot Sequence',
+            'GRUB Config Files',
+            'GRUB Key Settings',
+            'GRUB Recovery',
+            'Shared Libraries',
+            'Static vs Dynamic',
+            'Dynamic Linker',
+            'Library Commands',
+            'Build a Shared Lib',
+            'Lab Tasks',
+            'Tasks 1 & 2',
+            'Tasks 3 & 4',
+            'Task 5: Boot Recovery',
+            'Task 6: GRUB Custom',
+            'Task 7: Pair Library',
+            'Submission Workflow',
+            'Folder & Checklist'
+        ];
+
+        // Concept slides: 1-20, Lab slides: 21-28
+        const conceptSlideEnd = 20;
+
+        // Build navigation map
+        function buildNavMap() {
+            var conceptsContainer = document.getElementById('navMapConcepts');
+            var labContainer = document.getElementById('navMapLab');
+            for (var i = 1; i <= totalSlides; i++) {
+                var item = document.createElement('div');
+                item.className = 'nav-map-item';
+                item.setAttribute('data-slide', i);
+                item.innerHTML = '<span class="nm-num">' + i + '</span><span class="nm-title">' + slideTitles[i - 1] + '</span>';
+                (function(idx) {
+                    item.addEventListener('click', function() {
+                        showSlide(idx);
+                    });
+                })(i);
+                if (i <= conceptSlideEnd) conceptsContainer.appendChild(item);
+                else labContainer.appendChild(item);
+            }
+        }
+
+        function updateNavMap(n) {
+            document.querySelectorAll('.nav-map-item').forEach(function(item) {
+                item.classList.remove('active');
+                if (parseInt(item.getAttribute('data-slide')) === n) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            });
+        }
+
+        // Nav map toggle
+        var navMap = document.getElementById('navMap');
+        var navMapToggle = document.getElementById('navMapToggle');
+        navMapToggle.addEventListener('click', function() {
+            document.body.classList.toggle('nav-open');
+        });
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+            currentSlide = n;
+
+            document.querySelectorAll('.slide').forEach(function(s) { s.classList.remove('active'); });
+            document.getElementById('slide-' + n).classList.add('active');
+            document.getElementById('slideInfo').textContent = n + ' / ' + totalSlides;
+            document.getElementById('progressBar').style.width = ((n / totalSlides) * 100) + '%';
+            updateNavMap(n);
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(1);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides);
+            }
+        });
+
+        // Touch support for mobile
+        var touchStartX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        document.addEventListener('touchend', function(e) {
+            var touchEndX = e.changedTouches[0].screenX;
+            var diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide();
+                else prevSlide();
+            }
+        });
+
+        // Add copy buttons to all code blocks (except multi-line)
+        document.querySelectorAll('.code-block:not(.code-multi)').forEach(function(block) {
+            var btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            var copyIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M5 11H3.5A1.5 1.5 0 0 1 2 9.5V3.5A1.5 1.5 0 0 1 3.5 2h6A1.5 1.5 0 0 1 11 3.5V5"/></svg>';
+            var checkIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8.5l3.5 3.5 6.5-7"/></svg>';
+            btn.innerHTML = copyIcon;
+            btn.title = 'Copy command';
+            btn.setAttribute('aria-label', 'Copy command');
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var text = block.childNodes[0].textContent.trim();
+                navigator.clipboard.writeText(text).then(function() {
+                    btn.innerHTML = checkIcon;
+                    btn.classList.add('copied');
+                    setTimeout(function() {
+                        btn.innerHTML = copyIcon;
+                        btn.classList.remove('copied');
+                    }, 1500);
+                });
+            });
+            block.appendChild(btn);
+        });
+
+        // Theme toggle
+        var themeToggle = document.getElementById('themeToggle');
+        function setTheme(dark) {
+            if (dark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.innerHTML = '&#9788;';
+                localStorage.setItem('slide-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.innerHTML = '&#9790;';
+                localStorage.setItem('slide-theme', 'light');
+            }
+        }
+        themeToggle.addEventListener('click', function() {
+            var isDark = document.documentElement.hasAttribute('data-theme');
+            setTheme(!isDark);
+        });
+        // Load saved theme preference
+        if (localStorage.getItem('slide-theme') === 'dark') {
+            setTheme(true);
+        }
+
+        // Initialize
+        buildNavMap();
+        showSlide(1);
+    </script>
+</body>
+</html>
