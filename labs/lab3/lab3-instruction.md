@@ -5,8 +5,45 @@
 | **Course** | Operating Systems |
 | **Lab Title** | Wildcards, Links, Boot Loader Exploration & Shared Libraries |
 | **Chapter** | OS Structures & Bootstrap Process |
-| **Duration** | 2 Hours |
-| **Lab Type** | Individual |
+| **Duration** | 3 Hours |
+| **Lab Type** | Individual + Pair (Task 7) |
+
+---
+
+> ⚠️ **IMPORTANT — READ EVERYTHING FIRST**
+>
+> **Before you type a single command, read through this ENTIRE document from top to bottom.** Scan every section — the tasks, the challenges, the deliverables, the folder structure, and the README template. Understand the full scope of what is expected **before** you start working. Students who skip ahead often miss requirements and waste time redoing work.
+>
+> **Document structure:**
+> 1. **Lab Objectives** — What you'll learn
+> 2. **Task Overview** — Summary of all tasks at a glance
+> 3. **Lab Setup** — Repository and folder preparation
+> 4. **Quick Reference Tables** — Command cheat sheets for each topic
+> 5. **Tasks 1–5 (Required, Individual)** — Wildcards, Links, GRUB exploration, Shared objects, Boot recovery
+> 6. **Task 6 (Required, Individual)** — GRUB customization on your own VM
+> 7. **Task 7 (Required, Pair)** — Create and register a custom shared library
+> 8. **Deliverables & Submission** — Folder structure, README template, git push
+> 9. **Screenshot Checklist** — Every screenshot you need, in one place
+
+---
+
+## Quick Navigation
+
+| Section | Jump To |
+|---------|---------|
+| Lab Objectives | [▶ Lab Objectives](#lab-objectives) |
+| Task Overview | [▶ Task Overview](#task-overview) |
+| Lab Setup | [▶ Lab Setup](#lab-setup) |
+| Quick Reference | [▶ Quick Reference](#quick-reference-wildcards) |
+| Task 1: Wildcards | [▶ Task 1](#task-1--mastering-wildcards) |
+| Task 2: Links | [▶ Task 2](#task-2--hard-links-and-symbolic-links) |
+| Task 3: GRUB Exploration | [▶ Task 3](#task-3--grub-bootloader-exploration) |
+| Task 4: Shared Objects | [▶ Task 4](#task-4--shared-objects-dynamic-libraries-exploration) |
+| Task 5: Boot Recovery | [▶ Task 5](#task-5--simulate-a-safe-boot-break-and-recovery-vm-only) |
+| Task 6: GRUB Customization | [▶ Task 6](#task-6--grub-customization-vm-only) |
+| Task 7: Build a Shared Library (Pair) | [▶ Task 7](#task-7--build-and-register-a-shared-library-pair-task) |
+| Submission | [▶ Submission](#final-submission-github-and-vs-code-documentation) |
+| Screenshot Checklist | [▶ Screenshot Checklist](#screenshot-checklist) |
 
 ---
 
@@ -18,12 +55,28 @@ After completing this lab, students will be able to:
 2. Explain the difference between hard links and symbolic (soft) links.
 3. Create, inspect, and manage both hard links and symbolic links.
 4. Explore the GRUB bootloader configuration and understand the Linux boot sequence.
-5. Identify shared libraries (`.so` files) used by common Linux programs using `ldd` and `ldconfig`.
-6. Understand how the dynamic linker resolves shared objects at runtime.
-7. Simulate a safe boot "break," enter rescue mode, and restore normal boot on a virtual machine.
-8. Apply previously learned commands to solve new, unfamiliar problems independently.
+5. Customize the GRUB menu with a custom title, timeout, and background image.
+6. Identify shared libraries (`.so` files) used by common Linux programs using `ldd` and `ldconfig`.
+7. Understand how the dynamic linker resolves shared objects at runtime.
+8. Create a custom shared library, compile it, install it, and register it with `ldconfig`.
+9. Simulate a safe boot "break," enter rescue mode, and restore normal boot on a virtual machine.
+10. Apply previously learned commands to solve new, unfamiliar problems independently.
 
-> **Scenario:** You are **Alex**, now a few weeks into the junior sysadmin role at **TechCorp Inc.** Your manager says: *"Today I need you to do three things: clean up our server files efficiently using wildcards and links, audit our boot configuration, and verify that our critical applications have all their shared libraries intact. Also — we have a training VM I want you to practice emergency boot recovery on, in case a real server ever fails to start."*
+> **Scenario:** You are **Alex**, now a few weeks into the junior sysadmin role at **TechCorp Inc.** Your manager says: *"Today I need you to do three things: clean up our server files efficiently using wildcards and links, audit our boot configuration, and verify that our critical applications have all their shared libraries intact. Also — we have a training VM I want you to practice emergency boot recovery on, in case a real server ever fails to start. And one more — you'll pair up with a teammate to write and install a custom shared library for our monitoring tools."*
+
+---
+
+## Task Overview
+
+| Task | Title | Type | Environment | Key Commands | Output Files |
+|:---:|-------|:----:|:-----------:|-------------|:------------:|
+| **1** | Mastering Wildcards | Individual | WSL / Server | `*`, `?`, `[]`, `{}`, `ls`, `cp`, `rm` | `task1_wildcards.txt` |
+| **2** | Hard Links & Symbolic Links | Individual | WSL / Server | `ln`, `ln -s`, `ls -li`, `stat`, `readlink` | `task2_links.txt` |
+| **3** | GRUB Bootloader Exploration | Individual | WSL / Server | `cat`, `ls`, `uname -r`, `dmesg`, `head` | `task3_grub.txt` |
+| **4** | Shared Objects Exploration | Individual | WSL / Server | `ldd`, `ldconfig -p`, `file`, `readelf` | `task4_shared_objects.txt` |
+| **5** | Boot Break & Recovery | Individual | **VM only** | GRUB CLI, `update-grub`, `mount` | `task5_boot_recovery.txt` + screenshots |
+| **6** | GRUB Customization | Individual | **VM only** | `/etc/default/grub`, `update-grub` | `task6_grub_custom.txt` + screenshots |
+| **7** | Build a Shared Library | **Pair** | WSL / Server | `gcc -shared`, `ldconfig`, `ldd` | `task7_shared_library.txt` |
 
 ---
 
@@ -39,70 +92,120 @@ cd lab3
 
 ### Documenting Your Work (Taking Screenshots)
 
-Each task in this lab redirects its output into `.txt` files, which serve as your **primary proof of work** for the guided portions. You only need to take screenshots for the **Challenge sections** and specific VM tasks:
+Each task in this lab redirects its output into `.txt` files, which serve as your **primary proof of work** for the guided portions. You also need screenshots for challenges, VM tasks, and GRUB customization:
 
-1. **Output Files (No Screenshots Needed):** The guided steps in each task automatically save results to `.txt` files (e.g., `task1_wildcards.txt`). These files will be committed to your repository as proof of completion.
-2. **Challenge Screenshots:** When you reach the 🧩 **Challenge** sections in Tasks 1, 2, and 4, take a screenshot of your terminal showing the commands you used and their output. Save these as `task1_challenge.png`, `task2_challenge.png`, and `task4_challenge.png`.
-3. **VM Boot Recovery Screenshots:** Task 5 (Boot Recovery) must be documented entirely with screenshots, since it involves the VM console — not a text terminal. Save these as `task5_step1.png` through `task5_step7.png`.
-4. **Full History Screenshot:** After finishing all tasks, run `history | tail -n 80` and take a screenshot. Save it as `full_history.png`.
-5. **Save All Images:** Save all screenshots to a folder on your host machine. You will add them to an `images/` folder in your `README.md` later.
+1. **Output Files (No Screenshots Needed for Guided Steps):** The guided steps in each task automatically save results to `.txt` files (e.g., `task1_wildcards.txt`). These files will be committed to your repository as proof of completion.
+2. **Challenge Screenshots:** When you reach the 🧩 **Challenge** sections in Tasks 1, 2, and 4, take a screenshot of your terminal showing the commands you used and their output.
+3. **VM Screenshots (Tasks 5 & 6):** Boot recovery and GRUB customization involve the VM console/display, so they must be documented with screenshots.
+4. **Pair Task Screenshot (Task 7):** Take a screenshot showing the shared library compilation, registration, and test program output.
+5. **Full History Screenshot:** After finishing all tasks, run `history | tail -n 100` and take a screenshot.
+6. **Save All Images:** Save all screenshots to a folder on your host machine. You will add them to an `images/` folder in your `README.md` later.
+
+> **See the [Screenshot Checklist](#screenshot-checklist) at the end of this document for the complete list of every screenshot you need.**
 
 ### Lab Workflow Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         WSL / Linux Terminal                            │
-│                                                                         │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐      │
-│  │ Task 1  │  │ Task 2  │  │ Task 3  │  │ Task 4  │  │ Task 5  │      │
-│  │Wildcards│─▶│  Links  │─▶│  GRUB   │─▶│ Shared  │─▶│  Boot   │      │
-│  │         │  │         │  │ Explore │  │ Objects │  │ Recovery│      │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └────┬────┘      │
-│                                                             │           │
-│                                                             ▼           │
-│                                                      ┌───────────┐      │
-│                                                      │ git push  │      │
-│                                                      │ to GitHub │      │
-│                                                      └─────┬─────┘      │
-└────────────────────────────────────────────────────────────┼────────────┘
-                                                             │
-                                                             ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Host OS (Windows / Mac)                          │
-│                                                                         │
-│   ┌──────────────┐   ┌───────────────┐   ┌─────────────────────┐       │
-│   │ Clone/Pull   │──▶│ Add Images &  │──▶│ Final git push      │       │
-│   │ in VS Code   │   │ Write README  │   │ to GitHub           │       │
-│   └──────────────┘   └───────────────┘   └──────────┬──────────┘       │
-└─────────────────────────────────────────────────────┼──────────────────┘
-                                                      │
-                                                      ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Local Lab Server (SSH)                           │
-│                                                                         │
-│   ┌───────────────────┐   ┌─────────────────────────────────────┐      │
-│   │ SSH into server   │──▶│ git clone / git pull repo           │      │
-│   │ with credentials  │   │ into home directory (~/)            │      │
-│   └───────────────────┘   └─────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          WSL / Linux Terminal                                │
+│                                                                              │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌──────────┐          │
+│  │ Task 1  │  │ Task 2  │  │ Task 3  │  │ Task 4  │  │ Task 7   │          │
+│  │Wildcards│─▶│  Links  │─▶│  GRUB   │─▶│ Shared  │─▶│ Build .so│          │
+│  │         │  │         │  │ Explore │  │ Objects │  │  (Pair)  │          │
+│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └────┬─────┘          │
+│                                                             │                │
+│                                                             ▼                │
+│                                                      ┌───────────┐           │
+│                                                      │ git push  │           │
+│                                                      │ to GitHub │           │
+│                                                      └─────┬─────┘           │
+└─────────────────────────────────────────────────────────────┼────────────────┘
+                                                              │
+                 ┌────────────────────────────────────────────┘
+                 │
+                 ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          VM (VirtualBox / VMware)                             │
+│                                                                              │
+│  ┌──────────┐   ┌──────────┐                                                │
+│  │ Task 5   │──▶│ Task 6   │                                                │
+│  │Boot Break│   │GRUB Skin │                                                │
+│  │& Recovery│   │& Timeout │                                                │
+│  └──────────┘   └──────────┘                                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+                 │
+                 ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                         Host OS (Windows / Mac)                              │
+│                                                                              │
+│   ┌──────────────┐   ┌───────────────┐   ┌─────────────────────┐            │
+│   │ Clone/Pull   │──▶│ Add Images &  │──▶│ Final git push      │            │
+│   │ in VS Code   │   │ Write README  │   │ to GitHub           │            │
+│   └──────────────┘   └───────────────┘   └──────────┬──────────┘            │
+└──────────────────────────────────────────────────────┼───────────────────────┘
+                                                       │
+                                                       ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                         Local Lab Server (SSH)                               │
+│                                                                              │
+│   ┌───────────────────┐   ┌─────────────────────────────────────┐           │
+│   │ SSH into server   │──▶│ git clone / git pull repo           │           │
+│   │ with credentials  │   │ into home directory (~/)            │           │
+│   └───────────────────┘   └─────────────────────────────────────┘           │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Quick Reference: Wildcards & Links
+---
 
-Before you begin, review these essential concepts:
+## Quick Reference: Wildcards
 
-| Concept | Symbol / Command | Meaning |
+| Pattern | Symbol | Meaning | Example |
+|---|---|---|---|
+| Match any characters | `*` | Zero or more characters | `*.txt` → all `.txt` files |
+| Match single character | `?` | Exactly one character | `file?.txt` → `file1.txt`, `fileA.txt` |
+| Match character set | `[abc]` | One character from the set | `file[123].txt` → `file1.txt`, `file2.txt` |
+| Match character range | `[a-z]` | One character in the range | `[A-Z]*.txt` → files starting A–Z |
+| Negate set | `[!abc]` | Any character NOT in the set | `file[!0-9].txt` → `fileA.txt`, not `file1.txt` |
+| Brace expansion | `{a,b,c}` | Generate multiple strings | `file.{txt,log}` → `file.txt file.log` |
+
+## Quick Reference: Links
+
+| Concept | Command | Meaning |
 |---|---|---|
-| Match any characters | `*` | Matches zero or more characters (e.g., `*.txt` matches all `.txt` files) |
-| Match single character | `?` | Matches exactly one character (e.g., `file?.txt` matches `file1.txt`, `fileA.txt`) |
-| Match character set | `[abc]` | Matches one character from the set (e.g., `file[123].txt`) |
-| Match character range | `[a-z]` | Matches one character in the range (e.g., `[A-Z]*.txt`) |
-| Brace expansion | `{a,b,c}` | Generates multiple strings (e.g., `file.{txt,log,csv}` → `file.txt file.log file.csv`) |
-| Negate set | `[!abc]` | Matches any character NOT in the set |
-| Hard link | `ln` | Creates another name for the same file (same inode) |
-| Symbolic link | `ln -s` | Creates a pointer to the original file path |
-| Inode | `ls -i` | Displays the inode number of a file |
-| Read link target | `readlink` | Shows where a symbolic link points |
+| Hard link | `ln <target> <link>` | Creates another name for the same inode (same data on disk) |
+| Symbolic link | `ln -s <target> <link>` | Creates a pointer file that stores the target path |
+| Show inodes | `ls -li` | Displays inode numbers alongside file listings |
+| File info | `stat <file>` | Shows inode, link count, permissions, timestamps |
+| Read link target | `readlink <link>` | Shows where a symbolic link points |
+| Follow full chain | `readlink -f <link>` | Resolves all symlinks to the final real path |
+
+## Quick Reference: GRUB & Boot
+
+| Concept | Command / File | Meaning |
+|---|---|---|
+| Current kernel | `uname -r` | Print the running kernel version |
+| Boot messages | `dmesg` | Display kernel ring buffer (boot log) |
+| GRUB config (auto) | `/boot/grub/grub.cfg` | Auto-generated — **never edit directly** |
+| GRUB defaults | `/etc/default/grub` | The file admins edit to change boot behavior |
+| Regenerate GRUB | `sudo update-grub` | Rebuilds `grub.cfg` from scripts + defaults |
+| GRUB scripts | `/etc/grub.d/` | Individual scripts that generate menu entries |
+| Kernel image | `/boot/vmlinuz-*` | The compressed Linux kernel |
+| Initial ramdisk | `/boot/initrd.img-*` | Temporary root FS loaded before real root |
+
+## Quick Reference: Shared Libraries
+
+| Concept | Command | Meaning |
+|---|---|---|
+| List dependencies | `ldd <binary>` | Show shared libraries a program needs |
+| Library cache | `ldconfig -p` | List all cached shared libraries |
+| Refresh cache | `sudo ldconfig` | Rebuild `/etc/ld.so.cache` after adding libraries |
+| Linker config | `/etc/ld.so.conf` | Main config for library search paths |
+| Extra paths | `/etc/ld.so.conf.d/` | Drop-in configs for additional library paths |
+| File type | `file <path>` | Identify whether a file is ELF, shared object, etc. |
+| ELF headers | `readelf -h <binary>` | Examine ELF binary headers |
+| Memory maps | `cat /proc/$$/maps` | Show memory-mapped files for current process |
+| Compile shared lib | `gcc -shared -fPIC` | Build a `.so` shared object from C source |
 
 ---
 
