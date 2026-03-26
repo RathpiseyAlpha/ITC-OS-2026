@@ -16,19 +16,60 @@ const Presence = (function () {
     let firebaseReady = false;
     let sessionId = '';
 
+    var STORAGE_KEY = 'itc-os-web-presence';
+    var HEARTBEAT_MS = 5000;       // update every 5s
+    var STALE_MS = 15000;          // prune after 15s without heartbeat
+    var heartbeatTimer = null;
+
     function generateSessionId() {
         return Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 9);
     }
 
+    function readStore() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+        catch (e) { return {}; }
+    }
+
+    function writeStore(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function pruneStale(store) {
+        var now = Date.now();
+        var changed = false;
+        Object.keys(store).forEach(function (k) {
+            if (now - (store[k].lastSeen || 0) > STALE_MS) {
+                delete store[k];
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
+    function syncFromStore() {
+        var store = readStore();
+        pruneStale(store);
+        webUsers = store;
+        notifyWeb();
+    }
+
     function initFirebase() {
         sessionId = generateSessionId();
+
+        // Listen for cross-tab storage changes
+        window.addEventListener('storage', function (e) {
+            if (e.key === STORAGE_KEY) syncFromStore();
+        });
+
         if (!CONFIG.firebase || !CONFIG.firebase.enabled || !CONFIG.firebase.databaseURL) {
-            console.log('[Presence/Web] Firebase not configured.');
+            console.log('[Presence/Web] Firebase not configured — using localStorage.');
+            syncFromStore();
             return;
         }
         try {
             if (typeof firebase === 'undefined') {
                 console.warn('[Presence/Web] Firebase SDK not loaded.');
+                syncFromStore();
                 return;
             }
             if (!firebase.apps.length) {
@@ -48,18 +89,35 @@ const Presence = (function () {
             });
         } catch (err) {
             console.warn('[Presence/Web] Firebase init failed:', err.message);
+            syncFromStore();
         }
     }
 
     function webLogin(username) {
-        var entry = { name: username, loginTime: Date.now(), sessionId: sessionId };
+        var entry = { name: username, loginTime: Date.now(), sessionId: sessionId, lastSeen: Date.now() };
         if (firebaseReady && presenceRef) {
             myPresenceRef = presenceRef.push();
             myPresenceRef.set(entry);
             myPresenceRef.onDisconnect().remove();
         } else {
-            webUsers[sessionId] = entry;
+            var store = readStore();
+            pruneStale(store);
+            store[sessionId] = entry;
+            writeStore(store);
+            webUsers = store;
             notifyWeb();
+            // Start heartbeat to keep session alive
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            heartbeatTimer = setInterval(function () {
+                var s = readStore();
+                if (s[sessionId]) {
+                    s[sessionId].lastSeen = Date.now();
+                    pruneStale(s);
+                    writeStore(s);
+                    webUsers = s;
+                    notifyWeb();
+                }
+            }, HEARTBEAT_MS);
         }
     }
 
@@ -68,7 +126,11 @@ const Presence = (function () {
             myPresenceRef.remove();
             myPresenceRef = null;
         } else {
-            delete webUsers[sessionId];
+            if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+            var store = readStore();
+            delete store[sessionId];
+            writeStore(store);
+            webUsers = store;
             notifyWeb();
         }
     }
@@ -172,6 +234,7 @@ const Presence = (function () {
 
     window.addEventListener('beforeunload', function () {
         webLogout();
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
         if (pollTimer) clearInterval(pollTimer);
     });
 
