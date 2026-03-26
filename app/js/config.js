@@ -16,7 +16,7 @@ const CONFIG = {
     // Run `python3 app/server/app.py` on your Linux server, then set the URL below.
     // See app/server/README.md for setup instructions (systemd, nginx, etc.)
     server: {
-        url: 'https://immediately-spy-hall-performance.trycloudflare.com',
+        url: '',            // e.g. 'https://your-server.example.com' or 'http://server-ip:5000'
         pollInterval: 10000 // poll /api/users every 10 seconds
     },
 
