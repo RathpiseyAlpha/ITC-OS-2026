@@ -14,6 +14,7 @@ This folder contains hands-on programming activities that accompany the lecture 
 | # | Activity | Related Lecture | Topic |
 |---|----------|----------------|-------|
 | 1 | [Class Activity 1](class-activity1.md) | Week 2 — OS Structures & Interfaces | System Calls with POSIX (Linux) |
+| 2 | [Class Activity 2](class-activity2.md) | Week 3–4 — Processes & Threads | Processes & IPC (Linux + Windows) |
 
 _More activities will be added as the course progresses._
 
