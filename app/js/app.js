@@ -225,6 +225,10 @@
                 // Register presence
                 Presence.login(name);
 
+                // Update terminal prompt username
+                var promptUsers = document.querySelectorAll('.prompt-user');
+                promptUsers.forEach(function (el) { el.textContent = name; });
+
                 var now = new Date();
                 var ts = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
                     + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });

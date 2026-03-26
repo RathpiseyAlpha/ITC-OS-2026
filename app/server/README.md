@@ -11,7 +11,7 @@ A lightweight Python server that tracks Linux users currently logged into the se
 
 ```bash
 # On the Linux server, from the project root:
-cd server
+cd app/server
 python3 app.py
 ```
 
@@ -63,7 +63,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/path/to/ITC-OS-2026/server
-ExecStart=/usr/bin/python3 /path/to/ITC-OS-2026/server/app.py --port 5000
+ExecStart=/usr/bin/python3 /path/to/ITC-OS-2026/app/server/app.py --port 5000
 Restart=always
 RestartSec=5
 
