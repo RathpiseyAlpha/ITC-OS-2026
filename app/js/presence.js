@@ -1,37 +1,36 @@
 // ─── Presence Tracking System ───
-// Tracks who is currently logged in and displays online users.
-// Uses Firebase Realtime Database when configured, otherwise falls back to local-only mode.
+// Dual-mode presence tracking:
+//   1. Web Users — Firebase Realtime Database (visitors browsing the site)
+//   2. Server Users — Polls Linux server backend (/api/users via `who`)
 
 const Presence = (function () {
+    // ── Shared state ──
     let currentUser = '';
-    let onlineUsers = {};       // { uniqueKey: { name, loginTime } }
+    let webUpdateCallbacks = [];
+    let serverUpdateCallbacks = [];
+
+    // ── Web Presence (Firebase) ──
+    let webUsers = {};          // { key: { name, loginTime, sessionId } }
     let myPresenceRef = null;
     let presenceRef = null;
     let firebaseReady = false;
     let sessionId = '';
-    let updateCallbacks = [];
 
-    // Generate a unique session ID
     function generateSessionId() {
         return Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 9);
     }
 
-    // Initialize Firebase if configured
-    function init() {
+    function initFirebase() {
         sessionId = generateSessionId();
-
-        if (!CONFIG.firebase.enabled || !CONFIG.firebase.databaseURL) {
-            console.log('[Presence] Firebase not configured — running in local-only mode.');
+        if (!CONFIG.firebase || !CONFIG.firebase.enabled || !CONFIG.firebase.databaseURL) {
+            console.log('[Presence/Web] Firebase not configured.');
             return;
         }
-
         try {
             if (typeof firebase === 'undefined') {
-                console.warn('[Presence] Firebase SDK not loaded.');
+                console.warn('[Presence/Web] Firebase SDK not loaded.');
                 return;
             }
-
-            // Initialize Firebase if not already done
             if (!firebase.apps.length) {
                 firebase.initializeApp({
                     apiKey: CONFIG.firebase.apiKey,
@@ -40,65 +39,47 @@ const Presence = (function () {
                     projectId: CONFIG.firebase.projectId
                 });
             }
-
             presenceRef = firebase.database().ref('presence');
             firebaseReady = true;
-            console.log('[Presence] Firebase connected.');
-
-            // Listen for changes to the online users list
+            console.log('[Presence/Web] Firebase connected.');
             presenceRef.on('value', function (snapshot) {
-                onlineUsers = snapshot.val() || {};
-                notifyUpdate();
+                webUsers = snapshot.val() || {};
+                notifyWeb();
             });
         } catch (err) {
-            console.warn('[Presence] Firebase init failed:', err.message);
+            console.warn('[Presence/Web] Firebase init failed:', err.message);
         }
     }
 
-    // Register a user's presence
-    function login(username) {
-        currentUser = username;
-        const entry = {
-            name: username,
-            loginTime: Date.now(),
-            sessionId: sessionId
-        };
-
+    function webLogin(username) {
+        var entry = { name: username, loginTime: Date.now(), sessionId: sessionId };
         if (firebaseReady && presenceRef) {
-            // Push presence to Firebase
             myPresenceRef = presenceRef.push();
             myPresenceRef.set(entry);
-
-            // Remove on disconnect
             myPresenceRef.onDisconnect().remove();
         } else {
-            // Local-only: just track ourselves
-            onlineUsers[sessionId] = entry;
-            notifyUpdate();
+            webUsers[sessionId] = entry;
+            notifyWeb();
         }
     }
 
-    // Remove user's presence (on logout or page unload)
-    function logout() {
+    function webLogout() {
         if (firebaseReady && myPresenceRef) {
             myPresenceRef.remove();
             myPresenceRef = null;
         } else {
-            delete onlineUsers[sessionId];
-            notifyUpdate();
+            delete webUsers[sessionId];
+            notifyWeb();
         }
-        currentUser = '';
     }
 
-    // Get list of online users
-    function getOnlineUsers() {
-        const users = [];
-        const seen = new Set();
-        Object.keys(onlineUsers).forEach(function (key) {
-            const u = onlineUsers[key];
+    function getWebUsers() {
+        var users = [];
+        var seen = new Set();
+        Object.keys(webUsers).forEach(function (key) {
+            var u = webUsers[key];
             if (u && u.name) {
-                // Deduplicate by name+sessionId
-                const ident = u.name + '|' + (u.sessionId || key);
+                var ident = u.name + '|' + (u.sessionId || key);
                 if (!seen.has(ident)) {
                     seen.add(ident);
                     users.push({
@@ -109,7 +90,6 @@ const Presence = (function () {
                 }
             }
         });
-        // Sort: self first, then by login time
         users.sort(function (a, b) {
             if (a.isSelf && !b.isSelf) return -1;
             if (!a.isSelf && b.isSelf) return 1;
@@ -118,40 +98,97 @@ const Presence = (function () {
         return users;
     }
 
-    function getOnlineCount() {
-        return getOnlineUsers().length;
+    function onWebUpdate(callback) { webUpdateCallbacks.push(callback); }
+    function notifyWeb() { var u = getWebUsers(); webUpdateCallbacks.forEach(function (cb) { cb(u); }); }
+
+    // ── Server Presence (Linux `who`) ──
+    let serverUsers = [];       // [{ username, terminal, loginTime, host }]
+    let pollTimer = null;
+    let serverUrl = '';
+
+    function initServer() {
+        serverUrl = (CONFIG.server && CONFIG.server.url) ? CONFIG.server.url.replace(/\/+$/, '') : '';
+        if (!serverUrl) {
+            console.log('[Presence/Server] No server URL configured.');
+            return;
+        }
+        console.log('[Presence/Server] Polling', serverUrl);
+        pollServer();
+        var interval = (CONFIG.server && CONFIG.server.pollInterval) || 10000;
+        pollTimer = setInterval(pollServer, interval);
     }
 
-    function getCurrentUser() {
-        return currentUser;
+    function pollServer() {
+        if (!serverUrl) return;
+        fetch(serverUrl + '/api/users', { mode: 'cors' })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (data) {
+                serverUsers = data.users || [];
+                notifyServer();
+            })
+            .catch(function (err) {
+                console.warn('[Presence/Server] Poll failed:', err.message);
+            });
     }
 
-    function isLoggedIn() {
-        return currentUser !== '';
+    function getServerUsers() {
+        return serverUsers.map(function (u) {
+            return {
+                name: u.username,
+                terminal: u.terminal || '',
+                loginTime: u.loginTime || '',
+                host: u.host || '',
+                isSelf: currentUser && u.username.toLowerCase() === currentUser.toLowerCase()
+            };
+        }).sort(function (a, b) {
+            if (a.isSelf && !b.isSelf) return -1;
+            if (!a.isSelf && b.isSelf) return 1;
+            return a.name.localeCompare(b.name);
+        });
     }
 
-    // Register callback for when online users change
-    function onUpdate(callback) {
-        updateCallbacks.push(callback);
+    function onServerUpdate(callback) { serverUpdateCallbacks.push(callback); }
+    function notifyServer() { var u = getServerUsers(); serverUpdateCallbacks.forEach(function (cb) { cb(u); }); }
+
+    // ── Lifecycle ──
+    function init() {
+        initFirebase();
+        initServer();
     }
 
-    function notifyUpdate() {
-        updateCallbacks.forEach(function (cb) { cb(getOnlineUsers()); });
+    function login(username) {
+        currentUser = username;
+        webLogin(username);
+        pollServer();
     }
 
-    // Clean up on page unload
+    function logout() {
+        webLogout();
+        currentUser = '';
+    }
+
+    function isLoggedIn() { return currentUser !== ''; }
+    function getCurrentUser() { return currentUser; }
+
     window.addEventListener('beforeunload', function () {
-        logout();
+        webLogout();
+        if (pollTimer) clearInterval(pollTimer);
     });
 
     return {
         init: init,
         login: login,
         logout: logout,
-        getOnlineUsers: getOnlineUsers,
-        getOnlineCount: getOnlineCount,
-        getCurrentUser: getCurrentUser,
         isLoggedIn: isLoggedIn,
-        onUpdate: onUpdate
+        getCurrentUser: getCurrentUser,
+        // Web users (Firebase)
+        getWebUsers: getWebUsers,
+        getWebCount: function () { return getWebUsers().length; },
+        onWebUpdate: onWebUpdate,
+        // Server users (Linux)
+        getServerUsers: getServerUsers,
+        getServerCount: function () { return serverUsers.length; },
+        onServerUpdate: onServerUpdate,
+        refreshServer: pollServer
     };
 })();

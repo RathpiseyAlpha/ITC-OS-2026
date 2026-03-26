@@ -6,7 +6,7 @@
     <title>ITC Operating Systems 2026</title>
     <link rel="stylesheet" href="app/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <!-- Firebase SDK (for presence tracking — optional, enable in app/js/config.js) -->
+    <!-- Firebase SDK (for web visitor presence — optional, enable in app/js/config.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
@@ -95,6 +95,7 @@
         <div class="contents-layout">
             <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
+                <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" onclick="collapseSidebar()" title="Collapse sidebar">&#x276E;</button>
                 <div class="sidebar-section">
                     <div class="sidebar-title">// quick nav</div>
                     <ul class="sidebar-nav">
@@ -108,21 +109,39 @@
                     </ul>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-title">// schedule</div>
+                    <div class="sidebar-title sidebar-title-toggle" onclick="toggleSection('sidebar-schedule')">
+                        <span>// schedule</span>
+                        <span class="section-arrow" id="sidebar-schedule-arrow">&#x25BC;</span>
+                    </div>
                     <ul class="sidebar-schedule" id="sidebar-schedule">
                         <li style="color:var(--comment);font-size:10px;padding:3px 8px;">Loading...</li>
                     </ul>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-title">// progress</div>
+                    <div class="sidebar-title sidebar-title-toggle" onclick="toggleSection('sidebar-progress')">
+                        <span>// progress</span>
+                        <span class="section-arrow" id="sidebar-progress-arrow">&#x25BC;</span>
+                    </div>
                     <div style="padding: 0 8px;" id="sidebar-progress">
                         <div style="color:var(--comment);font-size:10px;">Loading...</div>
                     </div>
                 </div>
                 <div class="sidebar-section">
-                    <div class="sidebar-title">// online users <span class="online-count" id="online-count"></span></div>
-                    <ul class="online-users-list" id="online-users">
-                        <li style="color:var(--comment);font-size:10px;padding:3px 8px;">No users online</li>
+                    <div class="sidebar-title sidebar-title-toggle" onclick="toggleSection('web-users')">
+                        <span>// web visitors <span class="online-count" id="web-count"></span></span>
+                        <span class="section-arrow" id="web-users-arrow">&#x25BC;</span>
+                    </div>
+                    <ul class="online-users-list" id="web-users">
+                        <li style="color:var(--comment);font-size:10px;padding:3px 8px;">No web visitors</li>
+                    </ul>
+                </div>
+                <div class="sidebar-section">
+                    <div class="sidebar-title sidebar-title-toggle" onclick="toggleSection('server-users')">
+                        <span>// server users <span class="online-count" id="server-count"></span></span>
+                        <span class="section-arrow" id="server-users-arrow">&#x25BC;</span>
+                    </div>
+                    <ul class="online-users-list" id="server-users">
+                        <li style="color:var(--comment);font-size:10px;padding:3px 8px;">No server data</li>
                     </ul>
                 </div>
                 <div class="sidebar-back" onclick="backToLanding()">

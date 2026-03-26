@@ -107,43 +107,103 @@
     runBoot();
 
     // ──────────────────────────────────────
-    //  Presence Init
+    //  Presence Init (dual-mode)
     // ──────────────────────────────────────
     Presence.init();
 
-    // Update sidebar online users when list changes
-    Presence.onUpdate(function (users) {
-        renderOnlineUsers(users);
-        updateFooterPresence(users);
+    // Web visitors (Firebase)
+    Presence.onWebUpdate(function (users) {
+        renderWebUsers(users);
+        updateFooterPresence();
     });
 
-    function renderOnlineUsers(users) {
-        var container = document.getElementById('online-users');
+    // Server users (Linux `who`)
+    Presence.onServerUpdate(function (users) {
+        renderServerUsers(users);
+        updateFooterPresence();
+    });
+
+    function renderWebUsers(users) {
+        var container = document.getElementById('web-users');
         if (!container) return;
-
         if (!users || users.length === 0) {
-            container.innerHTML = '<li style="color:var(--comment);font-size:10px;padding:3px 8px;">No users online</li>';
-            return;
+            container.innerHTML = '<li style="color:var(--comment);font-size:10px;padding:3px 8px;">No web visitors</li>';
+        } else {
+            var html = '';
+            users.forEach(function (u) {
+                html += '<li><span class="online-dot"></span>'
+                    + '<span class="user-name' + (u.isSelf ? ' self' : '') + '">'
+                    + escapeHtml(u.name) + (u.isSelf ? ' (you)' : '')
+                    + '</span></li>';
+            });
+            container.innerHTML = html;
         }
-
-        var html = '';
-        users.forEach(function (u) {
-            html += '<li><span class="online-dot"></span><span class="user-name' + (u.isSelf ? ' self' : '') + '">'
-                + escapeHtml(u.name) + (u.isSelf ? ' (you)' : '') + '</span></li>';
-        });
-        container.innerHTML = html;
-
-        // Update count badge
-        var countEl = document.getElementById('online-count');
-        if (countEl) countEl.textContent = users.length + ' online';
+        var countEl = document.getElementById('web-count');
+        if (countEl) countEl.textContent = (users && users.length) ? users.length + ' online' : '';
     }
 
-    function updateFooterPresence(users) {
+    function renderServerUsers(users) {
+        var container = document.getElementById('server-users');
+        if (!container) return;
+        if (!users || users.length === 0) {
+            container.innerHTML = '<li style="color:var(--comment);font-size:10px;padding:3px 8px;">No users logged in</li>';
+        } else {
+            var html = '';
+            users.forEach(function (u) {
+                var detail = u.terminal || '';
+                if (u.host) detail += ' (' + escapeHtml(u.host) + ')';
+                html += '<li title="' + escapeHtml(detail) + '">'
+                    + '<span class="online-dot server"></span>'
+                    + '<span class="user-name' + (u.isSelf ? ' self' : '') + '">'
+                    + escapeHtml(u.name) + (u.isSelf ? ' (you)' : '')
+                    + '</span>'
+                    + (u.terminal ? '<span style="color:var(--comment);font-size:9px;margin-left:4px;">' + escapeHtml(u.terminal) + '</span>' : '')
+                    + '</li>';
+            });
+            container.innerHTML = html;
+        }
+        var countEl = document.getElementById('server-count');
+        if (countEl) countEl.textContent = (users && users.length) ? users.length + ' online' : '';
+    }
+
+    function updateFooterPresence() {
         var el = document.getElementById('footer-presence');
         if (!el) return;
-        var count = users ? users.length : 0;
-        el.textContent = count > 0 ? '👥 ' + count + ' online' : '';
+        var wc = Presence.getWebCount();
+        var sc = Presence.getServerCount();
+        var parts = [];
+        if (wc > 0) parts.push(wc + ' web');
+        if (sc > 0) parts.push(sc + ' server');
+        el.textContent = parts.length > 0 ? '\uD83D\uDC65 ' + parts.join(' \u2022 ') : '';
     }
+
+    // ──────────────────────────────────────
+    //  Sidebar Collapse / Section Toggles
+    // ──────────────────────────────────────
+    window.collapseSidebar = function () {
+        var sidebar = document.getElementById('sidebar');
+        var btn = document.getElementById('sidebar-collapse-btn');
+        var contentsPage = document.getElementById('contents-page');
+        sidebar.classList.toggle('collapsed');
+        if (sidebar.classList.contains('collapsed')) {
+            btn.innerHTML = '\u276F';
+            btn.title = 'Expand sidebar';
+            contentsPage.style.left = '36px';
+        } else {
+            btn.innerHTML = '\u276E';
+            btn.title = 'Collapse sidebar';
+            contentsPage.style.left = '220px';
+        }
+    };
+
+    window.toggleSection = function (sectionId) {
+        var list = document.getElementById(sectionId);
+        var arrow = document.getElementById(sectionId + '-arrow');
+        if (!list) return;
+        var hidden = list.style.display === 'none';
+        list.style.display = hidden ? '' : 'none';
+        if (arrow) arrow.textContent = hidden ? '\u25BC' : '\u25B6';
+    };
 
     // ──────────────────────────────────────
     //  Login System

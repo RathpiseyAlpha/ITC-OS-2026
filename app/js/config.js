@@ -12,21 +12,22 @@ const CONFIG = {
         token: ''
     },
 
-    // Firebase Realtime Database (for online presence tracking)
+    // Presence server (tracks logged-in Linux users on the server)
+    // Run `python3 server/app.py` on your Linux server, then set the URL below.
+    // See server/README.md for setup instructions (systemd, nginx, etc.)
+    server: {
+        url: '',            // e.g. 'https://your-server.example.com' or 'http://server-ip:5000'
+        pollInterval: 10000 // poll /api/users every 10 seconds
+    },
+
+    // Firebase Realtime Database (for web visitor presence tracking)
     // Create a free project at https://console.firebase.google.com
     // 1. Create a new project → Add a Realtime Database
-    // 2. Set database rules to allow read/write for presence:
-    //    {
-    //      "rules": {
-    //        "presence": {
-    //          ".read": true,
-    //          ".write": true
-    //        }
-    //      }
-    //    }
-    // 3. Copy your config values below
+    // 2. Set database rules:
+    //    { "rules": { "presence": { ".read": true, ".write": true } } }
+    // 3. Copy your config values below and set enabled: true
     firebase: {
-        enabled: false, // Set to true after adding your Firebase config
+        enabled: false,
         apiKey: '',
         authDomain: '',
         databaseURL: '',

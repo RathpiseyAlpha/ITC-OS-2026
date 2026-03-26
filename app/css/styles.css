@@ -199,7 +199,9 @@ body.readme-mode::after { opacity: 0; }
     display: flex;
     position: fixed;
     top: 0; left: 220px; right: 0; bottom: 28px;
+    transition: left 0.25s ease;
 }
+.sidebar.collapsed ~ .split-pane { margin-left: 0; }
 .contents-layout { display: flex; flex: 1; min-width: 0; }
 
 /* ─── Sidebar ─── */
@@ -214,7 +216,28 @@ body.readme-mode::after { opacity: 0; }
     padding: 16px 14px;
     font-size: 12px;
     z-index: 100;
+    transition: width 0.25s ease, padding 0.25s ease;
 }
+.sidebar.collapsed {
+    width: 36px;
+    padding: 16px 6px;
+    overflow: hidden;
+}
+.sidebar.collapsed .sidebar-section,
+.sidebar.collapsed .sidebar-back { display: none; }
+.sidebar-collapse-btn {
+    display: block;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--comment);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-bottom: 10px;
+    transition: color 0.2s, border-color 0.2s;
+}
+.sidebar-collapse-btn:hover { color: var(--green); border-color: var(--green); }
 .sidebar-section { margin-bottom: 14px; }
 .sidebar-section:last-of-type { margin-bottom: 0; }
 .sidebar-title {
@@ -226,6 +249,16 @@ body.readme-mode::after { opacity: 0; }
     padding-bottom: 4px;
     border-bottom: 1px dashed var(--green-dark);
 }
+.sidebar-title-toggle {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    transition: color 0.2s;
+}
+.sidebar-title-toggle:hover { color: var(--green); }
+.section-arrow { font-size: 8px; color: var(--comment); transition: transform 0.2s; }
 .sidebar-nav { list-style: none; padding: 0; margin: 0; }
 .sidebar-nav li {
     padding: 5px 8px;
@@ -292,6 +325,10 @@ body.readme-mode::after { opacity: 0; }
 }
 .online-users-list .user-name { color: var(--white); font-size: 11px; }
 .online-users-list .user-name.self { color: var(--cyan); font-weight: 600; }
+.online-users-list .online-dot.server {
+    background: var(--cyan);
+    box-shadow: 0 0 4px rgba(0,200,255,0.6);
+}
 .online-count { color: var(--green-dim); font-size: 10px; margin-left: auto; }
 
 /* ─── Split Pane ─── */

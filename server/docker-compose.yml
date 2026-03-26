@@ -1,0 +1,13 @@
+services:
+  presence:
+    build: .
+    container_name: itc-os-presence
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount host utmp/wtmp so `who` and `last` see real server logins
+      - /var/run/utmp:/var/run/utmp:ro
+      - /var/log/wtmp:/var/log/wtmp:ro
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Phnom_Penh
