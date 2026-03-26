@@ -1,0 +1,682 @@
+// ─── Main Application Logic ───
+// Boot sequence, matrix rain, explorer, views, router, login — all wired together.
+
+(function () {
+    'use strict';
+
+    // ──────────────────────────────────────
+    //  Utilities
+    // ──────────────────────────────────────
+    function escapeHtml(str) {
+        var d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function getIcon(name, isDir) {
+        if (isDir) return '📁';
+        var ext = name.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return '📄';
+        if (ext === 'md') return '📝';
+        if (ext === 'html') return '🌐';
+        if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) return '🖼️';
+        return '📄';
+    }
+
+    function getExt(name) {
+        return name.split('.').pop().toLowerCase();
+    }
+
+    // ──────────────────────────────────────
+    //  Matrix Rain Background
+    // ──────────────────────────────────────
+    var canvas = document.getElementById('matrix-bg');
+    var ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    var chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン01';
+    var fontSize = 14;
+    var columns = Math.floor(canvas.width / fontSize);
+    var drops = Array(columns).fill(1);
+
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(10, 14, 20, 0.05)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#00ff41';
+        ctx.font = fontSize + 'px monospace';
+
+        for (var i = 0; i < drops.length; i++) {
+            var text = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 50);
+
+    window.addEventListener('resize', function () {
+        columns = Math.floor(canvas.width / fontSize);
+        drops = Array(columns).fill(1);
+    });
+
+    // ──────────────────────────────────────
+    //  Boot Sequence
+    // ──────────────────────────────────────
+    var bootLines = [
+        { text: 'BIOS POST... OK', cls: 'boot-ok' },
+        { text: 'Detecting hardware...', cls: 'boot-info' },
+        { text: '  CPU: Multi-core processor detected', cls: 'boot-info' },
+        { text: '  RAM: Memory check passed', cls: 'boot-ok' },
+        { text: '  DISK: Storage device ready', cls: 'boot-ok' },
+        { text: 'Loading kernel... vmlinuz-itc-os-2026', cls: 'boot-info' },
+        { text: 'Mounting root filesystem...', cls: 'boot-info' },
+        { text: 'Starting system services...', cls: 'boot-info' },
+        { text: '  [  OK  ] Started course-materials.service', cls: 'boot-ok' },
+        { text: '  [  OK  ] Started lecture-slides.service', cls: 'boot-ok' },
+        { text: '  [  OK  ] Started lab-instructions.service', cls: 'boot-ok' },
+        { text: '  [  OK  ] Started presence-tracking.service', cls: 'boot-ok' },
+        { text: '', cls: 'boot-info' },
+        { text: 'ITC Operating Systems 2026 — Ready.', cls: 'boot-ok' }
+    ];
+
+    var bootScreen = document.getElementById('boot-screen');
+    var bootText = document.getElementById('boot-text');
+
+    async function runBoot() {
+        for (var i = 0; i < bootLines.length; i++) {
+            var line = document.createElement('div');
+            line.className = 'boot-line ' + bootLines[i].cls;
+            line.textContent = bootLines[i].text;
+            bootText.appendChild(line);
+            await new Promise(function (r) { setTimeout(r, 120); });
+            line.style.opacity = '1';
+        }
+        await new Promise(function (r) { setTimeout(r, 600); });
+        bootScreen.classList.add('hidden');
+        setTimeout(function () { bootScreen.style.display = 'none'; }, 800);
+    }
+
+    runBoot();
+
+    // ──────────────────────────────────────
+    //  Presence Init
+    // ──────────────────────────────────────
+    Presence.init();
+
+    // Update sidebar online users when list changes
+    Presence.onUpdate(function (users) {
+        renderOnlineUsers(users);
+        updateFooterPresence(users);
+    });
+
+    function renderOnlineUsers(users) {
+        var container = document.getElementById('online-users');
+        if (!container) return;
+
+        if (!users || users.length === 0) {
+            container.innerHTML = '<li style="color:var(--comment);font-size:10px;padding:3px 8px;">No users online</li>';
+            return;
+        }
+
+        var html = '';
+        users.forEach(function (u) {
+            html += '<li><span class="online-dot"></span><span class="user-name' + (u.isSelf ? ' self' : '') + '">'
+                + escapeHtml(u.name) + (u.isSelf ? ' (you)' : '') + '</span></li>';
+        });
+        container.innerHTML = html;
+
+        // Update count badge
+        var countEl = document.getElementById('online-count');
+        if (countEl) countEl.textContent = users.length + ' online';
+    }
+
+    function updateFooterPresence(users) {
+        var el = document.getElementById('footer-presence');
+        if (!el) return;
+        var count = users ? users.length : 0;
+        el.textContent = count > 0 ? '👥 ' + count + ' online' : '';
+    }
+
+    // ──────────────────────────────────────
+    //  Login System
+    // ──────────────────────────────────────
+    window.performLogin = function (username) {
+        var name = username.trim();
+        if (!name) return;
+
+        var input = document.getElementById('login-input');
+        var output = document.getElementById('login-output');
+        input.disabled = true;
+        input.style.color = 'var(--white)';
+
+        output.innerHTML = '<div class="login-status">Authenticating...</div>';
+
+        setTimeout(function () {
+            output.innerHTML = '<div class="login-status">Authenticating... done.</div>';
+            setTimeout(function () {
+                // Register presence
+                Presence.login(name);
+
+                var now = new Date();
+                var ts = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+                    + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                output.innerHTML = '<div class="login-success">✔ Login successful.</div>'
+                    + '<div class="login-motd">'
+                    + 'Welcome to ITC-OS 2026, <span style="color:var(--cyan)">' + escapeHtml(name) + '</span>!<br>'
+                    + 'Last login: ' + ts + ' on tty1<br>'
+                    + 'Type <span style="color:var(--white)">help</span> for available commands.'
+                    + '</div>';
+
+                // Enable enter prompt
+                var ep = document.getElementById('enter-prompt');
+                ep.style.pointerEvents = 'auto';
+                ep.style.opacity = '1';
+                ep.innerHTML = '<span class="prompt-symbol">$</span> Press <span style="color:var(--green)">Enter</span> or click here to explore the system <span class="cursor"></span>';
+                ep.onclick = enterExplorer;
+            }, 500);
+        }, 800);
+    };
+
+    window.guestLogin = function () {
+        window.performLogin('guest');
+    };
+
+    // Login input handler
+    (function () {
+        var loginInput = document.getElementById('login-input');
+        if (loginInput) {
+            loginInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.performLogin(loginInput.value);
+                }
+            });
+            setTimeout(function () { loginInput.focus(); }, 3500);
+        }
+    })();
+
+    // ──────────────────────────────────────
+    //  Explorer — Dynamic File Tree
+    // ──────────────────────────────────────
+    var explorerReady = false;
+
+    window.navigateTo = function (path) {
+        window.location.hash = path ? 'browse/' + path : 'browse';
+    };
+
+    window.viewFile = function (dirPath, fileName) {
+        var filePath = dirPath ? dirPath + '/' + fileName : fileName;
+        window.location.hash = 'view/' + filePath;
+    };
+
+    async function renderExplorer(path) {
+        var tree = await GitHubAPI.getTree();
+        var node = tree[path];
+
+        if (!node) {
+            // Path not found — go to root
+            node = tree[''];
+            path = '';
+        }
+
+        var parts = path ? path.split('/') : [];
+        var listEl = document.getElementById('file-list');
+        var viewerEl = document.getElementById('file-viewer');
+        var breadEl = document.getElementById('explorer-breadcrumb');
+        var cmdEl = document.getElementById('explorer-cmd');
+        var titleEl = document.getElementById('explorer-title');
+
+        viewerEl.style.display = 'none';
+        viewerEl.innerHTML = '';
+
+        // Breadcrumb
+        var bc = '<a onclick="navigateTo(\'\')" style="cursor:pointer">~</a>';
+        var cumulative = '';
+        parts.forEach(function (p, i) {
+            cumulative += (i > 0 ? '/' : '') + p;
+            var cp = cumulative;
+            bc += '<span class="sep">/</span>';
+            if (i === parts.length - 1) {
+                bc += '<span class="current-dir">' + escapeHtml(p) + '</span>';
+            } else {
+                bc += '<a onclick="navigateTo(\'' + cp + '\')" style="cursor:pointer">' + escapeHtml(p) + '</a>';
+            }
+        });
+        bc += '<span class="sep">/</span>';
+        breadEl.innerHTML = bc;
+        cmdEl.textContent = 'ls -la ' + (path || '.');
+        titleEl.textContent = 'bash — ' + (path || '~');
+
+        // File listing
+        var html = '';
+
+        // Parent directory
+        if (path) {
+            var parent = parts.slice(0, -1).join('/');
+            html += '<li onclick="navigateTo(\'' + parent + '\')"><span class="icon">⬆️</span><span class="fname dir">..</span><span class="fmeta">parent directory</span></li>';
+        }
+
+        // Directories
+        node.dirs.forEach(function (d) {
+            var fullPath = path ? path + '/' + d : d;
+            var info = GitHubAPI.getNodeInfo(fullPath);
+            var count = info ? info.total : 0;
+            html += '<li onclick="navigateTo(\'' + fullPath + '\')"><span class="icon">📁</span><span class="fname dir">' + escapeHtml(d) + '/</span><span class="fmeta">' + count + ' items</span></li>';
+        });
+
+        // Files
+        node.files.forEach(function (f) {
+            html += '<li onclick="viewFile(\'' + path + '\',\'' + f.name + '\')"><span class="icon">' + getIcon(f.name) + '</span><span class="fname">' + escapeHtml(f.name) + '</span><span class="fmeta"></span></li>';
+        });
+
+        if (!node.dirs.length && !node.files.length) {
+            if (path) {
+                html += '<li onclick="navigateTo(\'' + parts.slice(0, -1).join('/') + '\')"><span class="icon">⬆️</span><span class="fname dir">..</span><span class="fmeta">parent directory</span></li>';
+            }
+            html += '<li><span class="fmeta" style="color:var(--yellow)">// empty — content coming soon</span></li>';
+        }
+
+        listEl.innerHTML = html;
+
+        // Build sidebar dynamically
+        await buildSidebar(tree);
+    }
+
+    // ──────────────────────────────────────
+    //  Dynamic Sidebar
+    // ──────────────────────────────────────
+    async function buildSidebar(tree) {
+        var scheduleEl = document.getElementById('sidebar-schedule');
+        var progressEl = document.getElementById('sidebar-progress');
+        if (!scheduleEl || !progressEl) return;
+
+        // Schedule: check which lecture files actually exist
+        var scheduleHtml = '';
+        var availableCount = 0;
+        CONFIG.schedule.forEach(function (item) {
+            var exists = GitHubAPI.fileExists(item.file);
+            if (exists) availableCount++;
+
+            var weekStr = String(item.week).padStart(2, '0');
+            if (exists) {
+                scheduleHtml += '<li><span class="wk">' + weekStr + '</span>'
+                    + '<a onclick="viewFile(\'' + item.file.substring(0, item.file.lastIndexOf('/')) + '\',\'' + item.file.split('/').pop() + '\')">' + escapeHtml(item.title) + '</a>'
+                    + '<span class="status-dot ok">●</span></li>';
+            } else {
+                scheduleHtml += '<li><span class="wk">' + weekStr + '</span>'
+                    + '<span style="color:var(--comment)">' + escapeHtml(item.title) + '</span>'
+                    + '<span class="status-dot pending">○</span></li>';
+            }
+        });
+        scheduleEl.innerHTML = scheduleHtml;
+
+        // Progress: count labs and lectures dynamically
+        var totalLectures = CONFIG.schedule.length;
+        var lecturePct = Math.round((availableCount / totalLectures) * 100);
+
+        var labDirs = tree['labs'] ? tree['labs'].dirs : [];
+        var totalLabs = labDirs.length;
+        var completedLabs = 0;
+        labDirs.forEach(function (d) {
+            var labPath = 'labs/' + d;
+            var labNode = tree[labPath];
+            if (labNode && (labNode.files.length > 0 || labNode.dirs.length > 0)) {
+                completedLabs++;
+            }
+        });
+        var labPct = totalLabs > 0 ? Math.round((completedLabs / totalLabs) * 100) : 0;
+
+        progressEl.innerHTML =
+            '<div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;">'
+            + '<span class="output" style="min-width:55px">Lectures</span>'
+            + '<div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:' + lecturePct + '%"></div></div>'
+            + '<span class="highlight" style="font-size:10px">' + availableCount + '/' + totalLectures + '</span>'
+            + '</div>'
+            + '<div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;">'
+            + '<span class="output" style="min-width:55px">Labs</span>'
+            + '<div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:' + labPct + '%"></div></div>'
+            + '<span class="highlight" style="font-size:10px">' + completedLabs + '/' + totalLabs + '</span>'
+            + '</div>';
+    }
+
+    // ──────────────────────────────────────
+    //  File Viewer
+    // ──────────────────────────────────────
+    function showBottomPane(title) {
+        document.getElementById('viewer-placeholder').style.display = 'none';
+        document.getElementById('viewer-title').textContent = title;
+    }
+
+    window.closeViewer = function () {
+        document.getElementById('file-viewer').style.display = 'none';
+        document.getElementById('file-viewer').innerHTML = '';
+        document.getElementById('outline-content').style.display = 'none';
+        document.getElementById('outline-content').innerHTML = '';
+        document.getElementById('viewer-placeholder').style.display = 'flex';
+        document.getElementById('viewer-title').textContent = 'bash — preview';
+    };
+
+    function renderFileView(filePath) {
+        var viewerEl = document.getElementById('file-viewer');
+        var outlineEl = document.getElementById('outline-content');
+        outlineEl.style.display = 'none';
+
+        var ext = getExt(filePath);
+        var dirPath = filePath.split('/').slice(0, -1).join('/');
+        var fileName = filePath.split('/').pop();
+
+        showBottomPane('bash — cat ' + filePath);
+
+        var html = '';
+        if (ext === 'md') {
+            var ghUrl = CONFIG.course.repoUrl + '/blob/main/' + filePath;
+            html = '<div style="padding:6px 12px;background:rgba(0,255,65,0.04);border-bottom:1px solid var(--border);font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:6px;">'
+                + '<span style="color:var(--comment);">// navigation links may not work here —</span>'
+                + '<a href="' + ghUrl + '" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);text-decoration:none;border-bottom:1px dashed var(--cyan);transition:color 0.2s;">view on GitHub ↗</a>'
+                + '</div>'
+                + '<div class="md-viewer" id="md-render" style="max-height:none;flex:1;"></div>';
+            viewerEl.innerHTML = html;
+            viewerEl.style.display = 'flex';
+
+            var container = document.getElementById('md-render');
+            container.innerHTML = '<span style="color:var(--comment);font-style:italic">Loading...</span>';
+            var baseDir = dirPath ? dirPath + '/' : '';
+
+            fetch(filePath)
+                .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+                .then(function (md) {
+                    container.innerHTML = marked.parse(md);
+                    // Rewrite relative paths for images and links
+                    container.querySelectorAll('img[src], a[href]').forEach(function (el) {
+                        var attr = el.hasAttribute('src') ? 'src' : 'href';
+                        var val = el.getAttribute(attr);
+                        if (val && !val.startsWith('http') && !val.startsWith('/') && !val.startsWith('#') && !val.startsWith('data:')) {
+                            el.setAttribute(attr, baseDir + val);
+                        }
+                    });
+                    // Handle anchor links
+                    container.querySelectorAll('a[href^="#"]').forEach(function (anchor) {
+                        anchor.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            var targetId = decodeURIComponent(this.getAttribute('href').slice(1));
+                            var target = container.querySelector('[id="' + targetId.replace(/"/g, '\\"') + '"]');
+                            if (!target) {
+                                container.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (h) {
+                                    if (h.id === targetId || h.id === targetId.toLowerCase()) target = h;
+                                });
+                            }
+                            if (target) {
+                                var scrollParent = container.closest('.pane-bottom') || container.closest('.terminal-body') || container;
+                                var offset = target.getBoundingClientRect().top - scrollParent.getBoundingClientRect().top + scrollParent.scrollTop;
+                                scrollParent.scrollTo({ top: offset - 10, behavior: 'smooth' });
+                            }
+                        });
+                    });
+                })
+                .catch(function () { container.innerHTML = '<span style="color:var(--red)">Error loading file.</span>'; });
+        } else if (ext === 'pdf') {
+            html = '<iframe src="' + filePath + '" title="' + escapeHtml(fileName) + '"></iframe>';
+            viewerEl.innerHTML = html;
+            viewerEl.style.display = 'flex';
+        } else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(ext)) {
+            html = '<img src="' + filePath + '" alt="' + escapeHtml(fileName) + '">';
+            viewerEl.innerHTML = html;
+            viewerEl.style.display = 'flex';
+        } else if (ext === 'html') {
+            html = '<iframe src="' + filePath + '" title="' + escapeHtml(fileName) + '"></iframe>';
+            viewerEl.innerHTML = html;
+            viewerEl.style.display = 'flex';
+        } else {
+            html = '<div class="md-viewer" style="max-height:none;flex:1;"><span style="color:var(--comment)">Preview not available. <a href="' + filePath + '" target="_blank" style="color:var(--cyan)">Download file</a></span></div>';
+            viewerEl.innerHTML = html;
+            viewerEl.style.display = 'flex';
+        }
+    }
+
+    // ──────────────────────────────────────
+    //  Course Outline Viewer
+    // ──────────────────────────────────────
+    window.viewCourseOutline = function () {
+        var viewerEl = document.getElementById('file-viewer');
+        var container = document.getElementById('outline-content');
+        viewerEl.style.display = 'none';
+        viewerEl.innerHTML = '';
+        showBottomPane('bash — cat course-outline.md');
+        container.style.display = 'block';
+        container.innerHTML = '<span style="color:#5c6370;font-style:italic">Loading...</span>';
+        fetch('course-outline.md')
+            .then(function (r) { return r.text(); })
+            .then(function (md) { container.innerHTML = marked.parse(md); })
+            .catch(function () { container.innerHTML = '<span style="color:#ff3e3e">Error loading file.</span>'; });
+    };
+
+    // ──────────────────────────────────────
+    //  View Switch: Terminal ↔ README
+    // ──────────────────────────────────────
+    var currentView = 'terminal';
+
+    window.switchView = function (view) {
+        if (view === currentView) return;
+        currentView = view;
+
+        var terminalView = document.getElementById('terminal-view');
+        var readmeView = document.getElementById('readme-view');
+        var track = document.getElementById('toggle-track');
+        var lblT = document.getElementById('lbl-terminal');
+        var lblR = document.getElementById('lbl-readme');
+        var matrixCanvas = document.getElementById('matrix-bg');
+
+        if (view === 'readme') {
+            terminalView.classList.add('hidden');
+            readmeView.classList.add('active');
+            track.classList.add('readme');
+            lblT.classList.remove('active');
+            lblR.classList.add('active');
+            document.body.classList.add('readme-mode');
+            document.body.style.background = '#f6f8fa';
+            matrixCanvas.style.display = 'none';
+            var container = document.getElementById('readme-content');
+            if (!container.dataset.loaded) {
+                container.innerHTML = '<p style="color:#656d76;font-style:italic">Loading...</p>';
+                fetch('README.md')
+                    .then(function (r) { return r.text(); })
+                    .then(function (md) {
+                        container.innerHTML = marked.parse(md);
+                        container.dataset.loaded = '1';
+                    })
+                    .catch(function () { container.innerHTML = '<p style="color:#cf222e">Error loading README.md</p>'; });
+            }
+        } else {
+            terminalView.classList.remove('hidden');
+            readmeView.classList.remove('active');
+            track.classList.remove('readme');
+            lblT.classList.add('active');
+            lblR.classList.remove('active');
+            document.body.classList.remove('readme-mode');
+            document.body.style.background = '';
+            matrixCanvas.style.display = '';
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.toggleView = function () {
+        window.switchView(currentView === 'terminal' ? 'readme' : 'terminal');
+    };
+
+    // ──────────────────────────────────────
+    //  Explorer Navigation
+    // ──────────────────────────────────────
+    window.enterExplorer = function () {
+        if (!Presence.isLoggedIn()) return;
+        document.getElementById('landing-page').classList.add('hidden');
+        document.getElementById('contents-page').classList.add('active');
+        renderExplorer('');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.backToLanding = function () {
+        document.getElementById('contents-page').classList.remove('active');
+        document.getElementById('landing-page').classList.remove('hidden');
+        window.location.hash = '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter'
+            && !document.getElementById('landing-page').classList.contains('hidden')
+            && Presence.isLoggedIn()) {
+            enterExplorer();
+        }
+    });
+
+    // ──────────────────────────────────────
+    //  Hash Router
+    // ──────────────────────────────────────
+    function handleHash() {
+        var hash = window.location.hash.slice(1);
+        if (hash.startsWith('browse/') || hash === 'browse') {
+            var path = hash === 'browse' ? '' : hash.slice(7);
+            renderExplorer(path);
+        } else if (hash.startsWith('view/')) {
+            var filePath = hash.slice(5);
+            renderFileView(filePath);
+        } else if (hash === 'readme') {
+            window.switchView('readme');
+        }
+    }
+
+    window.addEventListener('hashchange', handleHash);
+
+    // ──────────────────────────────────────
+    //  Layout Toggle
+    // ──────────────────────────────────────
+    var layoutMode = 'horizontal';
+
+    window.toggleLayout = function () {
+        var splitPane = document.querySelector('.split-pane');
+        var paneTop = document.getElementById('pane-top');
+        var btns = document.querySelectorAll('.layout-toggle');
+
+        paneTop.style.flex = '';
+        paneTop.style.height = '';
+        paneTop.style.width = '';
+
+        if (layoutMode === 'vertical') {
+            layoutMode = 'horizontal';
+            splitPane.classList.add('side-view');
+            btns.forEach(function (b) { b.innerHTML = '<span class="icon">⬌</span> split'; b.title = 'Toggle top/bottom view'; });
+        } else {
+            layoutMode = 'vertical';
+            splitPane.classList.remove('side-view');
+            btns.forEach(function (b) { b.innerHTML = '<span class="icon">⬍</span> split'; b.title = 'Toggle side view'; });
+        }
+    };
+
+    // ──────────────────────────────────────
+    //  Split Pane Resize
+    // ──────────────────────────────────────
+    (function () {
+        var divider = document.getElementById('pane-divider');
+        var paneTop = document.getElementById('pane-top');
+        if (!divider || !paneTop) return;
+        var splitPane = paneTop.parentElement;
+        var isDragging = false;
+
+        divider.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            isDragging = true;
+            divider.classList.add('active');
+            document.body.style.cursor = layoutMode === 'horizontal' ? 'col-resize' : 'row-resize';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', function (e) {
+            if (!isDragging) return;
+            var rect = splitPane.getBoundingClientRect();
+            var minPx = layoutMode === 'horizontal' ? 200 : 80;
+
+            if (layoutMode === 'horizontal') {
+                var offset = e.clientX - rect.left;
+                var total = rect.width;
+                var clamped = Math.max(minPx, Math.min(offset, total - minPx - 5));
+                paneTop.style.flex = 'none';
+                paneTop.style.width = clamped + 'px';
+                paneTop.style.height = '';
+            } else {
+                var offset = e.clientY - rect.top;
+                var total = rect.height;
+                var clamped = Math.max(minPx, Math.min(offset, total - minPx - 5));
+                paneTop.style.flex = 'none';
+                paneTop.style.height = clamped + 'px';
+                paneTop.style.width = '';
+            }
+        });
+
+        document.addEventListener('mouseup', function () {
+            if (!isDragging) return;
+            isDragging = false;
+            divider.classList.remove('active');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        });
+    })();
+
+    // ──────────────────────────────────────
+    //  Mobile Sidebar
+    // ──────────────────────────────────────
+    window.toggleMobileSidebar = function () {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('mobile-sidebar-overlay').classList.toggle('visible');
+    };
+
+    window.closeMobileSidebar = function () {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('mobile-sidebar-overlay').classList.remove('visible');
+    };
+
+    document.querySelectorAll('.sidebar-nav li, .sidebar-schedule a, .sidebar-back').forEach(function (el) {
+        el.addEventListener('click', window.closeMobileSidebar);
+    });
+
+    // ──────────────────────────────────────
+    //  Scroll Reveal & Progress Animations
+    // ──────────────────────────────────────
+    var revealElements = document.querySelectorAll('.reveal');
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+    }, { threshold: 0.1 });
+    revealElements.forEach(function (el) { observer.observe(el); });
+
+    var progressBars = document.querySelectorAll('.progress-fill');
+    var progressObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                var width = entry.target.style.width;
+                entry.target.style.width = '0%';
+                setTimeout(function () { entry.target.style.width = width; }, 200);
+            }
+        });
+    }, { threshold: 0.5 });
+    progressBars.forEach(function (bar) { progressObserver.observe(bar); });
+
+    // ──────────────────────────────────────
+    //  Init
+    // ──────────────────────────────────────
+    var hash = window.location.hash.slice(1);
+    if (hash.startsWith('browse') || hash.startsWith('view') || hash === 'readme') {
+        enterExplorer();
+        handleHash();
+    }
+})();
