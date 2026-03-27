@@ -74,6 +74,10 @@
                         <span class="login-label">username: </span>
                         <input type="text" class="login-input" id="login-input" placeholder="enter your name" maxlength="20" autocomplete="off" spellcheck="false">
                     </div>
+                    <div class="login-line" id="password-line" style="margin-top:4px;display:none;">
+                        <span class="login-label">password: </span>
+                        <input type="password" class="login-input" id="password-input" placeholder="server password (optional)" maxlength="128" autocomplete="off" spellcheck="false">
+                    </div>
                     <div id="login-output"></div>
                     <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);">
                         <span style="color:var(--comment); font-size: 11px;">// or skip login:</span>
@@ -106,6 +110,7 @@
                         <li onclick="navigateTo('lectures/notes')">&#x1F4DD; notes</li>
                         <li onclick="navigateTo('lectures/class-activity')">&#x1F9EA; activities</li>
                         <li onclick="viewCourseOutline()">&#x1F4CB; course outline</li>
+                        <li id="admin-nav" style="display:none" onclick="window.location.hash='admin'">&#x1F512; admin panel</li>
                     </ul>
                 </div>
                 <div class="sidebar-section">
@@ -222,6 +227,7 @@
 </div>
 
 <!-- Application Scripts -->
+<script src="app/js/env.js"></script>
 <script src="app/js/config.js"></script>
 <script src="app/js/github.js"></script>
 <script src="app/js/presence.js"></script>

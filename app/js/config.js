@@ -13,10 +13,10 @@ const CONFIG = {
     },
 
     // Presence server (tracks logged-in Linux users on the server)
-    // Run `python3 app/server/app.py` on your Linux server, then set the URL below.
+    // The URL is loaded from app/js/env.js (excluded from version control).
     // See app/server/README.md for setup instructions (systemd, nginx, etc.)
     server: {
-        url: 'https://api-os.rathpisey.site',
+        url: (window.__ENV && window.__ENV.serverUrl) || '',
         pollInterval: 10000 // poll /api/users every 10 seconds
     },
 

@@ -25,6 +25,13 @@ const Presence = (function () {
         return (CONFIG.server && CONFIG.server.url) ? CONFIG.server.url.replace(/\/+$/, '') : '';
     }
 
+    function authHeaders() {
+        var h = { 'Content-Type': 'application/json' };
+        var token = sessionStorage.getItem('authToken');
+        if (token) h['Authorization'] = 'Bearer ' + token;
+        return h;
+    }
+
     function initWeb() {
         sessionId = generateSessionId();
         var url = serverUrl();
@@ -78,7 +85,7 @@ const Presence = (function () {
         fetch(url + '/api/web/login', {
             method: 'POST',
             mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders(),
             body: JSON.stringify({ name: username, sessionId: sessionId })
         }).then(function () {
             pollWebUsers();
@@ -88,7 +95,7 @@ const Presence = (function () {
                 fetch(url + '/api/web/heartbeat', {
                     method: 'POST',
                     mode: 'cors',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: authHeaders(),
                     body: JSON.stringify({ sessionId: sessionId })
                 }).catch(function () {});
             }, HEARTBEAT_MS);
@@ -104,7 +111,7 @@ const Presence = (function () {
         fetch(url + '/api/web/logout', {
             method: 'POST',
             mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
+            headers: authHeaders(),
             body: JSON.stringify({ sessionId: sessionId })
         }).then(function () { pollWebUsers(); })
             .catch(function () {});

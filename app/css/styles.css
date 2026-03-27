@@ -678,6 +678,72 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
 .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s ease; }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
+/* ─── Admin Panel ─── */
+.admin-panel {
+    padding: 16px 20px;
+    font-size: 13px;
+    flex: 1;
+}
+.admin-header {
+    color: var(--yellow);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--green-dark);
+}
+.admin-summary {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+.admin-stat {
+    color: var(--comment);
+    font-size: 12px;
+}
+.admin-stat-val {
+    color: var(--cyan);
+    font-size: 16px;
+    font-weight: 600;
+    margin-right: 4px;
+}
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.admin-table thead th {
+    color: var(--yellow);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--green-dark);
+    white-space: nowrap;
+}
+.admin-table tbody td {
+    padding: 7px 12px;
+    color: var(--white);
+    border-bottom: 1px solid rgba(30,58,47,0.4);
+}
+.admin-table tbody tr:hover td {
+    background: rgba(0,255,65,0.03);
+}
+.admin-user {
+    color: var(--cyan);
+    font-weight: 500;
+}
+.admin-online {
+    color: var(--green);
+}
+.admin-offline {
+    color: var(--comment);
+}
+.admin-loading {
+    color: var(--comment);
+    font-style: italic;
+    padding: 20px 0;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
     .contents-page.active { left: 0; bottom: 28px; }

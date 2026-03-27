@@ -206,68 +206,237 @@
     };
 
     // ──────────────────────────────────────
+    //  Auth State
+    // ──────────────────────────────────────
+    var authToken = sessionStorage.getItem('authToken') || '';
+    var authRole = sessionStorage.getItem('authRole') || '';
+    var authUser = sessionStorage.getItem('authUser') || '';
+
+    function serverUrl() {
+        return (CONFIG.server && CONFIG.server.url) ? CONFIG.server.url.replace(/\/+$/, '') : '';
+    }
+
+    function setAuth(token, role, user) {
+        authToken = token; authRole = role; authUser = user;
+        sessionStorage.setItem('authToken', token);
+        sessionStorage.setItem('authRole', role);
+        sessionStorage.setItem('authUser', user);
+        // Show admin nav link if admin
+        var adminNav = document.getElementById('admin-nav');
+        if (adminNav) adminNav.style.display = (role === 'admin') ? '' : 'none';
+    }
+
+    function clearAuth() {
+        authToken = ''; authRole = ''; authUser = '';
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('authRole');
+        sessionStorage.removeItem('authUser');
+        var adminNav = document.getElementById('admin-nav');
+        if (adminNav) adminNav.style.display = 'none';
+    }
+
+    // Restore admin nav on reload
+    if (authRole === 'admin') {
+        var adminNav = document.getElementById('admin-nav');
+        if (adminNav) adminNav.style.display = '';
+    }
+
+    // ──────────────────────────────────────
     //  Login System
     // ──────────────────────────────────────
-    window.performLogin = function (username) {
+    window.performLogin = function (username, password) {
         var name = username.trim();
         if (!name) return;
 
         var input = document.getElementById('login-input');
+        var pwInput = document.getElementById('password-input');
         var output = document.getElementById('login-output');
         input.disabled = true;
+        if (pwInput) pwInput.disabled = true;
         input.style.color = 'var(--white)';
 
-        output.innerHTML = '<div class="login-status">Authenticating...</div>';
+        var pw = (password || (pwInput ? pwInput.value : '')).trim();
+        var url = serverUrl();
 
-        setTimeout(function () {
-            output.innerHTML = '<div class="login-status">Authenticating... done.</div>';
+        // If password provided and server URL available, do real auth
+        if (pw && url) {
+            output.innerHTML = '<div class="login-status">Authenticating against server...</div>';
+            fetch(url + '/api/auth/login', {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: name, password: pw })
+            })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+            .then(function (res) {
+                if (!res.ok) {
+                    output.innerHTML = '<div class="error" style="margin-top:4px;">' + escapeHtml(res.data.error || 'Authentication failed.') + '</div>';
+                    input.disabled = false;
+                    if (pwInput) pwInput.disabled = false;
+                    return;
+                }
+                setAuth(res.data.token, res.data.role, name);
+                finishLogin(name, true);
+            })
+            .catch(function () {
+                output.innerHTML = '<div class="error" style="margin-top:4px;">Server unreachable. Try guest login.</div>';
+                input.disabled = false;
+                if (pwInput) pwInput.disabled = false;
+            });
+        } else {
+            // Guest login
+            output.innerHTML = '<div class="login-status">Authenticating...</div>';
             setTimeout(function () {
-                // Register presence
-                Presence.login(name);
-
-                // Update terminal prompt username
-                var promptUsers = document.querySelectorAll('.prompt-user');
-                promptUsers.forEach(function (el) { el.textContent = name; });
-
-                var now = new Date();
-                var ts = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-                    + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-                output.innerHTML = '<div class="login-success">✔ Login successful.</div>'
-                    + '<div class="login-motd">'
-                    + 'Welcome to ITC-OS 2026, <span style="color:var(--cyan)">' + escapeHtml(name) + '</span>!<br>'
-                    + 'Last login: ' + ts + ' on tty1<br>'
-                    + 'Type <span style="color:var(--white)">help</span> for available commands.'
-                    + '</div>';
-
-                // Enable enter prompt
-                var ep = document.getElementById('enter-prompt');
-                ep.style.pointerEvents = 'auto';
-                ep.style.opacity = '1';
-                ep.innerHTML = '<span class="prompt-symbol">$</span> Press <span style="color:var(--green)">Enter</span> or click here to explore the system <span class="cursor"></span>';
-                ep.onclick = enterExplorer;
-            }, 500);
-        }, 800);
+                output.innerHTML = '<div class="login-status">Authenticating... done.</div>';
+                setTimeout(function () { finishLogin(name, false); }, 500);
+            }, 800);
+        }
     };
 
+    function finishLogin(name, authenticated) {
+        var output = document.getElementById('login-output');
+        // Register presence
+        Presence.login(name);
+
+        // Update terminal prompt username
+        var promptUsers = document.querySelectorAll('.prompt-user');
+        promptUsers.forEach(function (el) { el.textContent = name; });
+
+        var now = new Date();
+        var ts = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+            + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        var badge = authenticated
+            ? '<span style="color:var(--green);">&#x1F512; authenticated</span>'
+            : '<span style="color:var(--comment);">guest</span>';
+
+        output.innerHTML = '<div class="login-success">\u2714 Login successful. ' + badge + '</div>'
+            + '<div class="login-motd">'
+            + 'Welcome to ITC-OS 2026, <span style="color:var(--cyan)">' + escapeHtml(name) + '</span>!<br>'
+            + 'Last login: ' + ts + ' on tty1<br>'
+            + 'Type <span style="color:var(--white)">help</span> for available commands.'
+            + '</div>';
+
+        // Enable enter prompt
+        var ep = document.getElementById('enter-prompt');
+        ep.style.pointerEvents = 'auto';
+        ep.style.opacity = '1';
+        ep.innerHTML = '<span class="prompt-symbol">$</span> Press <span style="color:var(--green)">Enter</span> or click here to explore the system <span class="cursor"></span>';
+        ep.onclick = enterExplorer;
+    }
+
     window.guestLogin = function () {
-        window.performLogin('guest');
+        window.performLogin('guest', '');
     };
 
     // Login input handler
     (function () {
         var loginInput = document.getElementById('login-input');
+        var pwInput = document.getElementById('password-input');
+        var pwLine = document.getElementById('password-line');
+
         if (loginInput) {
+            // Show password field when username field loses focus with a non-empty value
+            loginInput.addEventListener('blur', function () {
+                if (loginInput.value.trim() && pwLine) {
+                    pwLine.style.display = '';
+                }
+            });
             loginInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // If password field is visible and empty, focus it first
+                    if (pwLine && pwLine.style.display !== 'none' && pwInput && !pwInput.value.trim()) {
+                        pwInput.focus();
+                        return;
+                    }
+                    window.performLogin(loginInput.value);
+                }
+            });
+            setTimeout(function () { loginInput.focus(); }, 3500);
+        }
+
+        if (pwInput) {
+            pwInput.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     e.stopPropagation();
                     window.performLogin(loginInput.value);
                 }
             });
-            setTimeout(function () { loginInput.focus(); }, 3500);
         }
     })();
+
+    // ──────────────────────────────────────
+    //  Admin Panel
+    // ──────────────────────────────────────
+    function renderAdminPanel() {
+        if (authRole !== 'admin') {
+            window.location.hash = 'browse';
+            return;
+        }
+        var url = serverUrl();
+        if (!url) return;
+
+        var viewerEl = document.getElementById('file-viewer');
+        var outlineEl = document.getElementById('outline-content');
+        outlineEl.style.display = 'none';
+        document.getElementById('viewer-placeholder').style.display = 'none';
+        document.getElementById('viewer-title').textContent = 'bash — admin stats';
+
+        viewerEl.innerHTML = '<div class="admin-panel"><div class="admin-header">// ADMIN PANEL — User Activity Statistics</div><div class="admin-loading">Fetching stats...</div></div>';
+        viewerEl.style.display = 'flex';
+
+        // Also update explorer pane title
+        document.getElementById('explorer-title').textContent = 'bash — admin';
+        document.getElementById('explorer-cmd').textContent = 'sudo admin --stats';
+
+        fetch(url + '/api/admin/stats', {
+            mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function (data) {
+            var users = data.users || [];
+            var html = '<div class="admin-panel">'
+                + '<div class="admin-header">// ADMIN PANEL — User Activity Statistics</div>'
+                + '<div class="admin-summary">'
+                + '<span class="admin-stat"><span class="admin-stat-val">' + users.length + '</span> total users</span>'
+                + '<span class="admin-stat"><span class="admin-stat-val">' + users.filter(function(u){return u.isOnline;}).length + '</span> online now</span>'
+                + '</div>'
+                + '<table class="admin-table">'
+                + '<thead><tr><th>User</th><th>Logins</th><th>Last Login</th><th>Duration</th><th>Status</th></tr></thead>'
+                + '<tbody>';
+
+            if (users.length === 0) {
+                html += '<tr><td colspan="5" style="color:var(--comment);text-align:center;">No login records found</td></tr>';
+            } else {
+                users.forEach(function (u) {
+                    var status = u.isOnline
+                        ? '<span class="admin-online">● online</span>'
+                        : '<span class="admin-offline">○ offline</span>';
+                    html += '<tr>'
+                        + '<td class="admin-user">' + escapeHtml(u.username) + '</td>'
+                        + '<td>' + u.loginCount + '</td>'
+                        + '<td>' + escapeHtml(u.lastLogin || '—') + '</td>'
+                        + '<td>' + escapeHtml(u.totalDuration || '0h 0m') + '</td>'
+                        + '<td>' + status + '</td>'
+                        + '</tr>';
+                });
+            }
+
+            html += '</tbody></table></div>';
+            viewerEl.innerHTML = html;
+        })
+        .catch(function (err) {
+            viewerEl.innerHTML = '<div class="admin-panel"><div class="admin-header">// ADMIN PANEL</div>'
+                + '<div class="error" style="padding:12px;">Failed to load admin stats: ' + escapeHtml(err.message) + '</div></div>';
+        });
+    }
 
     // ──────────────────────────────────────
     //  Explorer — Dynamic File Tree
@@ -608,7 +777,9 @@
     // ──────────────────────────────────────
     function handleHash() {
         var hash = window.location.hash.slice(1);
-        if (hash.startsWith('browse/') || hash === 'browse') {
+        if (hash === 'admin') {
+            renderAdminPanel();
+        } else if (hash.startsWith('browse/') || hash === 'browse') {
             var path = hash === 'browse' ? '' : hash.slice(7);
             renderExplorer(path);
         } else if (hash.startsWith('view/')) {
