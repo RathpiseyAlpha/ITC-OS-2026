@@ -23,10 +23,23 @@ from urllib.parse import urlparse, parse_qs
 
 CORS_ORIGIN = "*"  # Restrict in production, e.g. "https://rathpiseyalpha.github.io"
 POLL_CACHE_SEC = 5  # Cache `who` output for this many seconds
+WEB_STALE_SEC = 20  # Prune web visitors after 20s without heartbeat
 
 # ── Cache ──────────────────────────────────────────────────────
 
 _cache = {"data": None, "ts": 0}
+
+# ── Web Presence (in-memory) ───────────────────────────────────
+# { session_id: { "name": str, "loginTime": float, "lastSeen": float } }
+_web_users = {}
+
+
+def _prune_web_users():
+    """Remove stale web sessions."""
+    now = time.time()
+    stale = [k for k, v in _web_users.items() if now - v.get("lastSeen", 0) > WEB_STALE_SEC]
+    for k in stale:
+        del _web_users[k]
 
 
 def get_logged_in_users():
@@ -127,12 +140,59 @@ class PresenceHandler(SimpleHTTPRequestHandler):
         self.send_response(204)
         self.end_headers()
 
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        path = parsed.path.rstrip("/")
+
+        # Read JSON body
+        length = int(self.headers.get("Content-Length", 0))
+        body = {}
+        if length > 0:
+            raw = self.rfile.read(min(length, 4096))
+            try:
+                body = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        if path == "/api/web/login":
+            name = str(body.get("name", "")).strip()[:50]
+            sid = str(body.get("sessionId", "")).strip()[:64]
+            if not name or not sid:
+                self._json_response({"error": "name and sessionId required"}, 400)
+                return
+            _prune_web_users()
+            _web_users[sid] = {"name": name, "loginTime": time.time(), "lastSeen": time.time()}
+            self._json_response({"ok": True, "count": len(_web_users)})
+
+        elif path == "/api/web/heartbeat":
+            sid = str(body.get("sessionId", "")).strip()[:64]
+            if sid in _web_users:
+                _web_users[sid]["lastSeen"] = time.time()
+            _prune_web_users()
+            self._json_response({"ok": True, "count": len(_web_users)})
+
+        elif path == "/api/web/logout":
+            sid = str(body.get("sessionId", "")).strip()[:64]
+            _web_users.pop(sid, None)
+            _prune_web_users()
+            self._json_response({"ok": True, "count": len(_web_users)})
+
+        else:
+            self._json_response({"error": "not found"}, 404)
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/")
 
         if path == "/api/users":
             self._json_response(self._api_users())
+        elif path == "/api/web/users":
+            _prune_web_users()
+            users = [{"name": v["name"], "loginTime": v["loginTime"], "sessionId": k}
+                     for k, v in _web_users.items()]
+            users.sort(key=lambda u: u["loginTime"])
+            self._json_response({"users": users, "count": len(users),
+                                 "timestamp": datetime.utcnow().isoformat() + "Z"})
         elif path == "/api/who":
             self._json_response(self._api_who())
         elif path == "/api/last":
@@ -200,10 +260,14 @@ def main():
     server = HTTPServer((args.host, args.port), PresenceHandler)
     print(f"[Presence Server] http://{args.host}:{args.port}")
     print(f"  API endpoints:")
-    print(f"    GET /api/users   — currently logged-in users (JSON)")
-    print(f"    GET /api/who     — raw `who` output")
-    print(f"    GET /api/last    — recent login history")
-    print(f"    GET /api/health  — server health check")
+    print(f"    GET  /api/users       — currently logged-in Linux users")
+    print(f"    GET  /api/web/users   — web visitors")
+    print(f"    POST /api/web/login   — register web visitor")
+    print(f"    POST /api/web/heartbeat — keep web session alive")
+    print(f"    POST /api/web/logout  — unregister web visitor")
+    print(f"    GET  /api/who         — raw `who` output")
+    print(f"    GET  /api/last        — recent login history")
+    print(f"    GET  /api/health      — server health check")
     print(f"  Static files served from: {Path(__file__).resolve().parent.parent}")
     print(f"  Press Ctrl+C to stop.\n")
 

@@ -1,6 +1,6 @@
 // ─── Presence Tracking System ───
 // Dual-mode presence tracking:
-//   1. Web Users — Firebase Realtime Database (visitors browsing the site)
+//   1. Web Users — Server-side in-memory presence (POST /api/web/login, heartbeat, GET /api/web/users)
 //   2. Server Users — Polls Linux server backend (/api/users via `who`)
 
 const Presence = (function () {
@@ -9,180 +9,132 @@ const Presence = (function () {
     let webUpdateCallbacks = [];
     let serverUpdateCallbacks = [];
 
-    // ── Web Presence (Firebase) ──
-    let webUsers = {};          // { key: { name, loginTime, sessionId } }
-    let myPresenceRef = null;
-    let presenceRef = null;
-    let firebaseReady = false;
+    // ── Web Presence (server-backed) ──
+    let webUsers = [];
     let sessionId = '';
-
-    var STORAGE_KEY = 'itc-os-web-presence';
-    var HEARTBEAT_MS = 5000;       // update every 5s
-    var STALE_MS = 15000;          // prune after 15s without heartbeat
-    var heartbeatTimer = null;
+    let heartbeatTimer = null;
+    let webPollTimer = null;
+    var HEARTBEAT_MS = 8000;       // heartbeat every 8s
+    var WEB_POLL_MS = 5000;        // poll web users every 5s
 
     function generateSessionId() {
         return Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 9);
     }
 
-    function readStore() {
-        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
-        catch (e) { return {}; }
+    function serverUrl() {
+        return (CONFIG.server && CONFIG.server.url) ? CONFIG.server.url.replace(/\/+$/, '') : '';
     }
 
-    function writeStore(data) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    }
-
-    function pruneStale(store) {
-        var now = Date.now();
-        var changed = false;
-        Object.keys(store).forEach(function (k) {
-            if (now - (store[k].lastSeen || 0) > STALE_MS) {
-                delete store[k];
-                changed = true;
-            }
-        });
-        return changed;
-    }
-
-    function syncFromStore() {
-        var store = readStore();
-        pruneStale(store);
-        webUsers = store;
-        notifyWeb();
-    }
-
-    function initFirebase() {
+    function initWeb() {
         sessionId = generateSessionId();
-
-        // Listen for cross-tab storage changes
-        window.addEventListener('storage', function (e) {
-            if (e.key === STORAGE_KEY) syncFromStore();
-        });
-
-        if (!CONFIG.firebase || !CONFIG.firebase.enabled || !CONFIG.firebase.databaseURL) {
-            console.log('[Presence/Web] Firebase not configured — using localStorage.');
-            syncFromStore();
+        var url = serverUrl();
+        if (!url) {
+            console.log('[Presence/Web] No server URL — web presence disabled.');
             return;
         }
-        try {
-            if (typeof firebase === 'undefined') {
-                console.warn('[Presence/Web] Firebase SDK not loaded.');
-                syncFromStore();
-                return;
+        // Start polling web users immediately
+        pollWebUsers();
+        webPollTimer = setInterval(pollWebUsers, WEB_POLL_MS);
+
+        // Clean up on tab close
+        window.addEventListener('beforeunload', function () {
+            if (currentUser && url) {
+                // Use sendBeacon for reliable logout
+                var data = JSON.stringify({ sessionId: sessionId });
+                navigator.sendBeacon(url + '/api/web/logout', new Blob([data], { type: 'application/json' }));
             }
-            if (!firebase.apps.length) {
-                firebase.initializeApp({
-                    apiKey: CONFIG.firebase.apiKey,
-                    authDomain: CONFIG.firebase.authDomain,
-                    databaseURL: CONFIG.firebase.databaseURL,
-                    projectId: CONFIG.firebase.projectId
-                });
-            }
-            presenceRef = firebase.database().ref('presence');
-            firebaseReady = true;
-            console.log('[Presence/Web] Firebase connected.');
-            presenceRef.on('value', function (snapshot) {
-                webUsers = snapshot.val() || {};
-                notifyWeb();
-            });
-        } catch (err) {
-            console.warn('[Presence/Web] Firebase init failed:', err.message);
-            syncFromStore();
-        }
+        });
     }
 
-    function webLogin(username) {
-        var entry = { name: username, loginTime: Date.now(), sessionId: sessionId, lastSeen: Date.now() };
-        if (firebaseReady && presenceRef) {
-            myPresenceRef = presenceRef.push();
-            myPresenceRef.set(entry);
-            myPresenceRef.onDisconnect().remove();
-        } else {
-            var store = readStore();
-            pruneStale(store);
-            store[sessionId] = entry;
-            writeStore(store);
-            webUsers = store;
-            notifyWeb();
-            // Start heartbeat to keep session alive
-            if (heartbeatTimer) clearInterval(heartbeatTimer);
-            heartbeatTimer = setInterval(function () {
-                var s = readStore();
-                if (s[sessionId]) {
-                    s[sessionId].lastSeen = Date.now();
-                    pruneStale(s);
-                    writeStore(s);
-                    webUsers = s;
-                    notifyWeb();
-                }
-            }, HEARTBEAT_MS);
-        }
-    }
-
-    function webLogout() {
-        if (firebaseReady && myPresenceRef) {
-            myPresenceRef.remove();
-            myPresenceRef = null;
-        } else {
-            if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-            var store = readStore();
-            delete store[sessionId];
-            writeStore(store);
-            webUsers = store;
-            notifyWeb();
-        }
-    }
-
-    function getWebUsers() {
-        var users = [];
-        var seen = new Set();
-        Object.keys(webUsers).forEach(function (key) {
-            var u = webUsers[key];
-            if (u && u.name) {
-                var ident = u.name + '|' + (u.sessionId || key);
-                if (!seen.has(ident)) {
-                    seen.add(ident);
-                    users.push({
+    function pollWebUsers() {
+        var url = serverUrl();
+        if (!url) return;
+        fetch(url + '/api/web/users', { mode: 'cors' })
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (data) {
+                webUsers = (data.users || []).map(function (u) {
+                    return {
                         name: u.name,
                         loginTime: u.loginTime || 0,
                         isSelf: u.sessionId === sessionId
-                    });
-                }
-            }
-        });
-        users.sort(function (a, b) {
-            if (a.isSelf && !b.isSelf) return -1;
-            if (!a.isSelf && b.isSelf) return 1;
-            return a.loginTime - b.loginTime;
-        });
-        return users;
+                    };
+                });
+                // Sort: self first, then by login time
+                webUsers.sort(function (a, b) {
+                    if (a.isSelf && !b.isSelf) return -1;
+                    if (!a.isSelf && b.isSelf) return 1;
+                    return a.loginTime - b.loginTime;
+                });
+                notifyWeb();
+            })
+            .catch(function (err) {
+                console.warn('[Presence/Web] Poll failed:', err.message);
+            });
     }
 
+    function webLogin(username) {
+        var url = serverUrl();
+        if (!url) return;
+        fetch(url + '/api/web/login', {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: username, sessionId: sessionId })
+        }).then(function () {
+            pollWebUsers();
+            // Start heartbeat
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            heartbeatTimer = setInterval(function () {
+                fetch(url + '/api/web/heartbeat', {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionId })
+                }).catch(function () {});
+            }, HEARTBEAT_MS);
+        }).catch(function (err) {
+            console.warn('[Presence/Web] Login failed:', err.message);
+        });
+    }
+
+    function webLogout() {
+        if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+        var url = serverUrl();
+        if (!url) return;
+        fetch(url + '/api/web/logout', {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: sessionId })
+        }).then(function () { pollWebUsers(); })
+            .catch(function () {});
+    }
+
+    function getWebUsers() { return webUsers; }
+
     function onWebUpdate(callback) { webUpdateCallbacks.push(callback); }
-    function notifyWeb() { var u = getWebUsers(); webUpdateCallbacks.forEach(function (cb) { cb(u); }); }
+    function notifyWeb() { webUpdateCallbacks.forEach(function (cb) { cb(webUsers); }); }
 
     // ── Server Presence (Linux `who`) ──
-    let serverUsers = [];       // [{ username, terminal, loginTime, host }]
+    let serverUsers = [];
     let pollTimer = null;
-    let serverUrl = '';
 
     function initServer() {
-        serverUrl = (CONFIG.server && CONFIG.server.url) ? CONFIG.server.url.replace(/\/+$/, '') : '';
-        if (!serverUrl) {
+        var url = serverUrl();
+        if (!url) {
             console.log('[Presence/Server] No server URL configured.');
             return;
         }
-        console.log('[Presence/Server] Polling', serverUrl);
+        console.log('[Presence/Server] Polling', url);
         pollServer();
         var interval = (CONFIG.server && CONFIG.server.pollInterval) || 10000;
         pollTimer = setInterval(pollServer, interval);
     }
 
     function pollServer() {
-        if (!serverUrl) return;
-        fetch(serverUrl + '/api/users', { mode: 'cors' })
+        var url = serverUrl();
+        if (!url) return;
+        fetch(serverUrl() + '/api/users', { mode: 'cors' })
             .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
             .then(function (data) {
                 serverUsers = data.users || [];
@@ -214,7 +166,7 @@ const Presence = (function () {
 
     // ── Lifecycle ──
     function init() {
-        initFirebase();
+        initWeb();
         initServer();
     }
 
@@ -233,8 +185,8 @@ const Presence = (function () {
     function getCurrentUser() { return currentUser; }
 
     window.addEventListener('beforeunload', function () {
-        webLogout();
         if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (webPollTimer) clearInterval(webPollTimer);
         if (pollTimer) clearInterval(pollTimer);
     });
 
