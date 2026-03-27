@@ -611,7 +611,7 @@
                     var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
                     var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
                     html += '<tr>'
-                        + '<td class="admin-user">' + escapeHtml(g.username) + '</td>'
+                        + '<td class="admin-user">' + escapeHtml(g.id || g.username) + '</td>'
                         + '<td>' + escapeHtml(g.name || g.username) + '</td>'
                         + '<td>' + escapeHtml(g.lab) + '</td>'
                         + '<td><span class="' + pctClass + '">' + g.score + '/' + g.total + '</span></td>'
@@ -763,7 +763,7 @@
                     var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
                     html += '<tr>'
                         + '<td class="rank-cell">' + rankIcon + '</td>'
-                        + '<td class="admin-user">' + escapeHtml(s.username) + '</td>'
+                        + '<td class="admin-user">' + escapeHtml(s.id || s.username) + '</td>'
                         + '<td>' + escapeHtml(s.name || s.username) + '</td>';
                     labs.forEach(function (l) {
                         var labData = s.labs[l];

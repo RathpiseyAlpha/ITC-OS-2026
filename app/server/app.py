@@ -41,39 +41,39 @@ LOGIN_WINDOW_SEC = 60
 SESSION_TIMEOUT_SEC = 3600  # 1 hour
 
 # ── Student Roster ─────────────────────────────────────────────
-# Maps Linux username (student ID) → display name
+# Maps student ID → { "name": display name, "user": Linux username }
 STUDENTS = {
-    "p20240032": "CHEA SEAVHONG",
-    "p20240007": "CHHENG KIMTER",
-    "p20240044": "CHHENG SOKUNTHEARY",
-    "p20240050": "CHHI LAYHORNG",
-    "p20240024": "CHIN MENGHONG",
-    "p20240019": "CHIV INTHERA",
-    "p20240067": "CHUM KIMCHHUN",
-    "p20250002": "DARA PANHASETH",
-    "p20240009": "EANG MENGLY",
-    "p20240002": "HAI MONYOUDOM",
-    "p20230043": "HEN CHHORDAVATTEY",
-    "p20240001": "KIV SOVANNLYDA",
-    "p20240063": "KONG SOPHANHA",
-    "p20240034": "LOR HENGRITH",
-    "p20240013": "MI SORAKMONY",
-    "p20240058": "NHEM PHADA",
-    "p20240033": "OUK PUTHIRITH",
-    "p20240047": "PAV RATANA",
-    "p20240045": "PI SEREYVATHANAK",
-    "p20240004": "PICH CHANVATANAK",
-    "p20240041": "PONG MENGHEANG",
-    "p20240043": "RASMEY RITHYSAK",
-    "p20240038": "RITH CHANKOLBOTH",
-    "p20240003": "SAO DALI INACO",
-    "p20240012": "SATHYA POCH",
-    "p20240046": "SONG PHENGROTH",
-    "p20240023": "SUON CARO",
-    "p20240057": "TEK RITHIREACH",
-    "p20240055": "THAI MONIKA",
-    "p20240035": "THENG VAN HENG",
-    "p20240017": "THO PAGNASAKAL",
+    "p20240032": {"name": "CHEA SEAVHONG", "user": "se-chea-seavhong"},
+    "p20240007": {"name": "CHHENG KIMTER", "user": "se-chheng-kimter"},
+    "p20240044": {"name": "CHHENG SOKUNTHEARY", "user": "se-chheng-sokuntheary"},
+    "p20240050": {"name": "CHHI LAYHORNG", "user": "se-chhi-layhorng"},
+    "p20240024": {"name": "CHIN MENGHONG", "user": "se-chin-menghong"},
+    "p20240019": {"name": "CHIV INTHERA", "user": "se-chiv-inthera"},
+    "p20240067": {"name": "CHUM KIMCHHUN", "user": "se-chum-kimchhun"},
+    "p20250002": {"name": "DARA PANHASETH", "user": "se-dara-panhaseth"},
+    "p20240009": {"name": "EANG MENGLY", "user": "se-eang-mengly"},
+    "p20240002": {"name": "HAI MONYOUDOM", "user": "se-hai-monyoudom"},
+    "p20230043": {"name": "HEN CHHORDAVATTEY", "user": "se-hen-chhordavattey"},
+    "p20240001": {"name": "KIV SOVANNLYDA", "user": "se-kiv-sovannlyda"},
+    "p20240063": {"name": "KONG SOPHANHA", "user": "se-kong-sophanha"},
+    "p20240034": {"name": "LOR HENGRITH", "user": "se-lor-hengrith"},
+    "p20240013": {"name": "MI SORAKMONY", "user": "se-mi-sorakmony"},
+    "p20240058": {"name": "NHEM PHADA", "user": "se-nhem-phada"},
+    "p20240033": {"name": "OUK PUTHIRITH", "user": "se-ouk-puthirith"},
+    "p20240047": {"name": "PAV RATANA", "user": "se-pav-ratana"},
+    "p20240045": {"name": "PI SEREYVATHANAK", "user": "se-pi-sereyvathanak"},
+    "p20240004": {"name": "PICH CHANVATANAK", "user": "se-pich-chanvatanak"},
+    "p20240041": {"name": "PONG MENGHEANG", "user": "se-pong-mengheang"},
+    "p20240043": {"name": "RASMEY RITHYSAK", "user": "se-rasmey-rithysak"},
+    "p20240038": {"name": "RITH CHANKOLBOTH", "user": "se-rith-chankolboth"},
+    "p20240003": {"name": "SAO DALI INACO", "user": "se-sao-dali-inaco"},
+    "p20240012": {"name": "SATHYA POCH", "user": "se-sathya-poch"},
+    "p20240046": {"name": "SONG PHENGROTH", "user": "se-song-phengroth"},
+    "p20240023": {"name": "SUON CARO", "user": "se-suon-caro"},
+    "p20240057": {"name": "TEK RITHIREACH", "user": "se-tek-rithireach"},
+    "p20240055": {"name": "THAI MONIKA", "user": "se-thai-monika"},
+    "p20240035": {"name": "THENG VAN HENG", "user": "se-theng-van-heng"},
+    "p20240017": {"name": "THO PAGNASAKAL", "user": "se-tho-pagnasakal"},
 }
 
 # ── Cache ──────────────────────────────────────────────────────
@@ -594,16 +594,20 @@ def grade_all_students(lab_name=None):
     """Grade all students from STUDENTS roster, optionally filtered by lab."""
     labs = [lab_name] if lab_name else list(LAB_SPECS.keys())
     results = []
-    for user in sorted(STUDENTS.keys()):
+    for sid in sorted(STUDENTS.keys()):
+        info = STUDENTS[sid]
+        linux_user = info["user"]
         for lab in labs:
             try:
-                g = grade_student_lab(user, lab)
-                g["name"] = STUDENTS.get(user, user)
+                g = grade_student_lab(linux_user, lab)
+                g["id"] = sid
+                g["name"] = info["name"]
                 results.append(g)
             except (PermissionError, OSError):
                 results.append({
-                    "username": user,
-                    "name": STUDENTS.get(user, user),
+                    "username": linux_user,
+                    "id": sid,
+                    "name": info["name"],
                     "lab": lab,
                     "score": 0,
                     "total": LAB_SPECS.get(lab, {}).get("total_points", 0),
@@ -621,17 +625,17 @@ def get_leaderboard():
     all_grades = grade_all_students()
     per_student = {}
     for g in all_grades:
-        u = g["username"]
-        if u not in per_student:
-            per_student[u] = {"username": u, "name": STUDENTS.get(u, u), "labs": {}, "totalScore": 0, "totalPossible": 0}
-        per_student[u]["labs"][g["lab"]] = {
+        sid = g.get("id", g["username"])
+        if sid not in per_student:
+            per_student[sid] = {"id": sid, "username": g["username"], "name": g.get("name", sid), "labs": {}, "totalScore": 0, "totalPossible": 0}
+        per_student[sid]["labs"][g["lab"]] = {
             "score": g["score"],
             "total": g["total"],
             "percentage": g["percentage"],
             "found": g.get("found", False),
         }
-        per_student[u]["totalScore"] += g["score"]
-        per_student[u]["totalPossible"] += g["total"]
+        per_student[sid]["totalScore"] += g["score"]
+        per_student[sid]["totalPossible"] += g["total"]
 
     board = []
     for s in per_student.values():
