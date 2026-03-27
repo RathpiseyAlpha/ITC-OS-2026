@@ -321,6 +321,10 @@
         // Register presence
         Presence.login(name);
 
+        // Hide guest login area after any login
+        var guestArea = document.getElementById('guest-login-btn');
+        if (guestArea && guestArea.parentElement) guestArea.parentElement.style.display = 'none';
+
         // Update terminal prompt username
         var promptUsers = document.querySelectorAll('.prompt-user');
         promptUsers.forEach(function (el) { el.textContent = name; });
@@ -333,9 +337,7 @@
             ? '<span style="color:var(--green);">&#x1F512; authenticated</span>'
             : '<span style="color:var(--comment);">guest</span>';
 
-        var logoutBtn = authenticated
-            ? ' <span id="logout-btn" style="color:var(--red);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--red);margin-left:12px;" onclick="performLogout()">exit ↩</span>'
-            : '';
+        var logoutBtn = ' <span id="logout-btn" style="color:var(--red);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--red);margin-left:12px;" onclick="performLogout()">exit ↩</span>';
 
         output.innerHTML = '<div class="login-success">\u2714 Login successful. ' + badge + logoutBtn + '</div>'
             + '<div class="login-motd">'
@@ -376,6 +378,9 @@
         if (pwInput) { pwInput.disabled = false; pwInput.value = ''; }
         if (output) output.innerHTML = '';
         if (ep) { ep.style.pointerEvents = 'none'; ep.style.opacity = '0.3'; ep.innerHTML = '<span class="prompt-symbol">$</span> Login to explore the system <span class="cursor"></span>'; ep.onclick = null; }
+        // Restore guest login area
+        var guestArea = document.getElementById('guest-login-btn');
+        if (guestArea && guestArea.parentElement) guestArea.parentElement.style.display = '';
         // Go back to landing
         document.getElementById('contents-page').classList.remove('active');
         document.getElementById('landing-page').classList.remove('hidden');
