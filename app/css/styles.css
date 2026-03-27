@@ -881,6 +881,42 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     text-align: center;
     font-size: 14px;
 }
+.leaderboard-me {
+    background: rgba(0, 255, 65, 0.08);
+    border-left: 2px solid var(--green);
+}
+
+/* ─── Student Grades View ─── */
+.student-summary {
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    background: rgba(10, 14, 20, 0.5);
+    font-size: 13px;
+}
+.student-summary-label {
+    color: var(--comment);
+}
+.student-lab-card {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    background: rgba(10, 14, 20, 0.3);
+}
+.student-lab-header {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+.student-lab-name {
+    color: var(--cyan);
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-right: 6px;
+}
+.student-checklist {
+    padding-left: 8px;
+    margin-bottom: 4px;
+}
 
 /* ─── Responsive ─── */
 @media (max-width: 768px) {

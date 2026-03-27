@@ -76,6 +76,9 @@ STUDENTS = {
     "p20240017": {"name": "THO PAGNASAKAL", "user": "se-tho-pagnasakal"},
 }
 
+# Reverse lookup: Linux username → student ID
+_USER_TO_SID = {v["user"]: k for k, v in STUDENTS.items()}
+
 # ── Cache ──────────────────────────────────────────────────────
 
 _cache = {"data": None, "ts": 0}
@@ -863,6 +866,44 @@ class PresenceHandler(SimpleHTTPRequestHandler):
                 self._json_response({"error": "Lab directory not found"}, 404)
                 return
             self._json_response(tree)
+        # ── Student-facing endpoints (any authenticated user) ──
+        elif path == "/api/my/grades":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            username = session["username"]
+            sid = _USER_TO_SID.get(username)
+            info = STUDENTS.get(sid) if sid else None
+            if not info:
+                self._json_response({"error": "Student not found in roster"}, 404)
+                return
+            linux_user = info["user"]
+            labs = list(LAB_SPECS.keys())
+            grades = []
+            for lab in labs:
+                try:
+                    g = grade_student_lab(linux_user, lab)
+                    g["id"] = sid
+                    g["name"] = info["name"]
+                    grades.append(g)
+                except (PermissionError, OSError):
+                    grades.append({
+                        "username": linux_user, "id": sid, "name": info["name"],
+                        "lab": lab, "score": 0,
+                        "total": LAB_SPECS[lab]["total_points"],
+                        "percentage": 0, "found": False, "labPath": None,
+                        "items": [], "feedback": ["Cannot access lab directory."],
+                    })
+            self._json_response({"grades": grades, "labs": labs})
+        elif path == "/api/my/leaderboard":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            self._json_response({"leaderboard": get_leaderboard(), "labs": list(LAB_SPECS.keys())})
         else:
             # Serve static files
             super().do_GET()

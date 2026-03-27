@@ -224,6 +224,9 @@
         // Show admin nav link if admin
         var adminNav = document.getElementById('admin-nav');
         if (adminNav) adminNav.style.display = (role === 'admin') ? '' : 'none';
+        // Show grades nav for authenticated students
+        var gradesNav = document.getElementById('grades-nav');
+        if (gradesNav) gradesNav.style.display = (role === 'user') ? '' : 'none';
     }
 
     function clearAuth() {
@@ -233,12 +236,18 @@
         sessionStorage.removeItem('authUser');
         var adminNav = document.getElementById('admin-nav');
         if (adminNav) adminNav.style.display = 'none';
+        var gradesNav = document.getElementById('grades-nav');
+        if (gradesNav) gradesNav.style.display = 'none';
     }
 
-    // Restore admin nav on reload
+    // Restore nav links on reload
     if (authRole === 'admin') {
         var adminNav = document.getElementById('admin-nav');
         if (adminNav) adminNav.style.display = '';
+    }
+    if (authRole === 'user') {
+        var gradesNav = document.getElementById('grades-nav');
+        if (gradesNav) gradesNav.style.display = '';
     }
 
     // ──────────────────────────────────────
@@ -788,6 +797,174 @@
         });
     }
 
+    // ──────────────────────────────────────
+    //  Student Grades Panel (Tabbed: My Grades | Leaderboard)
+    // ──────────────────────────────────────
+    var studentCurrentTab = 'my-grades';
+
+    function renderStudentGrades(tab) {
+        if (!authToken || authRole === 'admin') {
+            window.location.hash = 'browse';
+            return;
+        }
+        var url = serverUrl();
+        if (!url) return;
+        studentCurrentTab = tab || studentCurrentTab || 'my-grades';
+
+        var viewerEl = document.getElementById('file-viewer');
+        var outlineEl = document.getElementById('outline-content');
+        outlineEl.style.display = 'none';
+        document.getElementById('viewer-placeholder').style.display = 'none';
+        document.getElementById('viewer-title').textContent = 'bash — grades';
+
+        viewerEl.style.display = 'flex';
+        document.getElementById('explorer-title').textContent = 'bash — grades';
+        document.getElementById('explorer-cmd').textContent = 'cat grades/' + studentCurrentTab;
+
+        var tabsHtml = '<div class="admin-tabs">'
+            + '<span class="admin-tab' + (studentCurrentTab === 'my-grades' ? ' active' : '') + '" onclick="switchStudentTab(\'my-grades\')">My Grades</span>'
+            + '<span class="admin-tab' + (studentCurrentTab === 'leaderboard' ? ' active' : '') + '" onclick="switchStudentTab(\'leaderboard\')">Leaderboard</span>'
+            + '</div>';
+
+        viewerEl.innerHTML = '<div class="admin-panel">' + tabsHtml + '<div id="student-tab-content"><div class="admin-loading">Loading...</div></div></div>';
+
+        if (studentCurrentTab === 'my-grades') fetchStudentGrades(url);
+        else if (studentCurrentTab === 'leaderboard') fetchStudentLeaderboard(url);
+    }
+
+    window.switchStudentTab = function (tab) {
+        studentCurrentTab = tab;
+        renderStudentGrades(tab);
+    };
+
+    function studentContent() {
+        return document.getElementById('student-tab-content');
+    }
+
+    // ── My Grades Tab ──
+    function fetchStudentGrades(url) {
+        var container = studentContent();
+        if (!container) return;
+        fetch(url + '/api/my/grades', {
+            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.error) {
+                container.innerHTML = '<div class="error" style="padding:12px;">' + escapeHtml(data.error) + '</div>';
+                return;
+            }
+            var grades = data.grades || [];
+
+            // Summary bar
+            var totalScore = 0, totalPossible = 0;
+            grades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            var totalPct = totalPossible > 0 ? Math.round(totalScore / totalPossible * 1000) / 10 : 0;
+            var summaryClass = totalPct >= 80 ? 'grade-a' : totalPct >= 50 ? 'grade-b' : 'grade-c';
+
+            var html = '<div class="student-summary">'
+                + '<span class="student-summary-label">Overall:</span> '
+                + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
+                + '</div>';
+
+            grades.forEach(function (g) {
+                var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+                var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                html += '<div class="student-lab-card">'
+                    + '<div class="student-lab-header">'
+                    + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
+                    + statusIcon + ' '
+                    + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                    + '</div>';
+
+                // Checklist
+                if (g.items && g.items.length > 0) {
+                    html += '<div class="student-checklist">';
+                    g.items.forEach(function (item) {
+                        var icon = item.status === 'ok' ? '\u2705' : item.status === 'case_mismatch' ? '\u26A0\uFE0F' : '\u274C';
+                        var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
+                        html += '<div class="grade-item ' + cls + '">'
+                            + icon + ' <code>' + escapeHtml(item.expected) + '</code>';
+                        if (item.actual && item.actual !== item.expected) {
+                            html += ' <span style="color:var(--comment);">(found: ' + escapeHtml(item.actual) + ')</span>';
+                        }
+                        html += ' <span style="color:var(--comment);">' + item.points + '/' + item.maxPoints + '</span>';
+                        html += '</div>';
+                    });
+                    html += '</div>';
+                }
+
+                // Feedback
+                if (g.feedback && g.feedback.length > 0) {
+                    html += '<div class="grade-feedback">';
+                    g.feedback.forEach(function (f) {
+                        html += '<div>\u25B8 ' + escapeHtml(f) + '</div>';
+                    });
+                    html += '</div>';
+                }
+                html += '</div>';
+            });
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load grades: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    // ── Student Leaderboard Tab ──
+    function fetchStudentLeaderboard(url) {
+        var container = studentContent();
+        if (!container) return;
+        fetch(url + '/api/my/leaderboard', {
+            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.error) {
+                container.innerHTML = '<div class="error" style="padding:12px;">' + escapeHtml(data.error) + '</div>';
+                return;
+            }
+            var board = data.leaderboard || [];
+            var labs = data.labs || [];
+
+            var html = '<table class="admin-table leaderboard-table">'
+                + '<thead><tr><th>#</th><th>Name</th>';
+            labs.forEach(function (l) { html += '<th>' + escapeHtml(l) + '</th>'; });
+            html += '<th>Total</th><th>%</th></tr></thead><tbody>';
+
+            if (board.length === 0) {
+                html += '<tr><td colspan="' + (labs.length + 4) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+            } else {
+                board.forEach(function (s) {
+                    var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
+                    var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
+                    var isMe = s.username === authUser;
+                    html += '<tr' + (isMe ? ' class="leaderboard-me"' : '') + '>'
+                        + '<td class="rank-cell">' + rankIcon + '</td>'
+                        + '<td>' + escapeHtml(s.name || s.username) + (isMe ? ' \u2B50' : '') + '</td>';
+                    labs.forEach(function (l) {
+                        var labData = s.labs[l];
+                        if (labData) {
+                            var lc = labData.percentage >= 80 ? 'grade-a' : labData.percentage >= 50 ? 'grade-b' : 'grade-c';
+                            html += '<td><span class="' + lc + '">' + labData.score + '/' + labData.total + '</span></td>';
+                        } else {
+                            html += '<td style="color:var(--comment);">\u2014</td>';
+                        }
+                    });
+                    html += '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
+                        + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
+                        + '</tr>';
+                });
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load leaderboard: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
     function formatPhnomPenh(isoOrDateStr) {
         try {
             var d = new Date(isoOrDateStr);
@@ -1141,6 +1318,8 @@
         var hash = window.location.hash.slice(1);
         if (hash === 'admin') {
             renderAdminPanel();
+        } else if (hash === 'grades') {
+            renderStudentGrades();
         } else if (hash.startsWith('browse/') || hash === 'browse') {
             var path = hash === 'browse' ? '' : hash.slice(7);
             renderExplorer(path);
