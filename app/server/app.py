@@ -410,26 +410,29 @@ def _find_lab_root(username, lab_name):
     if not home.is_dir():
         return None
 
-    # Pattern 1: os-se-*/os-lab-*/labN/
-    for d in home.iterdir():
-        if d.is_dir() and d.name.lower().startswith("os-se-"):
-            for sub in d.iterdir():
-                if sub.is_dir() and sub.name.lower().startswith("os-lab-"):
-                    lab_dir = sub / lab_name
-                    if lab_dir.is_dir():
-                        return lab_dir
+    try:
+        # Pattern 1: os-se-*/os-lab-*/labN/
+        for d in home.iterdir():
+            if d.is_dir() and d.name.lower().startswith("os-se-"):
+                for sub in d.iterdir():
+                    if sub.is_dir() and sub.name.lower().startswith("os-lab-"):
+                        lab_dir = sub / lab_name
+                        if lab_dir.is_dir():
+                            return lab_dir
 
-    # Pattern 2: os-lab-*/labN/
-    for d in home.iterdir():
-        if d.is_dir() and d.name.lower().startswith("os-lab-"):
-            lab_dir = d / lab_name
-            if lab_dir.is_dir():
-                return lab_dir
+        # Pattern 2: os-lab-*/labN/
+        for d in home.iterdir():
+            if d.is_dir() and d.name.lower().startswith("os-lab-"):
+                lab_dir = d / lab_name
+                if lab_dir.is_dir():
+                    return lab_dir
 
-    # Pattern 3: direct labN/ in home
-    lab_dir = home / lab_name
-    if lab_dir.is_dir():
-        return lab_dir
+        # Pattern 3: direct labN/ in home
+        lab_dir = home / lab_name
+        if lab_dir.is_dir():
+            return lab_dir
+    except PermissionError:
+        return None
 
     return None
 
@@ -438,9 +441,12 @@ def _list_recursive(root):
     """Return a set of all relative paths (files and dirs) under root, lowercase."""
     result = {}  # lowercase_rel_path -> actual_rel_path
     root = Path(root)
-    for item in root.rglob("*"):
-        rel = str(item.relative_to(root)).replace("\\", "/")
-        result[rel.lower()] = rel
+    try:
+        for item in root.rglob("*"):
+            rel = str(item.relative_to(root)).replace("\\", "/")
+            result[rel.lower()] = rel
+    except PermissionError:
+        pass
     return result
 
 
@@ -573,7 +579,20 @@ def grade_all_students(lab_name=None):
     results = []
     for user in sorted(users):
         for lab in labs:
-            results.append(grade_student_lab(user, lab))
+            try:
+                results.append(grade_student_lab(user, lab))
+            except (PermissionError, OSError):
+                results.append({
+                    "username": user,
+                    "lab": lab,
+                    "score": 0,
+                    "total": LAB_SPECS.get(lab, {}).get("total_points", 0),
+                    "percentage": 0,
+                    "found": False,
+                    "labPath": None,
+                    "items": [],
+                    "feedback": ["Permission denied: cannot access home directory."],
+                })
     return results
 
 
