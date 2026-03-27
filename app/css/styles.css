@@ -745,6 +745,143 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     padding: 20px 0;
 }
 
+/* ─── Admin Tabs ─── */
+.admin-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--green-dark);
+    margin-bottom: 14px;
+}
+.admin-tab {
+    padding: 8px 16px;
+    color: var(--comment);
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.admin-tab:hover {
+    color: var(--white);
+}
+.admin-tab.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+}
+.admin-section-header {
+    color: var(--yellow);
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+}
+
+/* ─── Grades Tab ─── */
+.admin-lab-filters {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+.admin-lab-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--comment);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.admin-lab-btn:hover {
+    color: var(--white);
+    border-color: var(--cyan);
+}
+.admin-lab-btn.active {
+    color: var(--cyan);
+    border-color: var(--cyan);
+    background: rgba(0,212,255,0.08);
+}
+.admin-detail-btn {
+    color: var(--cyan);
+    cursor: pointer;
+    font-size: 11px;
+    border-bottom: 1px dashed var(--cyan);
+}
+.admin-detail-btn:hover {
+    color: var(--white);
+}
+.admin-back-btn {
+    color: var(--cyan);
+    cursor: pointer;
+    font-size: 12px;
+    margin-right: 8px;
+}
+.admin-back-btn:hover {
+    color: var(--white);
+}
+.grade-a { color: var(--green); }
+.grade-b { color: var(--yellow); }
+.grade-c { color: var(--red); }
+
+/* ─── Grade Detail ─── */
+.grade-detail-columns {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 12px;
+}
+.grade-tree-col {
+    flex: 0 0 45%;
+    min-width: 0;
+}
+.grade-items-col {
+    flex: 1;
+    min-width: 0;
+}
+.grade-tree {
+    font-size: 11px;
+    color: var(--white);
+    background: rgba(10,14,20,0.5);
+    padding: 10px;
+    border: 1px solid var(--border);
+    overflow-x: auto;
+    max-height: 400px;
+    overflow-y: auto;
+    line-height: 1.5;
+    white-space: pre;
+}
+.grade-items {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.grade-item {
+    font-size: 11px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(30,58,47,0.2);
+}
+.item-ok { color: var(--green); }
+.item-warn { color: var(--yellow); }
+.item-miss { color: var(--red); opacity: 0.8; }
+.grade-item-name {
+    font-family: 'Fira Code', monospace;
+}
+.grade-item-pts {
+    color: var(--comment);
+    font-size: 10px;
+    margin-left: 6px;
+}
+.grade-feedback {
+    font-size: 11px;
+    color: var(--red);
+    opacity: 0.9;
+    padding: 2px 0 2px 8px;
+}
+
+/* ─── Leaderboard ─── */
+.leaderboard-table .rank-cell {
+    text-align: center;
+    font-size: 14px;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
     .contents-page.active { left: 0; bottom: 28px; }

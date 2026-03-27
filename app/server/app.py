@@ -14,6 +14,8 @@ Usage:
 import argparse
 import crypt as _crypt
 import json
+import os
+import re
 import secrets
 import subprocess
 import time
@@ -317,6 +319,332 @@ def get_recent_logins(count=20):
     return entries
 
 
+# ── Lab Grading Engine ─────────────────────────────────────────
+
+# Required deliverables per lab.  Each entry:
+#   "files"  – list of relative paths (from labN/ root)
+#   "dirs"   – list of required directories
+#   Points: each item is worth (total_points / total_items).
+#   Case mismatch: -1 from the item's score (minimum 0).
+#   Screenshots (images/*) are skipped for auto-grading.
+
+LAB_SPECS = {
+    "lab1": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1_os_info.txt",
+            "task2_file_commands.txt",
+            "task3_apt_update.txt",
+            "task3_apt_install.txt",
+            "task3_verify_install.txt",
+            "task3_apt_remove.txt",
+            "task3_config_after_remove.txt",
+            "task3_apt_purge.txt",
+            "task3_config_after_purge.txt",
+            "task4_process_list.txt",
+            "task5_app_verify.txt",
+            "task5_multitasking.txt",
+            "task6_virtualization_check.txt",
+        ],
+        "dirs": [
+            "task2_files",
+            "images",
+        ],
+    },
+    "lab2": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1_basic_navigation.txt",
+            "task2_filesystem_exploration.txt",
+            "task3_directory_structure.txt",
+            "task4_navigation_paths.txt",
+            "task5_file_organization.txt",
+            "task6_advanced_listing.txt",
+        ],
+        "dirs": [
+            "images",
+            "techcorp",
+            "techcorp/hr",
+            "techcorp/hr/policies",
+            "techcorp/hr/onboarding",
+            "techcorp/engineering",
+            "techcorp/engineering/frontend",
+            "techcorp/engineering/backend",
+            "techcorp/engineering/devops",
+            "techcorp/marketing",
+            "techcorp/marketing/campaigns",
+            "techcorp/marketing/assets",
+        ],
+    },
+    "lab3": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1_wildcards.txt",
+            "task2_links.txt",
+            "task3_grub.txt",
+            "task4_shared_objects.txt",
+            "task5_shared_library.txt",
+            "task_history.txt",
+        ],
+        "dirs": [
+            "images",
+            "wildcard_lab",
+            "csv_archive",
+            "links_lab",
+            "shared_lib_lab",
+        ],
+    },
+}
+
+
+def _find_lab_root(username, lab_name):
+    """Find a student's lab directory under their home.
+
+    Expected: /home/<user>/os-se-*/os-lab-*/labN/
+    Also supports repos cloned directly as os-lab-*/labN/ or labN/ in home.
+    """
+    home = Path(f"/home/{username}")
+    if not home.is_dir():
+        return None
+
+    # Pattern 1: os-se-*/os-lab-*/labN/
+    for d in home.iterdir():
+        if d.is_dir() and d.name.lower().startswith("os-se-"):
+            for sub in d.iterdir():
+                if sub.is_dir() and sub.name.lower().startswith("os-lab-"):
+                    lab_dir = sub / lab_name
+                    if lab_dir.is_dir():
+                        return lab_dir
+
+    # Pattern 2: os-lab-*/labN/
+    for d in home.iterdir():
+        if d.is_dir() and d.name.lower().startswith("os-lab-"):
+            lab_dir = d / lab_name
+            if lab_dir.is_dir():
+                return lab_dir
+
+    # Pattern 3: direct labN/ in home
+    lab_dir = home / lab_name
+    if lab_dir.is_dir():
+        return lab_dir
+
+    return None
+
+
+def _list_recursive(root):
+    """Return a set of all relative paths (files and dirs) under root, lowercase."""
+    result = {}  # lowercase_rel_path -> actual_rel_path
+    root = Path(root)
+    for item in root.rglob("*"):
+        rel = str(item.relative_to(root)).replace("\\", "/")
+        result[rel.lower()] = rel
+    return result
+
+
+def grade_student_lab(username, lab_name):
+    """Grade a single student's lab submission.
+
+    Returns dict with: score, total, percentage, items (details), feedback.
+    """
+    spec = LAB_SPECS.get(lab_name)
+    if not spec:
+        return {"error": f"Unknown lab: {lab_name}"}
+
+    lab_root = _find_lab_root(username, lab_name)
+    if not lab_root:
+        return {
+            "username": username,
+            "lab": lab_name,
+            "score": 0,
+            "total": spec["total_points"],
+            "percentage": 0,
+            "found": False,
+            "labPath": None,
+            "items": [],
+            "feedback": [f"Lab directory not found. Expected ~/os-se-<ID>/os-lab-<ID>/{lab_name}/"],
+        }
+
+    all_items = spec.get("files", []) + spec.get("dirs", [])
+    total_items = len(all_items)
+    if total_items == 0:
+        return {"error": "No items defined for this lab."}
+
+    points_per_item = spec["total_points"] / total_items
+    existing = _list_recursive(lab_root)  # lowercase -> actual
+
+    score = 0.0
+    items = []
+    feedback = []
+
+    for expected in all_items:
+        expected_lower = expected.lower()
+        is_dir = expected in spec.get("dirs", [])
+        item_type = "dir" if is_dir else "file"
+
+        if expected_lower in existing:
+            actual_path = existing[expected_lower]
+            full_path = lab_root / actual_path
+            # Verify type
+            type_ok = full_path.is_dir() if is_dir else full_path.is_file()
+            if not type_ok:
+                items.append({
+                    "expected": expected,
+                    "status": "wrong_type",
+                    "points": 0,
+                    "maxPoints": round(points_per_item, 2),
+                    "type": item_type,
+                })
+                feedback.append(f"'{expected}' exists but is {'a file' if is_dir else 'a directory'} (expected {item_type}).")
+                continue
+
+            # Check case convention
+            if actual_path != expected:
+                # Case mismatch — partial credit
+                penalty = min(1.0, points_per_item)
+                earned = max(0, points_per_item - penalty)
+                score += earned
+                items.append({
+                    "expected": expected,
+                    "actual": actual_path,
+                    "status": "case_mismatch",
+                    "points": round(earned, 2),
+                    "maxPoints": round(points_per_item, 2),
+                    "type": item_type,
+                })
+                feedback.append(f"'{actual_path}' should be '{expected}' (naming convention: all lowercase with underscores). -1 point.")
+            else:
+                score += points_per_item
+                items.append({
+                    "expected": expected,
+                    "status": "ok",
+                    "points": round(points_per_item, 2),
+                    "maxPoints": round(points_per_item, 2),
+                    "type": item_type,
+                })
+        else:
+            items.append({
+                "expected": expected,
+                "status": "missing",
+                "points": 0,
+                "maxPoints": round(points_per_item, 2),
+                "type": item_type,
+            })
+            feedback.append(f"Missing {item_type}: '{expected}'")
+
+    score = round(min(score, spec["total_points"]), 2)
+    return {
+        "username": username,
+        "lab": lab_name,
+        "score": score,
+        "total": spec["total_points"],
+        "percentage": round(score / spec["total_points"] * 100, 1),
+        "found": True,
+        "labPath": str(lab_root),
+        "items": items,
+        "feedback": feedback,
+    }
+
+
+def grade_all_students(lab_name=None):
+    """Grade all students, optionally filtered by lab."""
+    labs = [lab_name] if lab_name else list(LAB_SPECS.keys())
+    # Get all non-system users
+    users = []
+    try:
+        with open("/etc/passwd", "r") as f:
+            for line in f:
+                parts = line.strip().split(":")
+                if len(parts) < 7:
+                    continue
+                uname, uid_str, shell = parts[0], parts[2], parts[6]
+                try:
+                    uid = int(uid_str)
+                except ValueError:
+                    continue
+                if uid < 1000 or shell in ("/usr/sbin/nologin", "/bin/false", "/sbin/nologin"):
+                    continue
+                users.append(uname)
+    except OSError:
+        pass
+
+    results = []
+    for user in sorted(users):
+        for lab in labs:
+            results.append(grade_student_lab(user, lab))
+    return results
+
+
+def get_leaderboard():
+    """Compute leaderboard: total score across all labs per student."""
+    all_grades = grade_all_students()
+    per_student = {}
+    for g in all_grades:
+        u = g["username"]
+        if u not in per_student:
+            per_student[u] = {"username": u, "labs": {}, "totalScore": 0, "totalPossible": 0}
+        per_student[u]["labs"][g["lab"]] = {
+            "score": g["score"],
+            "total": g["total"],
+            "percentage": g["percentage"],
+            "found": g.get("found", False),
+        }
+        per_student[u]["totalScore"] += g["score"]
+        per_student[u]["totalPossible"] += g["total"]
+
+    board = []
+    for s in per_student.values():
+        s["totalPercentage"] = round(s["totalScore"] / s["totalPossible"] * 100, 1) if s["totalPossible"] > 0 else 0
+        board.append(s)
+
+    board.sort(key=lambda x: x["totalScore"], reverse=True)
+    # Add rank
+    for i, entry in enumerate(board):
+        entry["rank"] = i + 1
+    return board
+
+
+def get_student_tree(username, lab_name):
+    """Get the file tree for a student's lab directory."""
+    lab_root = _find_lab_root(username, lab_name)
+    if not lab_root:
+        return None
+
+    def build_tree(path, depth=0, max_depth=5):
+        if depth > max_depth:
+            return []
+        items = []
+        try:
+            entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+        except PermissionError:
+            return items
+        for entry in entries:
+            if entry.name.startswith("."):
+                continue
+            node = {
+                "name": entry.name,
+                "type": "dir" if entry.is_dir() else "file",
+            }
+            if entry.is_dir():
+                node["children"] = build_tree(entry, depth + 1, max_depth)
+            else:
+                try:
+                    node["size"] = entry.stat().st_size
+                except OSError:
+                    node["size"] = 0
+            items.append(node)
+        return items
+
+    return {
+        "username": username,
+        "lab": lab_name,
+        "path": str(lab_root),
+        "tree": build_tree(lab_root),
+    }
+
+
 # ── HTTP Handler ───────────────────────────────────────────────
 
 class PresenceHandler(SimpleHTTPRequestHandler):
@@ -453,6 +781,45 @@ class PresenceHandler(SimpleHTTPRequestHandler):
             self._json_response(self._api_last(parsed))
         elif path == "/api/health":
             self._json_response({"status": "ok", "time": datetime.utcnow().isoformat() + "Z"})
+        elif path == "/api/admin/grades":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session or session["role"] != "admin":
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            qs = parse_qs(parsed.query)
+            lab = qs.get("lab", [None])[0]
+            user = qs.get("user", [None])[0]
+            if user and lab:
+                result = grade_student_lab(user, lab)
+                self._json_response(result)
+            else:
+                results = grade_all_students(lab)
+                self._json_response({"grades": results, "labs": list(LAB_SPECS.keys())})
+        elif path == "/api/admin/leaderboard":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session or session["role"] != "admin":
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            self._json_response({"leaderboard": get_leaderboard(), "labs": list(LAB_SPECS.keys())})
+        elif path == "/api/admin/tree":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session or session["role"] != "admin":
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            qs = parse_qs(parsed.query)
+            user = qs.get("user", [None])[0]
+            lab = qs.get("lab", [None])[0]
+            if not user or not lab:
+                self._json_response({"error": "user and lab params required"}, 400)
+                return
+            tree = get_student_tree(user, lab)
+            if tree is None:
+                self._json_response({"error": "Lab directory not found"}, 404)
+                return
+            self._json_response(tree)
         else:
             # Serve static files
             super().do_GET()
@@ -523,6 +890,9 @@ def main():
     print(f"    POST /api/auth/verify   — validate session token")
     print(f"    POST /api/auth/logout   — end session")
     print(f"    GET  /api/admin/stats   — user statistics (admin only)")
+    print(f"    GET  /api/admin/grades  — lab grading (admin only)")
+    print(f"    GET  /api/admin/leaderboard — student leaderboard (admin)")
+    print(f"    GET  /api/admin/tree    — student file tree (admin only)")
     print(f"    GET  /api/who           — raw `who` output")
     print(f"    GET  /api/last          — recent login history")
     print(f"    GET  /api/health        — server health check")

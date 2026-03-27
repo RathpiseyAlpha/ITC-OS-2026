@@ -459,33 +459,58 @@
     })();
 
     // ──────────────────────────────────────
-    //  Admin Panel
+    //  Admin Panel (Tabbed: Stats | Grades | Leaderboard)
     // ──────────────────────────────────────
-    function renderAdminPanel() {
+    var adminCurrentTab = 'stats';
+
+    function renderAdminPanel(tab) {
         if (authRole !== 'admin') {
             window.location.hash = 'browse';
             return;
         }
         var url = serverUrl();
         if (!url) return;
+        adminCurrentTab = tab || adminCurrentTab || 'stats';
 
         var viewerEl = document.getElementById('file-viewer');
         var outlineEl = document.getElementById('outline-content');
         outlineEl.style.display = 'none';
         document.getElementById('viewer-placeholder').style.display = 'none';
-        document.getElementById('viewer-title').textContent = 'bash — admin stats';
+        document.getElementById('viewer-title').textContent = 'bash — admin';
 
-        viewerEl.innerHTML = '<div class="admin-panel"><div class="admin-header">// ADMIN PANEL — User Activity Statistics</div><div class="admin-loading">Fetching stats...</div></div>';
         viewerEl.style.display = 'flex';
 
         // Also update explorer pane title
         document.getElementById('explorer-title').textContent = 'bash — admin';
-        document.getElementById('explorer-cmd').textContent = 'sudo admin --stats';
+        document.getElementById('explorer-cmd').textContent = 'sudo admin --' + adminCurrentTab;
 
-        fetchAdminStats(url, viewerEl);
+        var tabsHtml = '<div class="admin-tabs">'
+            + '<span class="admin-tab' + (adminCurrentTab === 'stats' ? ' active' : '') + '" onclick="switchAdminTab(\'stats\')">Users</span>'
+            + '<span class="admin-tab' + (adminCurrentTab === 'grades' ? ' active' : '') + '" onclick="switchAdminTab(\'grades\')">Grades</span>'
+            + '<span class="admin-tab' + (adminCurrentTab === 'leaderboard' ? ' active' : '') + '" onclick="switchAdminTab(\'leaderboard\')">Leaderboard</span>'
+            + '</div>';
+
+        viewerEl.innerHTML = '<div class="admin-panel">' + tabsHtml + '<div id="admin-tab-content"><div class="admin-loading">Loading...</div></div></div>';
+
+        if (adminCurrentTab === 'stats') fetchAdminStats(url);
+        else if (adminCurrentTab === 'grades') fetchAdminGrades(url);
+        else if (adminCurrentTab === 'leaderboard') fetchAdminLeaderboard(url);
     }
 
-    function fetchAdminStats(url, viewerEl) {
+    window.switchAdminTab = function (tab) {
+        adminCurrentTab = tab;
+        renderAdminPanel(tab);
+    };
+
+    function adminContent() {
+        return document.getElementById('admin-tab-content');
+    }
+
+    // ── Stats Tab ──
+    function fetchAdminStats(url) {
+        var container = adminContent();
+        if (!container) return;
+        container.innerHTML = '<div class="admin-loading">Fetching stats...</div>';
         fetch(url + '/api/admin/stats', {
             mode: 'cors',
             headers: { 'Authorization': 'Bearer ' + authToken }
@@ -496,8 +521,7 @@
         })
         .then(function (data) {
             var users = data.users || [];
-            var html = '<div class="admin-panel">'
-                + '<div class="admin-header">// ADMIN PANEL — User Activity Statistics'
+            var html = '<div class="admin-section-header">User Activity Statistics'
                 + ' <span id="admin-refresh-btn" style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="refreshAdminStats()">&#x21BB; refresh</span>'
                 + '</div>'
                 + '<div class="admin-summary">'
@@ -513,9 +537,9 @@
             } else {
                 users.forEach(function (u) {
                     var status = u.isOnline
-                        ? '<span class="admin-online">● online</span>'
-                        : '<span class="admin-offline">○ offline</span>';
-                    var lastLogin = u.lastLogin ? formatPhnomPenh(u.lastLogin) : '—';
+                        ? '<span class="admin-online">\u25CF online</span>'
+                        : '<span class="admin-offline">\u25CB offline</span>';
+                    var lastLogin = u.lastLogin ? formatPhnomPenh(u.lastLogin) : '\u2014';
                     html += '<tr>'
                         + '<td class="admin-user">' + escapeHtml(u.username) + '</td>'
                         + '<td>' + u.loginCount + '</td>'
@@ -526,23 +550,241 @@
                 });
             }
 
-            html += '</tbody></table></div>';
-            viewerEl.innerHTML = html;
+            html += '</tbody></table>';
+            container.innerHTML = html;
         })
         .catch(function (err) {
-            viewerEl.innerHTML = '<div class="admin-panel"><div class="admin-header">// ADMIN PANEL</div>'
-                + '<div class="error" style="padding:12px;">Failed to load admin stats: ' + escapeHtml(err.message) + '</div></div>';
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load stats: ' + escapeHtml(err.message) + '</div>';
         });
     }
 
     window.refreshAdminStats = function () {
         var url = serverUrl();
-        var viewerEl = document.getElementById('file-viewer');
-        if (!url || !viewerEl) return;
+        if (!url) return;
         var btn = document.getElementById('admin-refresh-btn');
-        if (btn) btn.textContent = '↻ loading...';
-        fetchAdminStats(url, viewerEl);
+        if (btn) btn.textContent = '\u21BB loading...';
+        fetchAdminStats(url);
     };
+
+    // ── Grades Tab ──
+    var gradesLabFilter = null;
+
+    function fetchAdminGrades(url, labFilter) {
+        var container = adminContent();
+        if (!container) return;
+        gradesLabFilter = labFilter || null;
+        container.innerHTML = '<div class="admin-loading">Grading submissions...</div>';
+
+        var endpoint = url + '/api/admin/grades';
+        if (gradesLabFilter) endpoint += '?lab=' + encodeURIComponent(gradesLabFilter);
+
+        fetch(endpoint, {
+            mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function (data) {
+            var grades = data.grades || [];
+            var labs = data.labs || [];
+
+            // Lab filter buttons
+            var html = '<div class="admin-section-header">Lab Grading'
+                + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="fetchAdminGrades_refresh()">&#x21BB; refresh</span>'
+                + '</div>'
+                + '<div class="admin-lab-filters">'
+                + '<span class="admin-lab-btn' + (!gradesLabFilter ? ' active' : '') + '" onclick="filterGrades(null)">All Labs</span>';
+            labs.forEach(function (l) {
+                html += '<span class="admin-lab-btn' + (gradesLabFilter === l ? ' active' : '') + '" onclick="filterGrades(\'' + l + '\')">' + escapeHtml(l) + '</span>';
+            });
+            html += '</div>';
+
+            if (grades.length === 0) {
+                html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
+            } else {
+                html += '<table class="admin-table">'
+                    + '<thead><tr><th>Student</th><th>Lab</th><th>Score</th><th>%</th><th>Status</th><th>Details</th></tr></thead>'
+                    + '<tbody>';
+                grades.forEach(function (g) {
+                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    html += '<tr>'
+                        + '<td class="admin-user">' + escapeHtml(g.username) + '</td>'
+                        + '<td>' + escapeHtml(g.lab) + '</td>'
+                        + '<td><span class="' + pctClass + '">' + g.score + '/' + g.total + '</span></td>'
+                        + '<td><span class="' + pctClass + '">' + g.percentage + '%</span></td>'
+                        + '<td>' + statusIcon + '</td>'
+                        + '<td><span class="admin-detail-btn" onclick="showGradeDetail(\'' + escapeHtml(g.username) + '\',\'' + escapeHtml(g.lab) + '\')">view</span></td>'
+                        + '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load grades: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    window.filterGrades = function (lab) {
+        var url = serverUrl();
+        if (url) fetchAdminGrades(url, lab);
+    };
+
+    window.fetchAdminGrades_refresh = function () {
+        var url = serverUrl();
+        if (url) fetchAdminGrades(url, gradesLabFilter);
+    };
+
+    window.showGradeDetail = function (username, lab) {
+        var url = serverUrl();
+        if (!url) return;
+        var container = adminContent();
+        if (!container) return;
+        container.innerHTML = '<div class="admin-loading">Loading details for ' + escapeHtml(username) + ' / ' + escapeHtml(lab) + '...</div>';
+
+        // Fetch grade detail and file tree in parallel
+        Promise.all([
+            fetch(url + '/api/admin/grades?user=' + encodeURIComponent(username) + '&lab=' + encodeURIComponent(lab), {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.json(); }),
+            fetch(url + '/api/admin/tree?user=' + encodeURIComponent(username) + '&lab=' + encodeURIComponent(lab), {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.ok ? r.json() : null; })
+        ])
+        .then(function (results) {
+            var g = results[0];
+            var tree = results[1];
+
+            var html = '<div class="admin-section-header">'
+                + '<span class="admin-back-btn" onclick="switchAdminTab(\'grades\')">\u2190 back</span> '
+                + escapeHtml(username) + ' / ' + escapeHtml(lab)
+                + ' \u2014 <span class="' + (g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c') + '">'
+                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + '</div>';
+
+            if (g.labPath) {
+                html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.labPath) + '</div>';
+            }
+
+            // File tree
+            if (tree && tree.tree) {
+                html += '<div class="grade-detail-columns"><div class="grade-tree-col">'
+                    + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">File Tree:</div>'
+                    + '<pre class="grade-tree">' + renderTreeText(tree.tree, '') + '</pre>'
+                    + '</div>';
+            }
+
+            // Items checklist
+            html += '<div class="grade-items-col">'
+                + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Checklist:</div>'
+                + '<div class="grade-items">';
+            (g.items || []).forEach(function (item) {
+                var icon = item.status === 'ok' ? '\u2705' : item.status === 'case_mismatch' ? '\u26A0\uFE0F' : '\u274C';
+                var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
+                var detail = '';
+                if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                html += '<div class="grade-item ' + cls + '">'
+                    + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
+                    + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
+                    + detail
+                    + '</div>';
+            });
+            html += '</div></div>';
+
+            if (tree && tree.tree) html += '</div>'; // close columns
+
+            // Feedback
+            if (g.feedback && g.feedback.length > 0) {
+                html += '<div style="margin-top:12px;"><div style="color:var(--red);font-size:12px;margin-bottom:4px;">Feedback:</div>';
+                g.feedback.forEach(function (f) {
+                    html += '<div class="grade-feedback">\u2022 ' + escapeHtml(f) + '</div>';
+                });
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed: ' + escapeHtml(err.message) + '</div>';
+        });
+    };
+
+    function renderTreeText(nodes, prefix) {
+        var lines = '';
+        for (var i = 0; i < nodes.length; i++) {
+            var node = nodes[i];
+            var isLast = i === nodes.length - 1;
+            var connector = isLast ? '\u2514\u2500\u2500 ' : '\u251C\u2500\u2500 ';
+            var icon = node.type === 'dir' ? '\uD83D\uDCC1 ' : '';
+            lines += prefix + connector + icon + escapeHtml(node.name) + '\n';
+            if (node.children && node.children.length > 0) {
+                var childPrefix = prefix + (isLast ? '    ' : '\u2502   ');
+                lines += renderTreeText(node.children, childPrefix);
+            }
+        }
+        return lines;
+    }
+
+    // ── Leaderboard Tab ──
+    function fetchAdminLeaderboard(url) {
+        var container = adminContent();
+        if (!container) return;
+        container.innerHTML = '<div class="admin-loading">Computing leaderboard...</div>';
+
+        fetch(url + '/api/admin/leaderboard', {
+            mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function (data) {
+            var board = data.leaderboard || [];
+            var labs = data.labs || [];
+
+            var html = '<div class="admin-section-header">Student Leaderboard'
+                + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="switchAdminTab(\'leaderboard\')">&#x21BB; refresh</span>'
+                + '</div>';
+
+            html += '<table class="admin-table leaderboard-table">'
+                + '<thead><tr><th>#</th><th>Student</th>';
+            labs.forEach(function (l) { html += '<th>' + escapeHtml(l) + '</th>'; });
+            html += '<th>Total</th><th>%</th></tr></thead><tbody>';
+
+            if (board.length === 0) {
+                html += '<tr><td colspan="' + (labs.length + 4) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+            } else {
+                board.forEach(function (s) {
+                    var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
+                    var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
+                    html += '<tr>'
+                        + '<td class="rank-cell">' + rankIcon + '</td>'
+                        + '<td class="admin-user">' + escapeHtml(s.username) + '</td>';
+                    labs.forEach(function (l) {
+                        var labData = s.labs[l];
+                        if (labData) {
+                            var lc = labData.percentage >= 80 ? 'grade-a' : labData.percentage >= 50 ? 'grade-b' : 'grade-c';
+                            html += '<td><span class="' + lc + '">' + labData.score + '/' + labData.total + '</span></td>';
+                        } else {
+                            html += '<td style="color:var(--comment);">\u2014</td>';
+                        }
+                    });
+                    html += '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
+                        + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
+                        + '</tr>';
+                });
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load leaderboard: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
 
     function formatPhnomPenh(isoOrDateStr) {
         try {
