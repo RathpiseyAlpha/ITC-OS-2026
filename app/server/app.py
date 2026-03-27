@@ -118,8 +118,33 @@ def validate_token(token):
 # ── Admin Statistics ───────────────────────────────────────────
 
 def get_user_stats():
-    """Parse `last` for per-user login statistics."""
+    """Parse `last` for per-user login statistics, include all non-system users."""
     stats = {}
+
+    # Get all real (non-system) users from /etc/passwd (UID >= 1000, valid shell)
+    try:
+        with open("/etc/passwd", "r") as f:
+            for line in f:
+                parts = line.strip().split(":")
+                if len(parts) < 7:
+                    continue
+                username, uid_str, shell = parts[0], parts[2], parts[6]
+                try:
+                    uid = int(uid_str)
+                except ValueError:
+                    continue
+                if uid < 1000 or shell in ("/usr/sbin/nologin", "/bin/false", "/sbin/nologin"):
+                    continue
+                stats[username] = {
+                    "username": username,
+                    "loginCount": 0,
+                    "lastLogin": "",
+                    "totalSeconds": 0,
+                }
+    except OSError:
+        pass
+
+    # Enrich with login data from `last`
     try:
         result = subprocess.run(
             ["last", "-n", "500", "-w"],

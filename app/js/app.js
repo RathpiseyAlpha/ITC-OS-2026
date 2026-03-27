@@ -242,6 +242,29 @@
     }
 
     // ──────────────────────────────────────
+    //  Session Restore on Refresh
+    // ──────────────────────────────────────
+    (function restoreSession() {
+        if (!authToken || !authUser) return;
+        var url = serverUrl();
+        if (!url) return;
+        fetch(url + '/api/auth/verify', {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.valid) {
+                finishLogin(authUser, true);
+            } else {
+                clearAuth();
+            }
+        })
+        .catch(function () { /* server unreachable — stay on login */ });
+    })();
+
+    // ──────────────────────────────────────
     //  Login System
     // ──────────────────────────────────────
     window.performLogin = function (username, password) {
@@ -257,14 +280,6 @@
 
         var pw = (password || (pwInput ? pwInput.value : '')).trim();
         var url = serverUrl();
-
-        // If server is configured, require password
-        if (url && !pw) {
-            output.innerHTML = '<div class="error" style="margin-top:4px;">Password required for server login.</div>';
-            input.disabled = false;
-            if (pwInput) { pwInput.disabled = false; pwInput.focus(); }
-            return;
-        }
 
         // If password provided and server URL available, do real auth
         if (pw && url) {
@@ -311,14 +326,18 @@
         promptUsers.forEach(function (el) { el.textContent = name; });
 
         var now = new Date();
-        var ts = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
-            + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        var ts = now.toLocaleDateString('en-US', { timeZone: 'Asia/Phnom_Penh', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+            + ' ' + now.toLocaleTimeString('en-US', { timeZone: 'Asia/Phnom_Penh', hour: '2-digit', minute: '2-digit' });
 
         var badge = authenticated
             ? '<span style="color:var(--green);">&#x1F512; authenticated</span>'
             : '<span style="color:var(--comment);">guest</span>';
 
-        output.innerHTML = '<div class="login-success">\u2714 Login successful. ' + badge + '</div>'
+        var logoutBtn = authenticated
+            ? ' <span id="logout-btn" style="color:var(--red);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--red);margin-left:12px;" onclick="performLogout()">exit ↩</span>'
+            : '';
+
+        output.innerHTML = '<div class="login-success">\u2714 Login successful. ' + badge + logoutBtn + '</div>'
             + '<div class="login-motd">'
             + 'Welcome to ITC-OS 2026, <span style="color:var(--cyan)">' + escapeHtml(name) + '</span>!<br>'
             + 'Last login: ' + ts + ' on tty1<br>'
@@ -337,18 +356,43 @@
         window.performLogin('guest', '');
     };
 
+    window.performLogout = function () {
+        var url = serverUrl();
+        if (url && authToken) {
+            fetch(url + '/api/auth/logout', {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }
+            }).catch(function () {});
+        }
+        clearAuth();
+        Presence.logout();
+        // Reset login UI
+        var input = document.getElementById('login-input');
+        var pwInput = document.getElementById('password-input');
+        var output = document.getElementById('login-output');
+        var ep = document.getElementById('enter-prompt');
+        if (input) { input.disabled = false; input.value = ''; input.style.color = ''; }
+        if (pwInput) { pwInput.disabled = false; pwInput.value = ''; }
+        if (output) output.innerHTML = '';
+        if (ep) { ep.style.pointerEvents = 'none'; ep.style.opacity = '0.3'; ep.innerHTML = '<span class="prompt-symbol">$</span> Login to explore the system <span class="cursor"></span>'; ep.onclick = null; }
+        // Go back to landing
+        document.getElementById('contents-page').classList.remove('active');
+        document.getElementById('landing-page').classList.remove('hidden');
+        window.location.hash = '';
+        if (input) setTimeout(function () { input.focus(); }, 200);
+    };
+
     // Login input handler
     (function () {
         var loginInput = document.getElementById('login-input');
         var pwInput = document.getElementById('password-input');
         var pwLine = document.getElementById('password-line');
-        var guestBtn = document.getElementById('guest-login-btn');
         var hasServer = !!serverUrl();
 
-        // When server is configured, show password field and hide guest option
+        // When server is configured, show password field
         if (hasServer && pwLine) {
             pwLine.style.display = '';
-            if (guestBtn) guestBtn.parentElement.style.display = 'none';
         }
 
         if (loginInput) {
@@ -401,6 +445,10 @@
         document.getElementById('explorer-title').textContent = 'bash — admin';
         document.getElementById('explorer-cmd').textContent = 'sudo admin --stats';
 
+        fetchAdminStats(url, viewerEl);
+    }
+
+    function fetchAdminStats(url, viewerEl) {
         fetch(url + '/api/admin/stats', {
             mode: 'cors',
             headers: { 'Authorization': 'Bearer ' + authToken }
@@ -412,7 +460,9 @@
         .then(function (data) {
             var users = data.users || [];
             var html = '<div class="admin-panel">'
-                + '<div class="admin-header">// ADMIN PANEL — User Activity Statistics</div>'
+                + '<div class="admin-header">// ADMIN PANEL — User Activity Statistics'
+                + ' <span id="admin-refresh-btn" style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="refreshAdminStats()">&#x21BB; refresh</span>'
+                + '</div>'
                 + '<div class="admin-summary">'
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.length + '</span> total users</span>'
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.filter(function(u){return u.isOnline;}).length + '</span> online now</span>'
@@ -422,16 +472,17 @@
                 + '<tbody>';
 
             if (users.length === 0) {
-                html += '<tr><td colspan="5" style="color:var(--comment);text-align:center;">No login records found</td></tr>';
+                html += '<tr><td colspan="5" style="color:var(--comment);text-align:center;">No users found</td></tr>';
             } else {
                 users.forEach(function (u) {
                     var status = u.isOnline
                         ? '<span class="admin-online">● online</span>'
                         : '<span class="admin-offline">○ offline</span>';
+                    var lastLogin = u.lastLogin ? formatPhnomPenh(u.lastLogin) : '—';
                     html += '<tr>'
                         + '<td class="admin-user">' + escapeHtml(u.username) + '</td>'
                         + '<td>' + u.loginCount + '</td>'
-                        + '<td>' + escapeHtml(u.lastLogin || '—') + '</td>'
+                        + '<td>' + escapeHtml(lastLogin) + '</td>'
                         + '<td>' + escapeHtml(u.totalDuration || '0h 0m') + '</td>'
                         + '<td>' + status + '</td>'
                         + '</tr>';
@@ -445,6 +496,27 @@
             viewerEl.innerHTML = '<div class="admin-panel"><div class="admin-header">// ADMIN PANEL</div>'
                 + '<div class="error" style="padding:12px;">Failed to load admin stats: ' + escapeHtml(err.message) + '</div></div>';
         });
+    }
+
+    window.refreshAdminStats = function () {
+        var url = serverUrl();
+        var viewerEl = document.getElementById('file-viewer');
+        if (!url || !viewerEl) return;
+        var btn = document.getElementById('admin-refresh-btn');
+        if (btn) btn.textContent = '↻ loading...';
+        fetchAdminStats(url, viewerEl);
+    };
+
+    function formatPhnomPenh(isoOrDateStr) {
+        try {
+            var d = new Date(isoOrDateStr);
+            if (isNaN(d.getTime())) return isoOrDateStr;
+            return d.toLocaleString('en-US', {
+                timeZone: 'Asia/Phnom_Penh',
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: true
+            });
+        } catch (e) { return isoOrDateStr; }
     }
 
     // ──────────────────────────────────────
