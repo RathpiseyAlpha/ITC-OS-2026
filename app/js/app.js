@@ -321,6 +321,14 @@
         // Register presence
         Presence.login(name);
 
+        // Disable and hide login inputs (important for session restore on refresh)
+        var loginInput = document.getElementById('login-input');
+        var pwInput = document.getElementById('password-input');
+        var pwLine = document.getElementById('password-line');
+        if (loginInput) { loginInput.disabled = true; loginInput.value = name; loginInput.style.color = 'var(--white)'; }
+        if (pwInput) { pwInput.disabled = true; pwInput.value = ''; }
+        if (pwLine) pwLine.style.display = 'none';
+
         // Hide guest login area after any login
         var guestArea = document.getElementById('guest-login-btn');
         if (guestArea && guestArea.parentElement) guestArea.parentElement.style.display = 'none';
@@ -377,6 +385,9 @@
         if (input) { input.disabled = false; input.value = ''; input.style.color = ''; }
         if (pwInput) { pwInput.disabled = false; pwInput.value = ''; }
         if (output) output.innerHTML = '';
+        // Restore password line if server is configured
+        var pwLine = document.getElementById('password-line');
+        if (pwLine && serverUrl()) pwLine.style.display = '';
         if (ep) { ep.style.pointerEvents = 'none'; ep.style.opacity = '0.3'; ep.innerHTML = '<span class="prompt-symbol">$</span> Login to explore the system <span class="cursor"></span>'; ep.onclick = null; }
         // Restore guest login area
         var guestArea = document.getElementById('guest-login-btn');
