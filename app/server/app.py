@@ -40,6 +40,42 @@ MAX_LOGIN_ATTEMPTS = 5
 LOGIN_WINDOW_SEC = 60
 SESSION_TIMEOUT_SEC = 3600  # 1 hour
 
+# ── Student Roster ─────────────────────────────────────────────
+# Maps Linux username (student ID) → display name
+STUDENTS = {
+    "p20240032": "CHEA SEAVHONG",
+    "p20240007": "CHHENG KIMTER",
+    "p20240044": "CHHENG SOKUNTHEARY",
+    "p20240050": "CHHI LAYHORNG",
+    "p20240024": "CHIN MENGHONG",
+    "p20240019": "CHIV INTHERA",
+    "p20240067": "CHUM KIMCHHUN",
+    "p20250002": "DARA PANHASETH",
+    "p20240009": "EANG MENGLY",
+    "p20240002": "HAI MONYOUDOM",
+    "p20230043": "HEN CHHORDAVATTEY",
+    "p20240001": "KIV SOVANNLYDA",
+    "p20240063": "KONG SOPHANHA",
+    "p20240034": "LOR HENGRITH",
+    "p20240013": "MI SORAKMONY",
+    "p20240058": "NHEM PHADA",
+    "p20240033": "OUK PUTHIRITH",
+    "p20240047": "PAV RATANA",
+    "p20240045": "PI SEREYVATHANAK",
+    "p20240004": "PICH CHANVATANAK",
+    "p20240041": "PONG MENGHEANG",
+    "p20240043": "RASMEY RITHYSAK",
+    "p20240038": "RITH CHANKOLBOTH",
+    "p20240003": "SAO DALI INACO",
+    "p20240012": "SATHYA POCH",
+    "p20240046": "SONG PHENGROTH",
+    "p20240023": "SUON CARO",
+    "p20240057": "TEK RITHIREACH",
+    "p20240055": "THAI MONIKA",
+    "p20240035": "THENG VAN HENG",
+    "p20240017": "THO PAGNASAKAL",
+}
+
 # ── Cache ──────────────────────────────────────────────────────
 
 _cache = {"data": None, "ts": 0}
@@ -555,35 +591,19 @@ def grade_student_lab(username, lab_name):
 
 
 def grade_all_students(lab_name=None):
-    """Grade all students, optionally filtered by lab."""
+    """Grade all students from STUDENTS roster, optionally filtered by lab."""
     labs = [lab_name] if lab_name else list(LAB_SPECS.keys())
-    # Get all non-system users
-    users = []
-    try:
-        with open("/etc/passwd", "r") as f:
-            for line in f:
-                parts = line.strip().split(":")
-                if len(parts) < 7:
-                    continue
-                uname, uid_str, shell = parts[0], parts[2], parts[6]
-                try:
-                    uid = int(uid_str)
-                except ValueError:
-                    continue
-                if uid < 1000 or shell in ("/usr/sbin/nologin", "/bin/false", "/sbin/nologin"):
-                    continue
-                users.append(uname)
-    except OSError:
-        pass
-
     results = []
-    for user in sorted(users):
+    for user in sorted(STUDENTS.keys()):
         for lab in labs:
             try:
-                results.append(grade_student_lab(user, lab))
+                g = grade_student_lab(user, lab)
+                g["name"] = STUDENTS.get(user, user)
+                results.append(g)
             except (PermissionError, OSError):
                 results.append({
                     "username": user,
+                    "name": STUDENTS.get(user, user),
                     "lab": lab,
                     "score": 0,
                     "total": LAB_SPECS.get(lab, {}).get("total_points", 0),
@@ -603,7 +623,7 @@ def get_leaderboard():
     for g in all_grades:
         u = g["username"]
         if u not in per_student:
-            per_student[u] = {"username": u, "labs": {}, "totalScore": 0, "totalPossible": 0}
+            per_student[u] = {"username": u, "name": STUDENTS.get(u, u), "labs": {}, "totalScore": 0, "totalPossible": 0}
         per_student[u]["labs"][g["lab"]] = {
             "score": g["score"],
             "total": g["total"],

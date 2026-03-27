@@ -605,13 +605,14 @@
                 html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
             } else {
                 html += '<table class="admin-table">'
-                    + '<thead><tr><th>Student</th><th>Lab</th><th>Score</th><th>%</th><th>Status</th><th>Details</th></tr></thead>'
+                    + '<thead><tr><th>ID</th><th>Name</th><th>Lab</th><th>Score</th><th>%</th><th>Status</th><th>Details</th></tr></thead>'
                     + '<tbody>';
                 grades.forEach(function (g) {
                     var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
                     var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
                     html += '<tr>'
                         + '<td class="admin-user">' + escapeHtml(g.username) + '</td>'
+                        + '<td>' + escapeHtml(g.name || g.username) + '</td>'
                         + '<td>' + escapeHtml(g.lab) + '</td>'
                         + '<td><span class="' + pctClass + '">' + g.score + '/' + g.total + '</span></td>'
                         + '<td><span class="' + pctClass + '">' + g.percentage + '%</span></td>'
@@ -750,19 +751,20 @@
                 + '</div>';
 
             html += '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th>#</th><th>Student</th>';
+                + '<thead><tr><th>#</th><th>ID</th><th>Name</th>';
             labs.forEach(function (l) { html += '<th>' + escapeHtml(l) + '</th>'; });
             html += '<th>Total</th><th>%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="' + (labs.length + 4) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="' + (labs.length + 5) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
                     var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
                     html += '<tr>'
                         + '<td class="rank-cell">' + rankIcon + '</td>'
-                        + '<td class="admin-user">' + escapeHtml(s.username) + '</td>';
+                        + '<td class="admin-user">' + escapeHtml(s.username) + '</td>'
+                        + '<td>' + escapeHtml(s.name || s.username) + '</td>';
                     labs.forEach(function (l) {
                         var labData = s.labs[l];
                         if (labData) {
