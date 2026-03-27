@@ -875,22 +875,21 @@
                     + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
                     + statusIcon + ' '
                     + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                    + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view details</span>'
                     + '</div>';
 
-                // Checklist
+                // Brief checklist summary
                 if (g.items && g.items.length > 0) {
-                    html += '<div class="student-checklist">';
+                    var okCount = 0, warnCount = 0, missCount = 0;
                     g.items.forEach(function (item) {
-                        var icon = item.status === 'ok' ? '\u2705' : item.status === 'case_mismatch' ? '\u26A0\uFE0F' : '\u274C';
-                        var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
-                        html += '<div class="grade-item ' + cls + '">'
-                            + icon + ' <code>' + escapeHtml(item.expected) + '</code>';
-                        if (item.actual && item.actual !== item.expected) {
-                            html += ' <span style="color:var(--comment);">(found: ' + escapeHtml(item.actual) + ')</span>';
-                        }
-                        html += ' <span style="color:var(--comment);">' + item.points + '/' + item.maxPoints + '</span>';
-                        html += '</div>';
+                        if (item.status === 'ok') okCount++;
+                        else if (item.status === 'case_mismatch') warnCount++;
+                        else missCount++;
                     });
+                    html += '<div class="student-checklist-summary">'
+                        + '\u2705 ' + okCount + ' ok';
+                    if (warnCount > 0) html += ' &nbsp;\u26A0\uFE0F ' + warnCount + ' naming';
+                    if (missCount > 0) html += ' &nbsp;\u274C ' + missCount + ' missing';
                     html += '</div>';
                 }
 
@@ -964,6 +963,95 @@
             container.innerHTML = '<div class="error" style="padding:12px;">Failed to load leaderboard: ' + escapeHtml(err.message) + '</div>';
         });
     }
+
+    // ── Student Lab Detail View (tree + checklist) ──
+    window.showStudentLabDetail = function (lab) {
+        var url = serverUrl();
+        if (!url || !authToken) return;
+        var container = studentContent();
+        if (!container) return;
+        container.innerHTML = '<div class="admin-loading">Loading details for ' + escapeHtml(lab) + '...</div>';
+
+        Promise.all([
+            fetch(url + '/api/my/grades', {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.json(); }),
+            fetch(url + '/api/my/tree?lab=' + encodeURIComponent(lab), {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.ok ? r.json() : null; })
+        ])
+        .then(function (results) {
+            var data = results[0];
+            var tree = results[1];
+
+            // Find grade for this specific lab
+            var g = null;
+            (data.grades || []).forEach(function (gr) { if (gr.lab === lab) g = gr; });
+            if (!g) {
+                container.innerHTML = '<div class="error" style="padding:12px;">Grade data not found for ' + escapeHtml(lab) + '</div>';
+                return;
+            }
+
+            var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+
+            var html = '<div class="admin-section-header">'
+                + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-grades\')">\u2190 back</span> '
+                + escapeHtml(lab)
+                + ' \u2014 <span class="' + pctClass + '">'
+                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + '</div>';
+
+            if (g.labPath) {
+                html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.labPath) + '</div>';
+            }
+
+            // Two-column layout: tree + checklist
+            html += '<div class="grade-detail-columns">';
+
+            // File tree column
+            if (tree && tree.tree) {
+                html += '<div class="grade-tree-col">'
+                    + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Your File Tree:</div>'
+                    + '<pre class="grade-tree">' + renderTreeText(tree.tree, '') + '</pre>'
+                    + '</div>';
+            } else {
+                html += '<div class="grade-tree-col">'
+                    + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">File Tree:</div>'
+                    + '<div style="color:var(--comment);padding:8px;">Lab directory not found.</div>'
+                    + '</div>';
+            }
+
+            // Checklist column
+            html += '<div class="grade-items-col">'
+                + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Required Items:</div>'
+                + '<div class="grade-items">';
+            (g.items || []).forEach(function (item) {
+                var icon = item.status === 'ok' ? '\u2705' : item.status === 'case_mismatch' ? '\u26A0\uFE0F' : '\u274C';
+                var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
+                var detail = '';
+                if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                html += '<div class="grade-item ' + cls + '">'
+                    + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
+                    + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
+                    + detail
+                    + '</div>';
+            });
+            html += '</div></div></div>'; // close items, items-col, columns
+
+            // Feedback section
+            if (g.feedback && g.feedback.length > 0) {
+                html += '<div style="margin-top:12px;"><div style="color:var(--red);font-size:12px;margin-bottom:4px;">Feedback:</div>';
+                g.feedback.forEach(function (f) {
+                    html += '<div class="grade-feedback">\u2022 ' + escapeHtml(f) + '</div>';
+                });
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load details: ' + escapeHtml(err.message) + '</div>';
+        });
+    };
 
     function formatPhnomPenh(isoOrDateStr) {
         try {

@@ -897,6 +897,28 @@ class PresenceHandler(SimpleHTTPRequestHandler):
                         "items": [], "feedback": ["Cannot access lab directory."],
                     })
             self._json_response({"grades": grades, "labs": labs})
+        elif path == "/api/my/tree":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            username = session["username"]
+            sid = _USER_TO_SID.get(username)
+            info = STUDENTS.get(sid) if sid else None
+            if not info:
+                self._json_response({"error": "Student not found in roster"}, 404)
+                return
+            qs = parse_qs(parsed.query)
+            lab = qs.get("lab", [None])[0]
+            if not lab:
+                self._json_response({"error": "lab param required"}, 400)
+                return
+            tree = get_student_tree(info["user"], lab)
+            if tree is None:
+                self._json_response({"error": "Lab directory not found"}, 404)
+                return
+            self._json_response(tree)
         elif path == "/api/my/leaderboard":
             token = self._get_token()
             session = validate_token(token)
