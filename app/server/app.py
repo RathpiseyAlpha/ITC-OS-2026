@@ -18,12 +18,15 @@ import secrets
 import subprocess
 import time
 import warnings
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="crypt")
+
+# Phnom Penh is UTC+7
+_PPH = timezone(timedelta(hours=7))
 
 # ── Configuration ──────────────────────────────────────────────
 
@@ -117,6 +120,28 @@ def validate_token(token):
 
 # ── Admin Statistics ───────────────────────────────────────────
 
+def _parse_last_date(raw):
+    """Try to extract a datetime from a `last -F` info string.
+
+    The string looks like: 'pts/0 192.168.71.1 Fri Mar 27 17:25:33 2026'
+    We scan for the date portion 'Fri Mar 27 17:25:33 2026'.
+    """
+    import re
+    # Match pattern: Day Mon DD HH:MM:SS YYYY
+    m = re.search(
+        r'[A-Z][a-z]{2}\s+[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}', raw
+    )
+    if m:
+        try:
+            dt = datetime.strptime(m.group(), "%a %b %d %H:%M:%S %Y")
+            # Attach server's local timezone
+            local_tz = datetime.now().astimezone().tzinfo
+            return dt.replace(tzinfo=local_tz)
+        except ValueError:
+            pass
+    return None
+
+
 def get_user_stats():
     """Parse `last` for per-user login statistics, include all non-system users."""
     stats = {}
@@ -144,10 +169,10 @@ def get_user_stats():
     except OSError:
         pass
 
-    # Enrich with login data from `last`
+    # Enrich with login data from `last -F` (full timestamps)
     try:
         result = subprocess.run(
-            ["last", "-n", "500", "-w"],
+            ["last", "-n", "500", "-F", "-w"],
             capture_output=True, text=True, timeout=10
         )
         for line in result.stdout.strip().splitlines():
@@ -170,14 +195,20 @@ def get_user_stats():
             stats[username]["loginCount"] += 1
             # Capture latest login (first occurrence per user is most recent)
             if not stats[username]["lastLogin"]:
-                # parts[2:] has host/date info — take what's before " - " or "still logged in"
+                # Extract date from full line — find pattern like "Mon Mar 27 17:06:09 2026"
                 info = " ".join(parts[2:])
-                # Remove duration and logout info for cleaner display
                 for sep in (" - ", " still logged in"):
                     idx = info.find(sep)
                     if idx > 0:
                         info = info[:idx]
-                stats[username]["lastLogin"] = info.strip()
+                # Try to parse the date portion (after terminal/host)
+                raw = info.strip()
+                parsed_dt = _parse_last_date(raw)
+                if parsed_dt:
+                    # Convert server local time to Phnom Penh and store as ISO
+                    stats[username]["lastLogin"] = parsed_dt.astimezone(_PPH).isoformat()
+                else:
+                    stats[username]["lastLogin"] = raw
             # Duration in parentheses at end of line
             if "(" in line and ")" in line:
                 dur_str = line[line.rindex("(") + 1 : line.rindex(")")]
