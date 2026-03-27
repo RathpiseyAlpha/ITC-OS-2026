@@ -258,6 +258,14 @@
         var pw = (password || (pwInput ? pwInput.value : '')).trim();
         var url = serverUrl();
 
+        // If server is configured, require password
+        if (url && !pw) {
+            output.innerHTML = '<div class="error" style="margin-top:4px;">Password required for server login.</div>';
+            input.disabled = false;
+            if (pwInput) { pwInput.disabled = false; pwInput.focus(); }
+            return;
+        }
+
         // If password provided and server URL available, do real auth
         if (pw && url) {
             output.innerHTML = '<div class="login-status">Authenticating against server...</div>';
@@ -334,20 +342,21 @@
         var loginInput = document.getElementById('login-input');
         var pwInput = document.getElementById('password-input');
         var pwLine = document.getElementById('password-line');
+        var guestBtn = document.getElementById('guest-login-btn');
+        var hasServer = !!serverUrl();
+
+        // When server is configured, show password field and hide guest option
+        if (hasServer && pwLine) {
+            pwLine.style.display = '';
+            if (guestBtn) guestBtn.parentElement.style.display = 'none';
+        }
 
         if (loginInput) {
-            // Show password field when username field loses focus with a non-empty value
-            loginInput.addEventListener('blur', function () {
-                if (loginInput.value.trim() && pwLine) {
-                    pwLine.style.display = '';
-                }
-            });
             loginInput.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     e.stopPropagation();
-                    // If password field is visible and empty, focus it first
-                    if (pwLine && pwLine.style.display !== 'none' && pwInput && !pwInput.value.trim()) {
+                    if (hasServer && pwInput && !pwInput.value.trim()) {
                         pwInput.focus();
                         return;
                     }
