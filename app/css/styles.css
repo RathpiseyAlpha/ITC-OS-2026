@@ -177,7 +177,8 @@ body.readme-mode::after { opacity: 0; }
     color: var(--green);
     font-family: 'Fira Code', monospace;
     font-size: 13px;
-    width: 200px;
+    width: 300px;
+    max-width: 60vw;
     caret-color: var(--green);
 }
 .login-input::placeholder { color: var(--comment); font-style: italic; }
