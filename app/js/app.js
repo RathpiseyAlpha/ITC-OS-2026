@@ -244,10 +244,20 @@
     // ──────────────────────────────────────
     //  Session Restore on Refresh
     // ──────────────────────────────────────
+    var restoringSession = false;
     (function restoreSession() {
         if (!authToken || !authUser) return;
         var url = serverUrl();
         if (!url) return;
+        // Immediately hide login form while verifying
+        restoringSession = true;
+        var userLine = document.getElementById('username-line');
+        var pwLine = document.getElementById('password-line');
+        var guestArea = document.getElementById('guest-login-btn');
+        if (userLine) userLine.style.display = 'none';
+        if (pwLine) pwLine.style.display = 'none';
+        if (guestArea && guestArea.parentElement) guestArea.parentElement.style.display = 'none';
+
         fetch(url + '/api/auth/verify', {
             method: 'POST',
             mode: 'cors',
@@ -259,9 +269,20 @@
                 finishLogin(authUser, true);
             } else {
                 clearAuth();
+                restoringSession = false;
+                // Show login form again
+                if (userLine) userLine.style.display = '';
+                if (pwLine && serverUrl()) pwLine.style.display = '';
+                if (guestArea && guestArea.parentElement) guestArea.parentElement.style.display = '';
             }
         })
-        .catch(function () { /* server unreachable — stay on login */ });
+        .catch(function () {
+            restoringSession = false;
+            // Server unreachable — show login form
+            if (userLine) userLine.style.display = '';
+            if (pwLine && serverUrl()) pwLine.style.display = '';
+            if (guestArea && guestArea.parentElement) guestArea.parentElement.style.display = '';
+        });
     })();
 
     // ──────────────────────────────────────
@@ -406,8 +427,8 @@
         var pwLine = document.getElementById('password-line');
         var hasServer = !!serverUrl();
 
-        // When server is configured, show password field
-        if (hasServer && pwLine) {
+        // When server is configured, show password field (but not during session restore)
+        if (hasServer && pwLine && !restoringSession) {
             pwLine.style.display = '';
         }
 
