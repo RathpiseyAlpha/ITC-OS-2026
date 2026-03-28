@@ -653,6 +653,35 @@ _SCREENSHOT_KEYWORDS = {
     "screenshots/task4_os_layers_diagram.png": [["layer"]],
 }
 
+# Directory name aliases: when the spec says "task3_strace" but the student
+# used "task3" (or vice-versa), accept either.
+_DIR_ALIASES = {
+    "task3_strace": ["task3"],
+}
+
+
+def _try_aliases(expected_lower, existing):
+    """Try directory alias substitutions for an expected path.
+
+    Returns the actual path string from *existing* if an alias matches,
+    otherwise None.
+    """
+    for spec_dir, alternates in _DIR_ALIASES.items():
+        sd = spec_dir.lower()
+        if expected_lower == sd or expected_lower.startswith(sd + "/"):
+            for alt in alternates:
+                alt_path = alt + expected_lower[len(sd):]
+                if alt_path in existing:
+                    return existing[alt_path]
+        # Also check reverse: expected uses the alternate, spec has the canonical
+        for alt in alternates:
+            al = alt.lower()
+            if expected_lower == al or expected_lower.startswith(al + "/"):
+                canon_path = sd + expected_lower[len(al):]
+                if canon_path in existing:
+                    return existing[canon_path]
+    return None
+
 
 def _find_lab_root(username, lab_name):
     """Find a student's lab directory under their home.
@@ -948,6 +977,9 @@ def grade_student_activity(username, activity_name):
 
         if expected_lower in existing:
             actual_path = existing[expected_lower]
+            full_path = act_root / actual_path
+        elif (alias_path := _try_aliases(expected_lower, existing)) is not None:
+            actual_path = alias_path
             full_path = act_root / actual_path
             type_ok = full_path.is_dir() if is_dir else full_path.is_file()
             if not type_ok:
