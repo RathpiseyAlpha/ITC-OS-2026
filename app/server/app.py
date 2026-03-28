@@ -486,7 +486,7 @@ LAB_SPECS = {
 # Dynamically parsed from lectures/class-activity/class-activity*.md
 # so they stay in sync with the markdown submission folder structures.
 
-_ACTIVITY_MD_DIR = Path(__file__).resolve().parent.parent / "lectures" / "class-activity"
+_ACTIVITY_MD_DIR = Path(__file__).resolve().parent.parent.parent / "lectures" / "class-activity"
 _SKIP_CONTENT_DIRS = frozenset(("screenshots", "images"))
 
 
