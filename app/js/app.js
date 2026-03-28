@@ -912,11 +912,13 @@
         .then(function (data) {
             var deadlines = data.deadlines || {};
             var labs = Object.keys(CONFIG.deadlines ? CONFIG.deadlines.reduce(function (m, d) { m[d.lab] = 1; return m; }, {}) : {});
-            // Merge server + config labs
+            // Include known activities
+            ['activity1', 'activity2', 'activity3'].forEach(function (a) { if (labs.indexOf(a) === -1) labs.push(a); });
+            // Merge server + config keys
             Object.keys(deadlines).forEach(function (k) { if (labs.indexOf(k) === -1) labs.push(k); });
             labs.sort();
 
-            var html = '<div class="admin-section-header">Lab Deadlines'
+            var html = '<div class="admin-section-header">Deadlines (Labs &amp; Activities)'
                 + ' <span style="color:var(--comment);font-size:10px;margin-left:8px;">penalty = points deducted per calendar day late</span>'
                 + '</div>';
 
@@ -937,7 +939,7 @@
 
             // Add new lab row
             html += '<div class="admin-deadline-row" style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">'
-                + '<input type="text" class="admin-input admin-input-sm" id="dl-new-lab" placeholder="lab5" style="width:60px;">'
+                + '<input type="text" class="admin-input admin-input-sm" id="dl-new-lab" placeholder="e.g. lab5" style="width:80px;">'
                 + '<input type="datetime-local" step="1" class="admin-input admin-datetime" id="dl-new-due" value="">'
                 + '<span style="color:var(--comment);font-size:10px;">penalty:</span>'
                 + '<input type="number" class="admin-input admin-input-sm" id="dl-new-pen" value="5" min="0" max="100">'
@@ -1034,12 +1036,16 @@
 
         var tabsHtml = '<div class="admin-tabs">'
             + '<span class="admin-tab' + (studentCurrentTab === 'my-grades' ? ' active' : '') + '" onclick="switchStudentTab(\'my-grades\')">My Grades</span>'
+            + '<span class="admin-tab' + (studentCurrentTab === 'my-labs' ? ' active' : '') + '" onclick="switchStudentTab(\'my-labs\')">My Labs</span>'
+            + '<span class="admin-tab' + (studentCurrentTab === 'my-activities' ? ' active' : '') + '" onclick="switchStudentTab(\'my-activities\')">My Class Activity</span>'
             + '<span class="admin-tab' + (studentCurrentTab === 'leaderboard' ? ' active' : '') + '" onclick="switchStudentTab(\'leaderboard\')">Leaderboard</span>'
             + '</div>';
 
         viewerEl.innerHTML = '<div class="admin-panel">' + tabsHtml + '<div id="student-tab-content"><div class="admin-loading">Loading...</div></div></div>';
 
         if (studentCurrentTab === 'my-grades') fetchStudentGrades(url);
+        else if (studentCurrentTab === 'my-labs') fetchStudentLabs(url);
+        else if (studentCurrentTab === 'my-activities') fetchStudentActivities(url);
         else if (studentCurrentTab === 'leaderboard') fetchStudentLeaderboard(url);
     }
 
@@ -1253,6 +1259,216 @@
         });
     }
 
+    // ── My Labs Tab (lab grades with deadline + submission date) ──
+    function fetchStudentLabs(url) {
+        var container = studentContent();
+        if (!container) return;
+        fetch(url + '/api/my/grades', {
+            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.error) {
+                container.innerHTML = '<div class="error" style="padding:12px;">' + escapeHtml(data.error) + '</div>';
+                return;
+            }
+            var grades = data.grades || [];
+            var totalScore = 0, totalPossible = 0;
+            grades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            var totalPct = totalPossible > 0 ? Math.round(totalScore / totalPossible * 1000) / 10 : 0;
+            var summaryClass = totalPct >= 80 ? 'grade-a' : totalPct >= 50 ? 'grade-b' : 'grade-c';
+
+            var html = '<div class="student-summary">'
+                + '<span class="student-summary-label">Labs Overall:</span> '
+                + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
+                + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh</button>'
+                + '</div>';
+
+            grades.forEach(function (g) {
+                var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+                var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+
+                // Deadline + submission date info
+                var deadlineHtml = '';
+                var dl = null;
+                getActiveDeadlines().forEach(function (d) { if (d.lab === g.lab) dl = d; });
+                if (dl) {
+                    var now = Date.now();
+                    var dueDate = new Date(dl.due);
+                    var due = dueDate.getTime();
+                    var diff = due - now;
+                    var fullDateStr = dueDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    var subDateHtml = '';
+                    if (g.submissionDate) {
+                        var subDate = new Date(g.submissionDate);
+                        var subStr = subDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                        var wasLate = subDate.getTime() > due;
+                        subDateHtml = '<span class="lab-submission-date' + (wasLate ? ' late' : '') + '">&#x1F4E4; Submitted: ' + escapeHtml(subStr) + (wasLate ? ' (LATE)' : ' (on time)') + '</span>';
+                    }
+                    if (diff > 0) {
+                        var totalSec = Math.floor(diff / 1000);
+                        var dd = Math.floor(totalSec / 86400);
+                        var hh = Math.floor((totalSec % 86400) / 3600);
+                        var mm = Math.floor((totalSec % 3600) / 60);
+                        var ss = totalSec % 60;
+                        var countdownStr = (dd > 0 ? dd + 'd ' : '') + hh + 'h ' + mm + 'm ' + ss + 's';
+                        var urgencyClass = dd > 3 ? 'deadline-ok' : dd > 0 ? 'deadline-warn' : 'deadline-urgent';
+                        deadlineHtml = '<div class="lab-deadline-info ' + urgencyClass + '">'
+                            + '<span class="lab-deadline-date">&#x1F4C5; Due: ' + escapeHtml(fullDateStr) + '</span>'
+                            + '<span class="lab-deadline-countdown" data-due="' + due + '">&#x23F1; ' + countdownStr + ' remaining</span>'
+                            + subDateHtml
+                            + '</div>';
+                    } else {
+                        var lateSec = Math.floor(-diff / 1000);
+                        var lateDays = Math.ceil(lateSec / 86400);
+                        var penalty = lateDays * (dl.penalty || 5);
+                        deadlineHtml = '<div class="lab-deadline-info deadline-overdue">'
+                            + '<span class="lab-deadline-date">&#x1F4C5; Was due: ' + escapeHtml(fullDateStr) + '</span>'
+                            + '<span class="lab-deadline-countdown">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</span>'
+                            + subDateHtml
+                            + '</div>';
+                    }
+                }
+
+                html += '<div class="student-lab-card">'
+                    + deadlineHtml
+                    + '<div class="student-lab-header">'
+                    + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
+                    + statusIcon + ' '
+                    + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                    + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view details</span>'
+                    + '</div>';
+
+                // Brief checklist summary
+                if (g.items && g.items.length > 0) {
+                    var okCount = 0, warnCount = 0, missCount = 0;
+                    g.items.forEach(function (item) {
+                        if (item.status === 'ok') okCount++;
+                        else if (item.status === 'case_mismatch') warnCount++;
+                        else missCount++;
+                    });
+                    html += '<div class="student-checklist">'
+                        + (okCount > 0 ? '<span class="grade-a">\u2705 ' + okCount + '</span> ' : '')
+                        + (warnCount > 0 ? '<span class="grade-b">\u26A0\uFE0F ' + warnCount + '</span> ' : '')
+                        + (missCount > 0 ? '<span class="grade-c">\u274C ' + missCount + '</span>' : '')
+                        + '</div>';
+                }
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+            startGradeCountdowns();
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load labs: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    // ── My Class Activity Tab ──
+    function fetchStudentActivities(url) {
+        var container = studentContent();
+        if (!container) return;
+        fetch(url + '/api/my/activities', {
+            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.error) {
+                container.innerHTML = '<div class="error" style="padding:12px;">' + escapeHtml(data.error) + '</div>';
+                return;
+            }
+            var grades = data.grades || [];
+            var totalScore = 0, totalPossible = 0;
+            grades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            var totalPct = totalPossible > 0 ? Math.round(totalScore / totalPossible * 1000) / 10 : 0;
+            var summaryClass = totalPct >= 80 ? 'grade-a' : totalPct >= 50 ? 'grade-b' : 'grade-c';
+
+            var html = '<div class="student-summary">'
+                + '<span class="student-summary-label">Activities Overall:</span> '
+                + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
+                + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh</button>'
+                + '</div>';
+
+            grades.forEach(function (g) {
+                var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+                var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+
+                // Deadline info for activities
+                var deadlineHtml = '';
+                var dl = null;
+                getActiveDeadlines().forEach(function (d) { if (d.lab === g.activity) dl = d; });
+                if (dl) {
+                    var now = Date.now();
+                    var dueDate = new Date(dl.due);
+                    var due = dueDate.getTime();
+                    var diff = due - now;
+                    var fullDateStr = dueDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    var subDateHtml = '';
+                    if (g.submissionDate) {
+                        var subDate = new Date(g.submissionDate);
+                        var subStr = subDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                        var wasLate = subDate.getTime() > due;
+                        subDateHtml = '<span class="lab-submission-date' + (wasLate ? ' late' : '') + '">&#x1F4E4; Submitted: ' + escapeHtml(subStr) + (wasLate ? ' (LATE)' : ' (on time)') + '</span>';
+                    }
+                    if (diff > 0) {
+                        var totalSec = Math.floor(diff / 1000);
+                        var dd = Math.floor(totalSec / 86400);
+                        var hh = Math.floor((totalSec % 86400) / 3600);
+                        var mm = Math.floor((totalSec % 3600) / 60);
+                        var ss = totalSec % 60;
+                        var countdownStr = (dd > 0 ? dd + 'd ' : '') + hh + 'h ' + mm + 'm ' + ss + 's';
+                        var urgencyClass = dd > 3 ? 'deadline-ok' : dd > 0 ? 'deadline-warn' : 'deadline-urgent';
+                        deadlineHtml = '<div class="lab-deadline-info ' + urgencyClass + '">'
+                            + '<span class="lab-deadline-date">&#x1F4C5; Due: ' + escapeHtml(fullDateStr) + '</span>'
+                            + '<span class="lab-deadline-countdown" data-due="' + due + '">&#x23F1; ' + countdownStr + ' remaining</span>'
+                            + subDateHtml
+                            + '</div>';
+                    } else {
+                        var lateSec = Math.floor(-diff / 1000);
+                        var lateDays = Math.ceil(lateSec / 86400);
+                        var penalty = lateDays * (dl.penalty || 5);
+                        deadlineHtml = '<div class="lab-deadline-info deadline-overdue">'
+                            + '<span class="lab-deadline-date">&#x1F4C5; Was due: ' + escapeHtml(fullDateStr) + '</span>'
+                            + '<span class="lab-deadline-countdown">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</span>'
+                            + subDateHtml
+                            + '</div>';
+                    }
+                }
+
+                var activityLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
+                html += '<div class="student-lab-card">'
+                    + deadlineHtml
+                    + '<div class="student-lab-header">'
+                    + '<span class="student-lab-name">' + escapeHtml(activityLabel) + '</span> '
+                    + statusIcon + ' '
+                    + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                    + ' <span class="admin-detail-btn" onclick="showStudentActivityDetail(\'' + escapeHtml(g.activity) + '\')">view details</span>'
+                    + '</div>';
+
+                if (g.items && g.items.length > 0) {
+                    var okCount = 0, warnCount = 0, missCount = 0;
+                    g.items.forEach(function (item) {
+                        if (item.status === 'ok') okCount++;
+                        else if (item.status === 'case_mismatch') warnCount++;
+                        else missCount++;
+                    });
+                    html += '<div class="student-checklist">'
+                        + (okCount > 0 ? '<span class="grade-a">\u2705 ' + okCount + '</span> ' : '')
+                        + (warnCount > 0 ? '<span class="grade-b">\u26A0\uFE0F ' + warnCount + '</span> ' : '')
+                        + (missCount > 0 ? '<span class="grade-c">\u274C ' + missCount + '</span>' : '')
+                        + '</div>';
+                }
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+            startGradeCountdowns();
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load activities: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
     // ── Student Lab Detail View (tree + checklist) ──
     window.showStudentLabDetail = function (lab) {
         var url = serverUrl();
@@ -1328,6 +1544,91 @@
             html += '</div></div></div>'; // close items, items-col, columns
 
             // Feedback section
+            if (g.feedback && g.feedback.length > 0) {
+                html += '<div style="margin-top:12px;"><div style="color:var(--red);font-size:12px;margin-bottom:4px;">Feedback:</div>';
+                g.feedback.forEach(function (f) {
+                    html += '<div class="grade-feedback">\u2022 ' + escapeHtml(f) + '</div>';
+                });
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load details: ' + escapeHtml(err.message) + '</div>';
+        });
+    };
+
+    // ── Student Activity Detail View (tree + checklist) ──
+    window.showStudentActivityDetail = function (activity) {
+        var url = serverUrl();
+        if (!url || !authToken) return;
+        var container = studentContent();
+        if (!container) return;
+        var activityLabel = activity ? activity.replace('activity', 'Activity ') : activity;
+        container.innerHTML = '<div class="admin-loading">Loading details for ' + escapeHtml(activityLabel) + '...</div>';
+
+        Promise.all([
+            fetch(url + '/api/my/activities', {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.json(); }),
+            fetch(url + '/api/my/activity-tree?activity=' + encodeURIComponent(activity), {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.ok ? r.json() : null; })
+        ])
+        .then(function (results) {
+            var data = results[0];
+            var tree = results[1];
+
+            var g = null;
+            (data.grades || []).forEach(function (gr) { if (gr.activity === activity) g = gr; });
+            if (!g) {
+                container.innerHTML = '<div class="error" style="padding:12px;">Grade data not found for ' + escapeHtml(activityLabel) + '</div>';
+                return;
+            }
+
+            var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+
+            var html = '<div class="admin-section-header">'
+                + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-activities\')">\u2190 back</span> '
+                + escapeHtml(activityLabel)
+                + ' \u2014 <span class="' + pctClass + '">'
+                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + '</div>';
+
+            if (g.activityPath) {
+                html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.activityPath) + '</div>';
+            }
+
+            html += '<div class="grade-detail-columns">';
+
+            if (tree && tree.tree) {
+                html += '<div class="grade-tree-col">'
+                    + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Your File Tree:</div>'
+                    + '<pre class="grade-tree">' + renderTreeText(tree.tree, '') + '</pre>'
+                    + '</div>';
+            } else {
+                html += '<div class="grade-tree-col">'
+                    + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">File Tree:</div>'
+                    + '<div style="color:var(--comment);padding:8px;">Activity directory not found.</div>'
+                    + '</div>';
+            }
+
+            html += '<div class="grade-items-col">'
+                + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Required Items:</div>'
+                + '<div class="grade-items">';
+            (g.items || []).forEach(function (item) {
+                var icon = item.status === 'ok' ? '\u2705' : item.status === 'case_mismatch' ? '\u26A0\uFE0F' : '\u274C';
+                var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
+                var detail = '';
+                if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                html += '<div class="grade-item ' + cls + '">'
+                    + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
+                    + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
+                    + detail
+                    + '</div>';
+            });
+            html += '</div></div></div>';
+
             if (g.feedback && g.feedback.length > 0) {
                 html += '<div style="margin-top:12px;"><div style="color:var(--red);font-size:12px;margin-bottom:4px;">Feedback:</div>';
                 g.feedback.forEach(function (f) {

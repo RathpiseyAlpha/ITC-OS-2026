@@ -464,6 +464,87 @@ LAB_SPECS = {
 }
 
 
+# ── Class Activity Specs ───────────────────────────────────────
+
+ACTIVITY_SPECS = {
+    "activity1": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1/file_creator_lib.c",
+            "task1/file_creator_sys.c",
+            "task1/file_reader_lib.c",
+            "task1/file_reader_sys.c",
+            "task2/dir_list_lib.c",
+            "task2/dir_list_sys.c",
+        ],
+        "dirs": [
+            "task1",
+            "task2",
+            "task3_strace",
+            "task4_os_structure",
+            "screenshots",
+        ],
+    },
+    "activity2": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1/forkchild.c",
+            "task1/result_forkchild.txt",
+            "task1/command_used_forkchild.txt",
+            "task2/winprocess.c",
+            "task3_shm/shm-producer.c",
+            "task3_shm/shm-consumer.c",
+            "task3_shm/result-shm-ipc.txt",
+            "task3_shm/command_used_shm.txt",
+            "task4_mq/common.h",
+            "task4_mq/sender.c",
+            "task4_mq/receiver.c",
+            "task4_mq/result-mq-ipc.txt",
+            "task4_mq/command_used_mq.txt",
+        ],
+        "dirs": [
+            "task1",
+            "task2",
+            "task3_shm",
+            "task4_mq",
+            "screenshots",
+        ],
+    },
+    "activity3": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1_socket/server.c",
+            "task1_socket/client.c",
+            "task1_socket/result_socket.txt",
+            "task1_socket/command_used_socket.txt",
+            "task2_threads/threads.c",
+            "task2_threads/threads_mutex.c",
+            "task2_threads/threads_observe.c",
+            "task2_threads/result_threads.txt",
+            "task2_threads/result_threads_mutex.txt",
+            "task2_threads/result_observe_linux.txt",
+            "task2_threads/command_used_threads.txt",
+            "task3_java/ThreadDemo.java",
+            "task3_java/RunnableDemo.java",
+            "task3_java/PoolDemo.java",
+            "task3_java/result_thread_demo.txt",
+            "task3_java/result_runnable_demo.txt",
+            "task3_java/result_pool_demo.txt",
+            "task3_java/command_used_java.txt",
+        ],
+        "dirs": [
+            "task1_socket",
+            "task2_threads",
+            "task3_java",
+            "screenshots",
+        ],
+    },
+}
+
+
 def _find_lab_root(username, lab_name):
     """Find a student's lab directory under their home.
 
@@ -498,6 +579,72 @@ def _find_lab_root(username, lab_name):
     except PermissionError:
         return None
 
+    return None
+
+
+def _find_activity_root(username, activity_name):
+    """Find a student's class activity directory under their home.
+
+    Expected: /home/<user>/os-se-*/os-class-activities-*/activityN/
+    Also supports os-class-activities-*/activityN/ or direct activityN/ in home.
+    """
+    home = Path(f"/home/{username}")
+    if not home.is_dir():
+        return None
+
+    try:
+        # Pattern 1: os-se-*/os-class-activities-*/activityN/
+        for d in home.iterdir():
+            if d.is_dir() and d.name.lower().startswith("os-se-"):
+                for sub in d.iterdir():
+                    if sub.is_dir() and sub.name.lower().startswith("os-class-activit"):
+                        act_dir = sub / activity_name
+                        if act_dir.is_dir():
+                            return act_dir
+
+        # Pattern 2: os-class-activities-*/activityN/
+        for d in home.iterdir():
+            if d.is_dir() and d.name.lower().startswith("os-class-activit"):
+                act_dir = d / activity_name
+                if act_dir.is_dir():
+                    return act_dir
+
+        # Pattern 3: direct activityN/ in home
+        act_dir = home / activity_name
+        if act_dir.is_dir():
+            return act_dir
+    except PermissionError:
+        return None
+
+    return None
+
+
+def _get_submission_date(root):
+    """Get the submission date for a directory using git log.
+
+    Uses `git log --diff-filter=A --format=%aI` to find when files were first
+    added (committed).  This is NOT affected by `git pull` — git preserves
+    the original author date of each commit.
+
+    Returns ISO date string of the latest first-commit among files, or None.
+    """
+    if not root or not Path(root).is_dir():
+        return None
+    try:
+        # Get the most recent author-date of the first commit that added any file
+        result = subprocess.run(
+            ["git", "log", "--diff-filter=A", "--format=%aI", "--", "."],
+            capture_output=True, text=True, timeout=10,
+            cwd=str(root)
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return None
+        # Lines are newest-first; the first line is the latest "add" commit
+        dates = result.stdout.strip().splitlines()
+        if dates:
+            return dates[0]  # most recent add-commit's author date
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        pass
     return None
 
 
@@ -605,6 +752,7 @@ def grade_student_lab(username, lab_name):
             feedback.append(f"Missing {item_type}: '{expected}'")
 
     score = round(min(score, spec["total_points"]), 2)
+    sub_date = _get_submission_date(lab_root)
     return {
         "username": username,
         "lab": lab_name,
@@ -613,6 +761,7 @@ def grade_student_lab(username, lab_name):
         "percentage": round(score / spec["total_points"] * 100, 1),
         "found": True,
         "labPath": str(lab_root),
+        "submissionDate": sub_date,
         "items": items,
         "feedback": feedback,
     }
@@ -648,15 +797,145 @@ def grade_all_students(lab_name=None):
     return results
 
 
+def grade_student_activity(username, activity_name):
+    """Grade a single student's class activity submission.
+
+    Reuses the same grading logic as labs: check files/dirs, case matching.
+    """
+    spec = ACTIVITY_SPECS.get(activity_name)
+    if not spec:
+        return {"error": f"Unknown activity: {activity_name}"}
+
+    act_root = _find_activity_root(username, activity_name)
+    if not act_root:
+        return {
+            "username": username,
+            "activity": activity_name,
+            "score": 0,
+            "total": spec["total_points"],
+            "percentage": 0,
+            "found": False,
+            "activityPath": None,
+            "items": [],
+            "feedback": [f"Activity directory not found. Expected ~/os-se-<ID>/os-class-activities-<ID>/{activity_name}/"],
+        }
+
+    all_items = spec.get("files", []) + spec.get("dirs", [])
+    total_items = len(all_items)
+    if total_items == 0:
+        return {"error": "No items defined for this activity."}
+
+    points_per_item = spec["total_points"] / total_items
+    existing = _list_recursive(act_root)
+
+    score = 0.0
+    items = []
+    feedback = []
+
+    for expected in all_items:
+        expected_lower = expected.lower()
+        is_dir = expected in spec.get("dirs", [])
+        item_type = "dir" if is_dir else "file"
+
+        if expected_lower in existing:
+            actual_path = existing[expected_lower]
+            full_path = act_root / actual_path
+            type_ok = full_path.is_dir() if is_dir else full_path.is_file()
+            if not type_ok:
+                items.append({
+                    "expected": expected, "status": "wrong_type",
+                    "points": 0, "maxPoints": round(points_per_item, 2), "type": item_type,
+                })
+                feedback.append(f"'{expected}' exists but is {'a file' if is_dir else 'a directory'} (expected {item_type}).")
+                continue
+
+            if actual_path != expected:
+                penalty = min(1.0, points_per_item)
+                earned = max(0, points_per_item - penalty)
+                score += earned
+                items.append({
+                    "expected": expected, "actual": actual_path,
+                    "status": "case_mismatch",
+                    "points": round(earned, 2), "maxPoints": round(points_per_item, 2), "type": item_type,
+                })
+                feedback.append(f"'{actual_path}' should be '{expected}' (naming convention). -1 point.")
+            else:
+                score += points_per_item
+                items.append({
+                    "expected": expected, "status": "ok",
+                    "points": round(points_per_item, 2), "maxPoints": round(points_per_item, 2), "type": item_type,
+                })
+        else:
+            items.append({
+                "expected": expected, "status": "missing",
+                "points": 0, "maxPoints": round(points_per_item, 2), "type": item_type,
+            })
+            feedback.append(f"Missing {item_type}: '{expected}'")
+
+    score = round(min(score, spec["total_points"]), 2)
+    sub_date = _get_submission_date(act_root)
+    return {
+        "username": username,
+        "activity": activity_name,
+        "score": score,
+        "total": spec["total_points"],
+        "percentage": round(score / spec["total_points"] * 100, 1),
+        "found": True,
+        "activityPath": str(act_root),
+        "submissionDate": sub_date,
+        "items": items,
+        "feedback": feedback,
+    }
+
+
+def grade_all_activities(activity_name=None):
+    """Grade all students' class activities."""
+    acts = [activity_name] if activity_name else list(ACTIVITY_SPECS.keys())
+    results = []
+    for sid in sorted(STUDENTS.keys()):
+        info = STUDENTS[sid]
+        linux_user = info["user"]
+        for act in acts:
+            try:
+                g = grade_student_activity(linux_user, act)
+                g["id"] = sid
+                g["name"] = info["name"]
+                results.append(g)
+            except (PermissionError, OSError):
+                results.append({
+                    "username": linux_user, "id": sid, "name": info["name"],
+                    "activity": act, "score": 0,
+                    "total": ACTIVITY_SPECS.get(act, {}).get("total_points", 0),
+                    "percentage": 0, "found": False, "activityPath": None,
+                    "items": [], "feedback": ["Permission denied: cannot access home directory."],
+                })
+    return results
+
+
 def get_leaderboard():
-    """Compute leaderboard: total score across all labs per student."""
+    """Compute leaderboard: total score across all labs + activities per student."""
     all_grades = grade_all_students()
+    all_acts = grade_all_activities()
     per_student = {}
+
     for g in all_grades:
         sid = g.get("id", g["username"])
         if sid not in per_student:
-            per_student[sid] = {"id": sid, "username": g["username"], "name": g.get("name", sid), "labs": {}, "totalScore": 0, "totalPossible": 0}
+            per_student[sid] = {"id": sid, "username": g["username"], "name": g.get("name", sid), "labs": {}, "activities": {}, "totalScore": 0, "totalPossible": 0}
         per_student[sid]["labs"][g["lab"]] = {
+            "score": g["score"],
+            "total": g["total"],
+            "percentage": g["percentage"],
+            "found": g.get("found", False),
+        }
+        per_student[sid]["totalScore"] += g["score"]
+        per_student[sid]["totalPossible"] += g["total"]
+
+    for g in all_acts:
+        sid = g.get("id", g["username"])
+        if sid not in per_student:
+            per_student[sid] = {"id": sid, "username": g["username"], "name": g.get("name", sid), "labs": {}, "activities": {}, "totalScore": 0, "totalPossible": 0}
+        per_student[sid]["activities"][g["activity"]] = {
             "score": g["score"],
             "total": g["total"],
             "percentage": g["percentage"],
@@ -713,6 +992,42 @@ def get_student_tree(username, lab_name):
         "lab": lab_name,
         "path": str(lab_root),
         "tree": build_tree(lab_root),
+    }
+
+
+def get_student_activity_tree(username, activity_name):
+    """Get the file tree for a student's class activity directory."""
+    act_root = _find_activity_root(username, activity_name)
+    if not act_root:
+        return None
+
+    def build_tree(path, depth=0, max_depth=5):
+        if depth > max_depth:
+            return []
+        items = []
+        try:
+            entries = sorted(path.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+        except PermissionError:
+            return items
+        for entry in entries:
+            if entry.name.startswith("."):
+                continue
+            node = {"name": entry.name, "type": "dir" if entry.is_dir() else "file"}
+            if entry.is_dir():
+                node["children"] = build_tree(entry, depth + 1, max_depth)
+            else:
+                try:
+                    node["size"] = entry.stat().st_size
+                except OSError:
+                    node["size"] = 0
+            items.append(node)
+        return items
+
+    return {
+        "username": username,
+        "activity": activity_name,
+        "path": str(act_root),
+        "tree": build_tree(act_root),
     }
 
 
@@ -945,7 +1260,7 @@ class PresenceHandler(SimpleHTTPRequestHandler):
             for lab in labs:
                 try:
                     g = grade_student_lab(linux_user, lab)
-                    g["id"] = sid
+                    g["id"] = sid or ""
                     g["name"] = info["name"]
                     grades.append(g)
                 except (PermissionError, OSError):
@@ -985,7 +1300,86 @@ class PresenceHandler(SimpleHTTPRequestHandler):
             if not session:
                 self._json_response({"error": "Unauthorized"}, 403)
                 return
-            self._json_response({"leaderboard": get_leaderboard(), "labs": list(LAB_SPECS.keys())})
+            self._json_response({"leaderboard": get_leaderboard(), "labs": list(LAB_SPECS.keys()), "activities": list(ACTIVITY_SPECS.keys())})
+        elif path == "/api/my/activities":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            username = session["username"]
+            sid = _USER_TO_SID.get(username)
+            info = STUDENTS.get(sid) if sid else None
+            if not info:
+                self._json_response({"error": "Student not found in roster"}, 404)
+                return
+            linux_user = info["user"]
+            acts = list(ACTIVITY_SPECS.keys())
+            grades = []
+            for act in acts:
+                try:
+                    g = grade_student_activity(linux_user, act)
+                    g["id"] = sid or ""
+                    g["name"] = info["name"]
+                    grades.append(g)
+                except (PermissionError, OSError):
+                    grades.append({
+                        "username": linux_user, "id": sid or "", "name": info["name"],
+                        "activity": act, "score": 0,
+                        "total": ACTIVITY_SPECS[act]["total_points"],
+                        "percentage": 0, "found": False, "activityPath": None,
+                        "items": [], "feedback": ["Cannot access activity directory."],
+                    })
+            self._json_response({"grades": grades, "activities": acts})
+        elif path == "/api/my/activity-tree":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            username = session["username"]
+            sid = _USER_TO_SID.get(username)
+            info = STUDENTS.get(sid) if sid else None
+            if not info:
+                self._json_response({"error": "Student not found in roster"}, 404)
+                return
+            qs = parse_qs(parsed.query)
+            activity = qs.get("activity", [None])[0]
+            if not activity:
+                self._json_response({"error": "activity param required"}, 400)
+                return
+            tree = get_student_activity_tree(info["user"], activity)
+            if tree is None:
+                self._json_response({"error": "Activity directory not found"}, 404)
+                return
+            self._json_response(tree)
+        elif path == "/api/admin/activities":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session or session["role"] != "admin":
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            qs = parse_qs(parsed.query)
+            activity = qs.get("activity", [None])[0]
+            grades = grade_all_activities(activity)
+            self._json_response({"grades": grades, "activities": list(ACTIVITY_SPECS.keys())})
+        elif path == "/api/admin/activity-tree":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session or session["role"] != "admin":
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            qs = parse_qs(parsed.query)
+            user = qs.get("user", [None])[0]
+            activity = qs.get("activity", [None])[0]
+            if not user or not activity:
+                self._json_response({"error": "user and activity params required"}, 400)
+                return
+            tree = get_student_activity_tree(user, activity)
+            if tree is None:
+                self._json_response({"error": "Activity directory not found"}, 404)
+                return
+            self._json_response(tree)
         else:
             # Serve static files
             super().do_GET()
