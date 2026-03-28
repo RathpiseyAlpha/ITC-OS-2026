@@ -483,92 +483,130 @@ LAB_SPECS = {
 
 
 # ── Class Activity Specs ───────────────────────────────────────
+# Dynamically parsed from lectures/class-activity/class-activity*.md
+# so they stay in sync with the markdown submission folder structures.
 
-ACTIVITY_SPECS = {
-    "activity1": {
-        "total_points": 100,
-        "files": [
-            "README.md",
-            "task1/file_creator_lib.c",
-            "task1/file_creator_sys.c",
-            "task1/file_reader_lib.c",
-            "task1/file_reader_sys.c",
-            "task1/command_used_task1.txt",
-            "task2/dir_list_lib.c",
-            "task2/dir_list_sys.c",
-            "task2/command_used_task2.txt",
-            "task3_strace/strace_lib_task1.txt",
-            "task3_strace/strace_sys_task1.txt",
-            "task3_strace/strace_lib_reader.txt",
-            "task3_strace/strace_sys_reader.txt",
-            "task3_strace/strace_summary_lib.txt",
-            "task3_strace/strace_summary_sys.txt",
-            "task3_strace/command_used_strace.txt",
-        ],
-        "dirs": [
-            "task1",
-            "task2",
-            "task3_strace",
-            "screenshots",
-        ],
-    },
-    "activity2": {
-        "total_points": 100,
-        "files": [
-            "README.md",
-            "task1/forkchild.c",
-            "task1/result_forkchild.txt",
-            "task1/command_used_forkchild.txt",
-            "task2/winprocess.c",
-            "task3_shm/shm-producer.c",
-            "task3_shm/shm-consumer.c",
-            "task3_shm/result-shm-ipc.txt",
-            "task3_shm/command_used_shm.txt",
-            "task4_mq/common.h",
-            "task4_mq/sender.c",
-            "task4_mq/receiver.c",
-            "task4_mq/result-mq-ipc.txt",
-            "task4_mq/command_used_mq.txt",
-        ],
-        "dirs": [
-            "task1",
-            "task2",
-            "task3_shm",
-            "task4_mq",
-            "screenshots",
-        ],
-    },
-    "activity3": {
-        "total_points": 100,
-        "files": [
-            "README.md",
-            "task1_socket/server.c",
-            "task1_socket/client.c",
-            "task1_socket/result_socket.txt",
-            "task1_socket/command_used_socket.txt",
-            "task2_threads/threads.c",
-            "task2_threads/threads_mutex.c",
-            "task2_threads/threads_observe.c",
-            "task2_threads/result_threads.txt",
-            "task2_threads/result_threads_mutex.txt",
-            "task2_threads/result_observe_linux.txt",
-            "task2_threads/command_used_threads.txt",
-            "task3_java/ThreadDemo.java",
-            "task3_java/RunnableDemo.java",
-            "task3_java/PoolDemo.java",
-            "task3_java/result_thread_demo.txt",
-            "task3_java/result_runnable_demo.txt",
-            "task3_java/result_pool_demo.txt",
-            "task3_java/command_used_java.txt",
-        ],
-        "dirs": [
-            "task1_socket",
-            "task2_threads",
-            "task3_java",
-            "screenshots",
-        ],
-    },
-}
+_ACTIVITY_MD_DIR = Path(__file__).resolve().parent.parent / "lectures" / "class-activity"
+_SKIP_CONTENT_DIRS = frozenset(("screenshots", "images"))
+
+
+def _parse_activity_spec(md_path, activity_name):
+    """Parse a class-activity markdown file and build a grading spec.
+
+    Locates the Submission Folder Structure tree code block, walks the
+    tree to collect expected files and directories, and reads
+    ``total_points`` from the Grading Criteria table.
+
+    Returns ``{"total_points": int, "files": [...], "dirs": [...]}``
+    or ``None`` on parse failure.
+    """
+    try:
+        text = Path(md_path).read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    # ── 1. Find the tree code block containing activityN/ ──────
+    tree_block = None
+    in_code = False
+    buf = []
+    for line in text.splitlines():
+        if line.strip().startswith("```"):
+            if in_code:
+                block = "\n".join(buf)
+                if f"{activity_name}/" in block and ("├" in block or "└" in block):
+                    tree_block = block
+                    break
+                buf = []
+            in_code = not in_code
+            continue
+        if in_code:
+            buf.append(line)
+
+    if not tree_block:
+        return None
+
+    # ── 2. Walk the tree and collect files / dirs ──────────────
+    files, dirs = [], []
+    root_found = False
+    base_indent = None
+    stack = []  # dir names forming path context
+
+    for raw in tree_block.splitlines():
+        m = re.search(r"([├└])── (.+)", raw)
+        if not m:
+            continue
+
+        marker_pos = raw.index(m.group(1))
+        entry_raw = m.group(2)
+
+        # Locate root node (e.g. "activity1/")
+        if not root_found:
+            if entry_raw.strip().rstrip("/") == activity_name:
+                root_found = True
+            continue
+
+        if base_indent is None:
+            base_indent = marker_pos
+        depth = (marker_pos - base_indent) // 4
+        if depth < 0:
+            break  # exited the root subtree
+
+        # Clean display name: strip  # comments  and  ← annotations
+        entry = re.sub(r"\s{2,}#.*$", "", entry_raw).strip()
+        entry = re.sub(r"\s+←.*$", "", entry).strip()
+        if not entry or "..." in entry:
+            continue
+
+        is_dir = entry.endswith("/")
+        name = entry.rstrip("/")
+        stack = stack[:depth]
+
+        if is_dir:
+            rel = "/".join(stack + [name]) if stack else name
+            dirs.append(rel)
+            stack.append(name)
+        else:
+            # Skip items marked optional or bonus in the original comment
+            cm = re.search(r"\s{2,}#\s*(.+)$", entry_raw)
+            if cm and re.search(r"optional|bonus", cm.group(1), re.I):
+                continue
+
+            # Skip individual files under screenshots/ or images/
+            if stack and stack[0] in _SKIP_CONTENT_DIRS:
+                continue
+
+            rel = "/".join(stack + [name]) if stack else name
+            files.append(rel)
+
+    if not root_found or (not files and not dirs):
+        return None
+
+    # ── 3. Extract total_points from Grading Criteria table ────
+    total = 100
+    for line in text.splitlines():
+        if "total" in line.lower() and "|" in line:
+            pts = re.search(r"\*\*(\d+)(?:\s*\(\+\d+[^)]*\))?\*\*", line)
+            if pts:
+                total = int(pts.group(1))
+                break
+
+    return {"total_points": total, "files": files, "dirs": dirs}
+
+
+def _build_activity_specs():
+    """Build ACTIVITY_SPECS by parsing class-activity markdown files."""
+    specs = {}
+    for i in range(1, 100):
+        md = _ACTIVITY_MD_DIR / f"class-activity{i}.md"
+        if not md.exists():
+            break
+        spec = _parse_activity_spec(md, f"activity{i}")
+        if spec:
+            specs[f"activity{i}"] = spec
+    return specs
+
+
+ACTIVITY_SPECS = _build_activity_specs()
 
 
 def _find_lab_root(username, lab_name):
