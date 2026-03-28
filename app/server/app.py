@@ -647,10 +647,10 @@ ACTIVITY_SPECS["activity1"] = {
 # When exact match fails, match any file under screenshots/ whose basename
 # (extension-stripped) contains ALL listed keywords.  Extension is ignored.
 _SCREENSHOT_KEYWORDS = {
-    "screenshots/task4_system_info.png": ["system", "info"],
-    "screenshots/task4_process_info.png": ["process", "info"],
-    "screenshots/task4_modules.png": ["mod"],
-    "screenshots/task4_os_layers_diagram.png": ["layer"],
+    "screenshots/task4_system_info.png": [["system", "info"], ["cpuinfo"], ["meminfo"], ["cpu"], ["mem"]],
+    "screenshots/task4_process_info.png": [["process", "info"]],
+    "screenshots/task4_modules.png": [["mod"]],
+    "screenshots/task4_os_layers_diagram.png": [["layer"]],
 }
 
 
@@ -978,13 +978,13 @@ def grade_student_activity(username, activity_name):
             # Fallback: keyword-based matching for screenshot files
             matched_path = None
             if expected in _SCREENSHOT_KEYWORDS:
-                keywords = _SCREENSHOT_KEYWORDS[expected]
+                keyword_groups = _SCREENSHOT_KEYWORDS[expected]
                 for ex_lower, ex_actual in existing.items():
                     if not ex_lower.startswith("screenshots/"):
                         continue
                     base = ex_lower.rsplit("/", 1)[-1]
                     base = base.rsplit(".", 1)[0] if "." in base else base
-                    if all(kw in base for kw in keywords):
+                    if any(all(kw in base for kw in grp) for grp in keyword_groups):
                         full = act_root / ex_actual
                         if full.is_file():
                             matched_path = ex_actual
