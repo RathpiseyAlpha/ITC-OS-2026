@@ -545,41 +545,69 @@
     };
 
     // ── Admin Table Sort ──
-    var _adminSortCol = -1;
-    var _adminSortAsc = true;
-
+    // Sort state stored per table via data attributes to avoid cross-tab leaks.
     window.adminSortTable = function (th) {
-        var table = th.closest('table');
+        var table = th;
+        while (table && table.tagName !== 'TABLE') table = table.parentElement;
         if (!table) return;
-        var headers = th.parentNode.querySelectorAll('th');
-        var colIdx = Array.prototype.indexOf.call(headers, th);
-        if (colIdx === _adminSortCol) {
-            _adminSortAsc = !_adminSortAsc;
+
+        var thead = table.querySelector('thead');
+        if (!thead) return;
+        var headers = Array.prototype.slice.call(thead.querySelectorAll('th'));
+        var colIdx = headers.indexOf(th);
+        if (colIdx < 0) return;
+
+        // Per-table sort state via data attributes
+        var prevCol = parseInt(table.getAttribute('data-sort-col'), 10);
+        var asc;
+        if (prevCol === colIdx) {
+            asc = table.getAttribute('data-sort-dir') !== 'asc';
         } else {
-            _adminSortCol = colIdx;
-            _adminSortAsc = true;
+            asc = true;
         }
+        table.setAttribute('data-sort-col', colIdx);
+        table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+
         // Update sort indicators
-        for (var h = 0; h < headers.length; h++) {
-            headers[h].classList.remove('sort-asc', 'sort-desc');
-        }
-        th.classList.add(_adminSortAsc ? 'sort-asc' : 'sort-desc');
+        headers.forEach(function (h) { h.classList.remove('sort-asc', 'sort-desc'); });
+        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
 
         var tbody = table.querySelector('tbody');
+        if (!tbody) return;
         var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
         rows.sort(function (a, b) {
-            var aText = (a.children[colIdx] || {}).textContent || '';
-            var bText = (b.children[colIdx] || {}).textContent || '';
-            // Try numeric comparison first
-            var aNum = parseFloat(aText.replace(/[^0-9.\-]/g, ''));
-            var bNum = parseFloat(bText.replace(/[^0-9.\-]/g, ''));
+            var cellA = a.children[colIdx];
+            var cellB = b.children[colIdx];
+            var aText = cellA ? cellA.textContent.trim() : '';
+            var bText = cellB ? cellB.textContent.trim() : '';
+
+            // Direct numeric check (handles plain numbers like "5", "100")
+            var aNum = aText === '' ? NaN : Number(aText);
+            var bNum = bText === '' ? NaN : Number(bText);
             if (!isNaN(aNum) && !isNaN(bNum)) {
-                return _adminSortAsc ? aNum - bNum : bNum - aNum;
+                return asc ? aNum - bNum : bNum - aNum;
             }
-            // Fall back to string comparison
+
+            // Percentage match (e.g. "85%", "100%")
+            var aPct = aText.match(/^(\d+(?:\.\d+)?)%$/);
+            var bPct = bText.match(/^(\d+(?:\.\d+)?)%$/);
+            if (aPct && bPct) {
+                return asc ? parseFloat(aPct[1]) - parseFloat(bPct[1]) : parseFloat(bPct[1]) - parseFloat(aPct[1]);
+            }
+
+            // Fraction match (e.g. "8/10")
+            var aFrac = aText.match(/^(\d+)\/(\d+)$/);
+            var bFrac = bText.match(/^(\d+)\/(\d+)$/);
+            if (aFrac && bFrac) {
+                return asc ? parseInt(aFrac[1], 10) - parseInt(bFrac[1], 10) : parseInt(bFrac[1], 10) - parseInt(aFrac[1], 10);
+            }
+
+            // Fall back to locale-aware string comparison
             var cmp = aText.localeCompare(bText, undefined, { numeric: true, sensitivity: 'base' });
-            return _adminSortAsc ? cmp : -cmp;
+            return asc ? cmp : -cmp;
         });
+
         for (var i = 0; i < rows.length; i++) {
             tbody.appendChild(rows[i]);
         }
