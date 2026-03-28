@@ -108,8 +108,10 @@
             padding: 60px 80px;
             position: relative;
             flex-direction: column;
-            justify-content: center;
+            justify-content: safe center;
             overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
         }
 
         .slide.active {
@@ -200,6 +202,8 @@
             color: var(--text-secondary);
             padding: 8px 0 8px 30px;
             position: relative;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         .content-slide ul li::before {
@@ -229,6 +233,8 @@
             font-size: 1.2em;
             line-height: 1.8;
             color: var(--text-secondary);
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         /* Two-column layout */
@@ -241,6 +247,8 @@
 
         .two-col .col {
             flex: 1;
+            min-width: 0;
+            overflow-wrap: break-word;
         }
 
         .two-col .col-img {

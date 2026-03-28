@@ -108,8 +108,10 @@
             padding: 60px 80px;
             position: relative;
             flex-direction: column;
-            justify-content: center;
+            justify-content: safe center;
             overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
         }
 
         .slide.active {
@@ -208,6 +210,8 @@
             color: var(--text-secondary);
             padding: 8px 0 8px 30px;
             position: relative;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         .content-slide ul li::before {
@@ -237,6 +241,8 @@
             font-size: 1.2em;
             line-height: 1.8;
             color: var(--text-secondary);
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
 
         /* Two-column layout */
@@ -249,6 +255,8 @@
 
         .two-col .col {
             flex: 1;
+            min-width: 0;
+            overflow-wrap: break-word;
         }
 
         .two-col .col-img {
@@ -357,6 +365,9 @@
             border-collapse: collapse;
             margin: 15px 0;
             font-size: 1em;
+            table-layout: fixed;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 
         .slide-table th {
@@ -392,6 +403,9 @@
             text-align: center;
             margin: 20px 0;
             line-height: 1.8;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-wrap: break-word;
         }
 
         .highlight-green {
@@ -662,6 +676,7 @@
             .code-block { font-size: 0.9em; padding: 10px 14px; }
             .slide-num { bottom: 15px; right: 20px; }
             .slide-section-label { top: 15px; right: 20px; font-size: 0.8em; }
+            .slide-table th, .slide-table td { padding: 6px 10px; font-size: 0.85em; }
         }
 
         @media (max-width: 600px) {
@@ -671,6 +686,7 @@
             .section-slide h2 { font-size: 1.5em; }
             .content-slide h2 { font-size: 1.3em; margin-bottom: 10px; }
             .content-slide ul li { font-size: 0.9em; padding: 3px 0 3px 18px; }
+            .slide-table th, .slide-table td { padding: 4px 6px; font-size: 0.8em; }
             .code-block { font-size: 0.8em; padding: 8px 10px; }
             .title-slide .title-image { max-width: 280px; }
         }
