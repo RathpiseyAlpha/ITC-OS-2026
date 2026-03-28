@@ -461,6 +461,24 @@ LAB_SPECS = {
             "shared_lib_lab",
         ],
     },
+    "lab4": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1_redirection.txt",
+            "task2_pipelines.txt",
+            "task3_analysis.txt",
+            "task4_processes.txt",
+            "task5_orphan_zombie.txt",
+            "orphan.c",
+            "zombie.c",
+            "access.log",
+        ],
+        "dirs": [
+            "images",
+            "redirect_lab",
+        ],
+    },
 }
 
 
