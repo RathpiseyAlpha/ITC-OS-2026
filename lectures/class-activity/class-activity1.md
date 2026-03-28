@@ -877,19 +877,14 @@ os-se-<YourStudentID>/
         │   ├── dir_list_lib.c             # Provided (copy from instructions)
         │   ├── dir_list_sys.c             # YOU WRITE THIS
         │   └── command_used_task2.txt
-        ├── task3_strace/
-        │   ├── strace_lib_task1.txt
-        │   ├── strace_sys_task1.txt
-        │   ├── strace_lib_reader.txt
-        │   ├── strace_sys_reader.txt
-        │   ├── strace_summary_lib.txt
-        │   ├── strace_summary_sys.txt
-        │   └── command_used_strace.txt
-        └── task4_os_structure/
-            ├── system_info.txt
-            ├── process_info.txt
-            ├── kernel_modules.txt
-            └── command_used_task4.txt
+        └── task3_strace/
+            ├── strace_lib_task1.txt
+            ├── strace_sys_task1.txt
+            ├── strace_lib_reader.txt
+            ├── strace_sys_reader.txt
+            ├── strace_summary_lib.txt
+            ├── strace_summary_sys.txt
+            └── command_used_strace.txt
 ```
 
 ### Setting Up Your Activity Folder
@@ -899,7 +894,7 @@ os-se-<YourStudentID>/
 $ cd os-se-<YourStudentID>
 
 # Create the class activities folder structure
-$ mkdir -p os-class-activities-<YourStudentID>/activity1/{task1,task2,task3_strace,task4_os_structure,screenshots}
+$ mkdir -p os-class-activities-<YourStudentID>/activity1/{task1,task2,task3_strace,screenshots}
 
 # Start working
 $ cd os-class-activities-<YourStudentID>/activity1
@@ -1176,13 +1171,15 @@ What did you learn from this activity? What was the most surprising difference b
 |----------|--------|
 | Warm-up examples run successfully (with screenshots) | 5 |
 | Task 1A — File Creator syscall version compiles and matches output | 10 |
+| Task 1A — Questions answered thoughtfully | 5 |
 | Task 1B — File Reader syscall version compiles and matches output | 10 |
+| Task 1B — Questions answered thoughtfully | 5 |
 | Task 2 — Directory Listing syscall version compiles and matches output | 10 |
+| Task 2 — Questions answered thoughtfully | 5 |
 | Task 3 — strace screenshots with clear highlights and annotations | 10 |
 | Task 3 — strace questions answered with evidence from output | 10 |
 | Task 4 — OS structure screenshots and OS layers diagram | 10 |
 | Task 4 — OS structure questions answered thoughtfully | 10 |
-| All other questions (Tasks 1–2) answered thoughtfully in README | 15 |
 | README is well-organized with clear screenshots | 10 |
 | **Bonus**: Windows API version with screenshot | +10 |
 | **Total** | **100 (+10 bonus)** |
