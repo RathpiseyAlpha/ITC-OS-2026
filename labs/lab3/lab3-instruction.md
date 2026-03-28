@@ -1593,12 +1593,13 @@ os-se-<YourStudentID>/
         │   ├── config.yaml, config.yml, settings.json
         │   ├── backup1.tar.gz, backup2.tar.gz
         │   └── memo_mon.txt ... memo_fri.txt
+        ├── quick_access -> links_lab/projects/frontend
         ├── csv_archive/
         │   └── data01.csv ... data03.csv
         ├── links_lab/
         │   ├── config_hardlink.txt
         │   ├── config_symlink.txt -> (broken)
-        │   ├── shared_data.txt, hr_data.txt, eng_data.txt
+        │   ├── hr_data.txt, eng_data.txt
         │   ├── projects/frontend/index.html
         │   └── web_shortcut -> projects/frontend
         └── shared_lib_lab/
