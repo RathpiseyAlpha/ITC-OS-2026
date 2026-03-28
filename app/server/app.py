@@ -972,6 +972,31 @@ def grade_student_activity(username, activity_name):
         if expected_lower in existing:
             actual_path = existing[expected_lower]
             full_path = act_root / actual_path
+            type_ok = full_path.is_dir() if is_dir else full_path.is_file()
+            if not type_ok:
+                items.append({
+                    "expected": expected, "status": "wrong_type",
+                    "points": 0, "maxPoints": round(points_per_item, 2), "type": item_type,
+                })
+                feedback.append(f"'{expected}' exists but is {'a file' if is_dir else 'a directory'} (expected {item_type}).")
+                continue
+
+            if actual_path != expected:
+                penalty = min(1.0, points_per_item)
+                earned = max(0, points_per_item - penalty)
+                score += earned
+                items.append({
+                    "expected": expected, "actual": actual_path,
+                    "status": "case_mismatch",
+                    "points": round(earned, 2), "maxPoints": round(points_per_item, 2), "type": item_type,
+                })
+                feedback.append(f"'{actual_path}' should be '{expected}' (naming convention). -1 point.")
+            else:
+                score += points_per_item
+                items.append({
+                    "expected": expected, "status": "ok",
+                    "points": round(points_per_item, 2), "maxPoints": round(points_per_item, 2), "type": item_type,
+                })
         elif (alias_path := _try_alias(expected_lower, existing)) is not None:
             # Dir alias match (e.g. task3 ↔ task3_strace) — full points, no penalty
             actual_path = alias_path
