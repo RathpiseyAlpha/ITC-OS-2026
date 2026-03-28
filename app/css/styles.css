@@ -775,6 +775,10 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     letter-spacing: 0.5px;
     margin-bottom: 12px;
     padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 /* ─── Admin Search Bar ─── */
@@ -782,7 +786,8 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-left: auto;
+    margin-bottom: 0;
 }
 .admin-search-bar input {
     background: rgba(0, 255, 65, 0.05);

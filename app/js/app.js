@@ -630,12 +630,12 @@
             var users = data.users || [];
             var html = '<div class="admin-section-header">User Activity Statistics'
                 + ' <span id="admin-refresh-btn" style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="refreshAdminStats()">&#x21BB; refresh</span>'
+                + adminSearchHtml('admin-search-users', '\uD83D\uDD0D Search users...')
                 + '</div>'
                 + '<div class="admin-summary">'
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.length + '</span> total users</span>'
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.filter(function(u){return u.isOnline;}).length + '</span> online now</span>'
                 + '</div>'
-                + adminSearchHtml('admin-search-users', '\uD83D\uDD0D Search users...')
                 + '<table class="admin-table">'
                 + '<thead><tr><th onclick="adminSortTable(this)">User</th><th onclick="adminSortTable(this)">Logins</th><th onclick="adminSortTable(this)">Last Login</th><th onclick="adminSortTable(this)">Duration</th><th onclick="adminSortTable(this)">Status</th></tr></thead>'
                 + '<tbody>';
@@ -701,6 +701,7 @@
             // Lab filter buttons
             var html = '<div class="admin-section-header">Lab Grading'
                 + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="fetchAdminGrades_refresh()">&#x21BB; refresh</span>'
+                + adminSearchHtml('admin-search-grades', '\uD83D\uDD0D Search by ID, name, score...')
                 + '</div>'
                 + '<div class="admin-lab-filters">'
                 + '<span class="admin-lab-btn' + (!gradesLabFilter ? ' active' : '') + '" onclick="filterGrades(null)">All Labs</span>';
@@ -712,8 +713,7 @@
             if (grades.length === 0) {
                 html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
             } else {
-                html += adminSearchHtml('admin-search-grades', '\uD83D\uDD0D Search by ID, name, score...')
-                    + '<table class="admin-table">'
+                html += '<table class="admin-table">'
                     + '<thead><tr><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">Lab</th><th onclick="adminSortTable(this)">Score</th><th onclick="adminSortTable(this)">%</th><th onclick="adminSortTable(this)">Status</th><th>Details</th></tr></thead>'
                     + '<tbody>';
                 grades.forEach(function (g) {
@@ -857,9 +857,8 @@
 
             var html = '<div class="admin-section-header">Student Leaderboard'
                 + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="switchAdminTab(\'leaderboard\')">&#x21BB; refresh</span>'
-                + '</div>';
-
-            html += adminSearchHtml('admin-search-leaderboard', '\uD83D\uDD0D Search students...')
+                + adminSearchHtml('admin-search-leaderboard', '\uD83D\uDD0D Search students...')
+                + '</div>'
                 + '<table class="admin-table leaderboard-table">'
                 + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th>';
             labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
