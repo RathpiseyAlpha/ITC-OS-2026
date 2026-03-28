@@ -1215,7 +1215,7 @@ class PresenceHandler(SimpleHTTPRequestHandler):
             if not session or session["role"] != "admin":
                 self._json_response({"error": "Unauthorized"}, 403)
                 return
-            self._json_response({"leaderboard": get_leaderboard(), "labs": list(LAB_SPECS.keys())})
+            self._json_response({"leaderboard": get_leaderboard(), "labs": list(LAB_SPECS.keys()), "activities": list(ACTIVITY_SPECS.keys())})
         elif path == "/api/admin/tree":
             token = self._get_token()
             session = validate_token(token)

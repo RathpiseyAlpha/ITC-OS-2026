@@ -932,6 +932,7 @@
         .then(function (data) {
             var board = data.leaderboard || [];
             var labs = data.labs || [];
+            var activities = data.activities || [];
 
             var html = '<div class="admin-section-header">Student Leaderboard'
                 + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="switchAdminTab(\'leaderboard\')">&#x21BB; refresh</span>'
@@ -940,10 +941,14 @@
                 + '<table class="admin-table leaderboard-table">'
                 + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th>';
             labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
+            activities.forEach(function (a) {
+                var label = a.replace('activity', 'A');
+                html += '<th onclick="adminSortTable(this)">' + escapeHtml(label) + '</th>';
+            });
             html += '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="' + (labs.length + 5) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="' + (labs.length + activities.length + 5) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
@@ -957,6 +962,15 @@
                         if (labData) {
                             var lc = labData.percentage >= 80 ? 'grade-a' : labData.percentage >= 50 ? 'grade-b' : 'grade-c';
                             html += '<td><span class="' + lc + '">' + labData.score + '/' + labData.total + '</span></td>';
+                        } else {
+                            html += '<td style="color:var(--comment);">\u2014</td>';
+                        }
+                    });
+                    activities.forEach(function (a) {
+                        var actData = s.activities ? s.activities[a] : null;
+                        if (actData) {
+                            var ac = actData.percentage >= 80 ? 'grade-a' : actData.percentage >= 50 ? 'grade-b' : 'grade-c';
+                            html += '<td><span class="' + ac + '">' + actData.score + '/' + actData.total + '</span></td>';
                         } else {
                             html += '<td style="color:var(--comment);">\u2014</td>';
                         }
@@ -1438,21 +1452,19 @@
             var board = data.leaderboard || [];
 
             var html = '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">ID</th>'
+                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th>'
                 + '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="5" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="4" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
                     var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
                     var isMe = s.username === authUser;
-                    var displayName = escapeHtml(s.name || s.username || '\u2014') + (isMe ? ' \u2B50' : '');
-                    var displayId = escapeHtml(s.id || '\u2014');
+                    var displayId = escapeHtml(s.id || '\u2014') + (isMe ? ' \u2B50' : '');
                     html += '<tr' + (isMe ? ' class="leaderboard-me"' : '') + '>'
                         + '<td class="rank-cell">' + rankIcon + '</td>'
-                        + '<td>' + displayName + '</td>'
                         + '<td class="admin-user">' + displayId + '</td>'
                         + '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
                         + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
