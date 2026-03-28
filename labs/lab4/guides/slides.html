@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operating Systems - Lab 4: I/O Redirection, Pipelines &amp; Process Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Light theme (default) */
+        :root {
+            --bg-body: #f0f2f5;
+            --text-primary: #1a1a2e;
+            --text-secondary: #3a3a5c;
+            --text-muted: #6b7280;
+            --accent: #e94560;
+            --accent2: #0d9488;
+            --bg-title: linear-gradient(135deg, #e8eaf6, #c5cae9, #e3f2fd);
+            --bg-section: linear-gradient(135deg, #e3f2fd, #bbdefb, #e8eaf6);
+            --bg-content: linear-gradient(135deg, #f5f7fa, #e8ecf1, #f0f2f5);
+            --bg-nav-btn: #e0e5ec;
+            --border-nav: #c5cae9;
+            --bg-code: #eef2f7;
+            --border-code: #c5cae9;
+            --code-color: #0d9488;
+            --bg-callout: #e3f2fd;
+            --border-callout: #0d9488;
+            --callout-text: #3a3a5c;
+            --shadow: rgba(0, 0, 0, 0.12);
+            --slide-num-color: #9ca3af;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #0d9488;
+            --list-sub-color: #6b7280;
+            --person-name: #0d9488;
+            --person-years: #6b7280;
+            --nav-info-color: #9ca3af;
+            --progress-bg: linear-gradient(90deg, #e94560, #0d9488);
+        }
+
+        /* Dark theme */
+        [data-theme="dark"] {
+            --bg-body: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #ccd6f6;
+            --text-muted: #4a5568;
+            --accent: #e94560;
+            --accent2: #64ffda;
+            --bg-title: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            --bg-section: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            --bg-content: linear-gradient(135deg, #0d1117, #161b22, #1a1a2e);
+            --bg-nav-btn: #16213e;
+            --border-nav: #30363d;
+            --bg-code: #0d1117;
+            --border-code: #30363d;
+            --code-color: #64ffda;
+            --bg-callout: #16213e;
+            --border-callout: #64ffda;
+            --callout-text: #a8b2d1;
+            --shadow: rgba(0, 0, 0, 0.5);
+            --slide-num-color: #4a5568;
+            --gradient-title: linear-gradient(90deg, #e94560, #ff6b6b);
+            --sub-accent: #64ffda;
+            --list-sub-color: #8892b0;
+            --person-name: #64ffda;
+            --person-years: #8892b0;
+            --nav-info-color: #4a5568;
+            --progress-bg: linear-gradient(90deg, #e94560, #64ffda);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        body.nav-open .page-wrapper {
+            margin-left: 280px;
+        }
+
+        .page-wrapper {
+            margin-left: 0;
+            transition: margin-left 0.3s ease;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 60px 80px;
+            position: relative;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        /* Slide backgrounds */
+        .slide-title-bg {
+            background: var(--bg-title);
+        }
+
+        .slide-section-bg {
+            background: var(--bg-section);
+        }
+
+        .slide-content-bg {
+            background: var(--bg-content);
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-slide h1 {
+            font-size: 3.5em;
+            font-weight: 700;
+            letter-spacing: 3px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-slide h2 {
+            font-size: 1.8em;
+            font-weight: 300;
+            color: var(--text-secondary);
+            letter-spacing: 5px;
+            text-transform: uppercase;
+        }
+
+        .title-slide .subtitle {
+            font-size: 1.2em;
+            color: var(--text-muted);
+            margin-top: 15px;
+            letter-spacing: 2px;
+        }
+
+        /* Section header slides */
+        .section-slide {
+            text-align: center;
+            align-items: center;
+        }
+
+        .section-slide h2 {
+            font-size: 3em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .section-slide .slide-number {
+            font-size: 1.2em;
+            color: var(--text-muted);
+        }
+
+        .section-slide .section-desc {
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            margin-top: 15px;
+            max-width: 700px;
+        }
+
+        /* Content slides */
+        .content-slide h2 {
+            font-size: 2.4em;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e9456040;
+            padding-bottom: 15px;
+        }
+
+        .content-slide ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .content-slide ul li {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            padding: 8px 0 8px 30px;
+            position: relative;
+        }
+
+        .content-slide ul li::before {
+            content: '\25B8';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .content-slide ul li ul {
+            margin-top: 5px;
+        }
+
+        .content-slide ul li ul li {
+            font-size: 0.95em;
+            color: var(--list-sub-color);
+            padding: 4px 0 4px 30px;
+        }
+
+        .content-slide ul li ul li::before {
+            content: '\25E6';
+            color: var(--accent2);
+        }
+
+        .content-slide p {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        /* Two-column layout */
+        .two-col {
+            display: flex;
+            gap: 50px;
+            align-items: flex-start;
+            flex: 1;
+        }
+
+        .two-col .col {
+            flex: 1;
+        }
+
+        .two-col .col-img {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .two-col .col-img img {
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 8px;
+            padding: 15px 20px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.05em;
+            color: var(--code-color);
+            margin: 8px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .code-multi {
+            display: block;
+            white-space: pre;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-code);
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            line-height: 1;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .copy-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .copy-btn.copied {
+            background: var(--accent2);
+            border-color: var(--accent2);
+            color: #fff;
+        }
+
+        /* Slide number indicator */
+        .slide-num {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-size: 1em;
+            color: var(--slide-num-color);
+        }
+
+        .slide-section-label {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-size: 0.9em;
+            color: var(--accent);
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Callout box */
+        .callout {
+            background: var(--bg-callout);
+            border-left: 4px solid var(--border-callout);
+            border-radius: 0 8px 8px 0;
+            padding: 20px 25px;
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: var(--callout-text);
+        }
+
+        .callout-warn {
+            border-left-color: #f59e0b;
+            background: #fef9c320;
+        }
+
+        /* Table styling */
+        .slide-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 1em;
+        }
+
+        .slide-table th {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            padding: 10px 15px;
+            text-align: left;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .slide-table td {
+            border: 1px solid var(--border-code);
+            padding: 8px 15px;
+            color: var(--text-secondary);
+            font-size: 0.95em;
+        }
+
+        .slide-table tr:nth-child(even) td {
+            background: var(--bg-code);
+        }
+
+        /* Diagram styling */
+        .diagram-box {
+            background: var(--bg-code);
+            border: 1px solid var(--border-code);
+            border-radius: 10px;
+            padding: 30px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 1.1em;
+            color: var(--code-color);
+            text-align: center;
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+
+        .highlight-green {
+            color: var(--accent2);
+        }
+
+        .highlight-red {
+            color: var(--accent);
+        }
+
+        .highlight-yellow {
+            color: #ffd700;
+        }
+
+        .note-text {
+            font-size: 1em;
+            color: var(--list-sub-color);
+            font-style: italic;
+            margin-top: 15px;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--progress-bg);
+            transition: width 0.3s ease, left 0.3s ease;
+            z-index: 100;
+        }
+
+        body.nav-open .progress-bar {
+            left: 280px;
+        }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+            transition: left 0.3s ease;
+        }
+
+        body.nav-open .nav-controls {
+            left: calc(50% + 140px);
+        }
+
+        .nav-btn {
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-info {
+            display: flex;
+            align-items: center;
+            color: var(--nav-info-color);
+            font-size: 0.9em;
+            padding: 0 10px;
+        }
+
+        /* Slide navigation map sidebar */
+        .nav-map-toggle {
+            position: fixed;
+            top: 15px;
+            left: 65px;
+            z-index: 300;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--bg-body);
+            border-right: 1px solid var(--border-nav);
+            z-index: 250;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            padding: 70px 0 30px 0;
+        }
+
+        body.nav-open .nav-map {
+            transform: translateX(0);
+        }
+
+        body.nav-open .theme-toggle {
+            left: 295px;
+        }
+
+        body.nav-open .nav-map-toggle {
+            left: 345px;
+        }
+
+        .theme-toggle,
+        .nav-map-toggle {
+            transition: all 0.3s ease;
+        }
+
+        .nav-map-header {
+            padding: 0 20px 15px;
+            font-size: 0.75em;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-nav);
+            margin-bottom: 8px;
+        }
+
+        .nav-map-section {
+            padding: 8px 20px 4px;
+            font-size: 0.7em;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .nav-map-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .nav-map-item:hover {
+            background: var(--bg-code);
+            border-left-color: var(--accent2);
+        }
+
+        .nav-map-item.active {
+            background: var(--bg-callout);
+            border-left-color: var(--accent);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .nav-map-item .nm-num {
+            flex-shrink: 0;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-muted);
+        }
+
+        .nav-map-item.active .nm-num {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .nav-map-item .nm-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Scrollbar styling for nav map */
+        .nav-map::-webkit-scrollbar {
+            width: 4px;
+        }
+        .nav-map::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .nav-map::-webkit-scrollbar-thumb {
+            background: var(--border-nav);
+            border-radius: 2px;
+        }
+
+        /* Theme toggle button */
+        .theme-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 200;
+            background: var(--bg-nav-btn);
+            border: 1px solid var(--border-nav);
+            color: var(--text-secondary);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode" aria-label="Toggle dark/light mode">&#9790;</button>
+    <button class="nav-map-toggle" id="navMapToggle" title="Slide navigation map" aria-label="Slide navigation map">&#9776;</button>
+
+    <!-- Slide Navigation Map -->
+    <nav class="nav-map" id="navMap">
+        <div class="nav-map-header">Slide Map</div>
+        <div class="nav-map-section">Concepts</div>
+        <div id="navMapConcepts"></div>
+        <div class="nav-map-section" style="margin-top:6px;">Lab Tasks</div>
+        <div id="navMapLab"></div>
+    </nav>
+
+    <div class="page-wrapper">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Slide 1: Title Slide -->
+    <div class="slide title-slide slide-title-bg active" id="slide-1">
+        <h1>Lab 4</h1>
+        <h2>I/O Redirection, Pipelines &amp; Process Management</h2>
+        <p class="subtitle">Process Management &amp; Linux Command-Line Tools &mdash; Hands-on</p>
+        <span class="slide-num">01</span>
+    </div>
+
+    <!-- Slide 2: Lab Objectives -->
+    <div class="slide content-slide slide-content-bg" id="slide-2">
+        <h2>Lab Objectives</h2>
+        <ul>
+            <li>Use I/O redirection operators (<span class="code-block">&gt;</span>, <span class="code-block">&gt;&gt;</span>, <span class="code-block">2&gt;</span>, <span class="code-block">2&gt;&amp;1</span>, <span class="code-block">&amp;&gt;</span>) to control output</li>
+            <li>Combine commands using pipes (<span class="code-block">|</span>) to build processing pipelines</li>
+            <li>Analyze data with <span class="code-block">grep</span>, <span class="code-block">cut</span>, <span class="code-block">sort</span>, <span class="code-block">uniq</span>, <span class="code-block">awk</span></li>
+            <li>Monitor and control processes with <span class="code-block">ps</span>, <span class="code-block">top</span>, <span class="code-block">htop</span>, <span class="code-block">kill</span></li>
+            <li>Manage foreground/background jobs with <span class="code-block">jobs</span>, <span class="code-block">fg</span>, <span class="code-block">bg</span></li>
+            <li>Understand Linux signals (<span class="code-block">SIGTERM</span>, <span class="code-block">SIGKILL</span>, <span class="code-block">SIGSTOP</span>, <span class="code-block">SIGCONT</span>)</li>
+            <li>Create, observe, and explain orphan and zombie processes</li>
+        </ul>
+        <span class="slide-section-label">OVERVIEW</span>
+        <span class="slide-num">2 / 30</span>
+    </div>
+
+    <!-- Slide 3: Task Overview Table -->
+    <div class="slide content-slide slide-content-bg" id="slide-3">
+        <h2>Task Overview</h2>
+        <table class="slide-table">
+            <tr>
+                <th>Task</th>
+                <th>Title</th>
+                <th>Key Commands</th>
+                <th>Output</th>
+                <th>Screenshots</th>
+            </tr>
+            <tr><td>1</td><td>I/O Redirection</td><td><span class="code-block">&gt; &gt;&gt; 2&gt; &amp;&gt; &lt;</span></td><td>task1_redirection.txt</td><td>&mdash;</td></tr>
+            <tr><td>2</td><td>Pipelines &amp; Filters</td><td><span class="code-block">| sort uniq wc head tail tee</span></td><td>task2_pipelines.txt</td><td>&mdash;</td></tr>
+            <tr><td>3</td><td>Data Analysis</td><td><span class="code-block">grep cut awk sort uniq</span></td><td>task3_analysis.txt</td><td>&mdash;</td></tr>
+            <tr><td>4</td><td>Process Management</td><td><span class="code-block">ps top htop jobs fg bg kill</span></td><td>task4_processes.txt</td><td>top, htop</td></tr>
+            <tr><td>5</td><td>Orphan &amp; Zombie</td><td><span class="code-block">fork() exit() wait() ps</span></td><td>task5_orphan_zombie.txt</td><td>ps output</td></tr>
+        </table>
+        <div class="callout">
+            <strong>Key principle:</strong> Always <em>run a command first on screen</em> to see the output, then redirect it to a file. Some tools (<span class="code-block">top</span>, <span class="code-block">htop</span>) are interactive and require screenshots instead.
+        </div>
+        <span class="slide-section-label">OVERVIEW</span>
+        <span class="slide-num">3 / 30</span>
+    </div>
+
+    <!-- Slide 4: I/O Redirection Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-4">
+        <h2>I/O Redirection</h2>
+        <p class="section-desc">Control where command output goes &mdash; stdout, stderr, and stdin</p>
+        <span class="slide-num">04</span>
+    </div>
+
+    <!-- Slide 5: I/O Streams -->
+    <div class="slide content-slide slide-content-bg" id="slide-5">
+        <h2>The Three Standard Streams</h2>
+        <div class="diagram-box">
+            <span class="highlight-green">stdin (0)</span> &nbsp;&rarr;&nbsp; [Command] &nbsp;&rarr;&nbsp; <span class="highlight-green">stdout (1)</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&searr;<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight-red">stderr (2)</span>
+        </div>
+        <ul>
+            <li><strong>stdin (fd 0)</strong> &mdash; input stream (keyboard by default)</li>
+            <li><strong>stdout (fd 1)</strong> &mdash; normal output (terminal by default)</li>
+            <li><strong>stderr (fd 2)</strong> &mdash; error output (terminal by default)</li>
+        </ul>
+        <div class="callout">
+            Redirection operators let you send each stream to a file, discard it, or merge them together.
+        </div>
+        <span class="slide-section-label">I/O REDIRECTION</span>
+        <span class="slide-num">5 / 30</span>
+    </div>
+
+    <!-- Slide 6: Redirection Operators -->
+    <div class="slide content-slide slide-content-bg" id="slide-6">
+        <h2>Redirection Operators</h2>
+        <table class="slide-table">
+            <tr><th>Operator</th><th>Meaning</th><th>Example</th></tr>
+            <tr><td><span class="code-block">&gt;</span></td><td>Redirect stdout (overwrite)</td><td><span class="code-block">ls &gt; files.txt</span></td></tr>
+            <tr><td><span class="code-block">&gt;&gt;</span></td><td>Redirect stdout (append)</td><td><span class="code-block">echo "done" &gt;&gt; log.txt</span></td></tr>
+            <tr><td><span class="code-block">2&gt;</span></td><td>Redirect stderr</td><td><span class="code-block">ls /fake 2&gt; errors.txt</span></td></tr>
+            <tr><td><span class="code-block">2&gt;&amp;1</span></td><td>Redirect stderr to stdout</td><td><span class="code-block">cmd &gt; all.txt 2&gt;&amp;1</span></td></tr>
+            <tr><td><span class="code-block">&amp;&gt;</span></td><td>Redirect both stdout &amp; stderr</td><td><span class="code-block">cmd &amp;&gt; all.txt</span></td></tr>
+            <tr><td><span class="code-block">&lt;</span></td><td>Redirect stdin from file</td><td><span class="code-block">sort &lt; unsorted.txt</span></td></tr>
+            <tr><td><span class="code-block">/dev/null</span></td><td>Discard output (bit bucket)</td><td><span class="code-block">cmd &gt; /dev/null 2&gt;&amp;1</span></td></tr>
+        </table>
+        <span class="slide-section-label">I/O REDIRECTION</span>
+        <span class="slide-num">6 / 30</span>
+    </div>
+
+    <!-- Slide 7: Redirection Examples -->
+    <div class="slide content-slide slide-content-bg" id="slide-7">
+        <h2>Redirection in Action</h2>
+        <div class="code-block code-multi">$ ls /etc | head -n 10 > etc_listing.txt      # stdout to file
+$ ls /nonexistent 2> errors.txt                # stderr to file
+$ ls /etc /nonexistent > out.txt 2> err.txt    # separate streams
+$ ls /etc /nonexistent &> combined.txt         # both to one file
+$ sort < fruits.txt                            # stdin from file
+$ ls /etc > /dev/null                          # discard stdout</div>
+        <div class="callout callout-warn">
+            <strong>Caution:</strong> <span class="code-block">&gt;</span> overwrites the target file. Use <span class="code-block">&gt;&gt;</span> to append. Always check before overwriting important files!
+        </div>
+        <span class="slide-section-label">I/O REDIRECTION</span>
+        <span class="slide-num">7 / 30</span>
+    </div>
+
+    <!-- Slide 8: Pipelines Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-8">
+        <h2>Pipelines &amp; Filters</h2>
+        <p class="section-desc">Chain commands together &mdash; one command's output flows into the next</p>
+        <span class="slide-num">08</span>
+    </div>
+
+    <!-- Slide 9: Pipeline Concept -->
+    <div class="slide content-slide slide-content-bg" id="slide-9">
+        <h2>How Pipes Work</h2>
+        <div class="diagram-box">
+            [cmd1] &nbsp;&rarr;&nbsp; <span class="highlight-green">stdout</span> &nbsp;| &nbsp;<span class="highlight-green">stdin</span> &nbsp;&rarr;&nbsp; [cmd2] &nbsp;&rarr;&nbsp; <span class="highlight-green">stdout</span> &nbsp;| &nbsp;<span class="highlight-green">stdin</span> &nbsp;&rarr;&nbsp; [cmd3]
+        </div>
+        <ul>
+            <li>The pipe <span class="code-block">|</span> connects stdout of one command to stdin of the next</li>
+            <li>Commands run <strong>concurrently</strong> &mdash; data flows through as it&rsquo;s produced</li>
+            <li>Only <strong>stdout</strong> passes through pipes; stderr still goes to the terminal</li>
+            <li>Use <span class="code-block">|&amp;</span> to pipe both stdout and stderr (Bash 4+)</li>
+        </ul>
+        <span class="slide-section-label">PIPELINES</span>
+        <span class="slide-num">9 / 30</span>
+    </div>
+
+    <!-- Slide 10: Filter Commands -->
+    <div class="slide content-slide slide-content-bg" id="slide-10">
+        <h2>Essential Filter Commands</h2>
+        <table class="slide-table">
+            <tr><th>Command</th><th>Purpose</th><th>Example</th></tr>
+            <tr><td><span class="code-block">sort</span></td><td>Sort lines</td><td><span class="code-block">sort -n numbers.txt</span></td></tr>
+            <tr><td><span class="code-block">uniq</span></td><td>Remove duplicate lines</td><td><span class="code-block">sort data | uniq</span></td></tr>
+            <tr><td><span class="code-block">uniq -c</span></td><td>Count occurrences</td><td><span class="code-block">sort data | uniq -c</span></td></tr>
+            <tr><td><span class="code-block">wc</span></td><td>Count lines/words/bytes</td><td><span class="code-block">wc -l file.txt</span></td></tr>
+            <tr><td><span class="code-block">head</span></td><td>First N lines</td><td><span class="code-block">head -n 5 file.txt</span></td></tr>
+            <tr><td><span class="code-block">tail</span></td><td>Last N lines</td><td><span class="code-block">tail -n 5 file.txt</span></td></tr>
+            <tr><td><span class="code-block">tee</span></td><td>Write to file AND pass through</td><td><span class="code-block">ls | tee files.txt | wc -l</span></td></tr>
+            <tr><td><span class="code-block">tr</span></td><td>Translate/delete characters</td><td><span class="code-block">echo "HI" | tr A-Z a-z</span></td></tr>
+        </table>
+        <span class="slide-section-label">PIPELINES</span>
+        <span class="slide-num">10 / 30</span>
+    </div>
+
+    <!-- Slide 11: Pipeline Examples -->
+    <div class="slide content-slide slide-content-bg" id="slide-11">
+        <h2>Pipeline Examples</h2>
+        <div class="code-block code-multi">$ ls /etc | wc -l                           # count entries
+$ sort names.txt | uniq -c | sort -rn        # frequency count
+$ du -sh /usr/* 2>/dev/null | sort -rh | head -n 5  # top 5 dirs
+$ cat /etc/passwd | head -n 5                # first 5 users
+$ ls -la /etc | head -n 20 | tee snapshot.txt | wc -l</div>
+        <div class="callout">
+            <strong>Pro tip:</strong> <span class="code-block">tee</span> is your best friend for debugging pipelines &mdash; it saves intermediate output to a file while keeping the pipeline flowing.
+        </div>
+        <span class="slide-section-label">PIPELINES</span>
+        <span class="slide-num">11 / 30</span>
+    </div>
+
+    <!-- Slide 12: Data Analysis Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-12">
+        <h2>Data Analysis</h2>
+        <p class="section-desc">grep, cut &amp; awk &mdash; the Swiss Army knives of text processing</p>
+        <span class="slide-num">12</span>
+    </div>
+
+    <!-- Slide 13: grep -->
+    <div class="slide content-slide slide-content-bg" id="slide-13">
+        <h2>grep &mdash; Pattern Searching</h2>
+        <ul>
+            <li><span class="code-block">grep "pattern" file</span> &mdash; show lines matching a pattern</li>
+            <li><span class="code-block">grep -v "pattern"</span> &mdash; invert match (lines NOT matching)</li>
+            <li><span class="code-block">grep -c "pattern"</span> &mdash; count matching lines</li>
+            <li><span class="code-block">grep -i "pattern"</span> &mdash; case-insensitive search</li>
+            <li><span class="code-block">grep -E "regex"</span> &mdash; extended regex (egrep)</li>
+            <li><span class="code-block">grep -r "pattern" dir/</span> &mdash; recursive search</li>
+        </ul>
+        <div class="code-block code-multi">$ grep "GET" access.log              # all GET requests
+$ grep -v '" 200 ' access.log        # non-200 status codes
+$ grep -c "POST" access.log          # count POST requests
+$ grep -E '" (40[0-9]) ' access.log  # all 4xx errors</div>
+        <span class="slide-section-label">DATA ANALYSIS</span>
+        <span class="slide-num">13 / 30</span>
+    </div>
+
+    <!-- Slide 14: cut and awk -->
+    <div class="slide content-slide slide-content-bg" id="slide-14">
+        <h2>cut &amp; awk &mdash; Field Extraction</h2>
+        <div class="two-col">
+            <div class="col">
+                <h3 style="color:var(--accent);margin-bottom:15px;">cut</h3>
+                <div class="code-block code-multi">$ cut -d: -f1 /etc/passwd
+$ cut -d' ' -f1 access.log
+$ cut -d: -f1,7 /etc/passwd</div>
+                <p class="note-text">Splits by delimiter, extracts fields by number.</p>
+            </div>
+            <div class="col">
+                <h3 style="color:var(--accent);margin-bottom:15px;">awk</h3>
+                <div class="code-block code-multi">$ awk '{print $1, $9}' access.log
+$ awk '{sum += $10} END {print sum}'
+$ awk -F: '$3 >= 1000' /etc/passwd</div>
+                <p class="note-text">More powerful: conditional logic, math, and formatting.</p>
+            </div>
+        </div>
+        <div class="callout">
+            <strong>When to use which:</strong> <span class="code-block">cut</span> for simple delimited fields. <span class="code-block">awk</span> when you need logic, math, or complex field extraction.
+        </div>
+        <span class="slide-section-label">DATA ANALYSIS</span>
+        <span class="slide-num">14 / 30</span>
+    </div>
+
+    <!-- Slide 15: Combined Analysis -->
+    <div class="slide content-slide slide-content-bg" id="slide-15">
+        <h2>Combined Analysis Pipelines</h2>
+        <div class="code-block code-multi">$ awk '{print $1}' access.log | sort | uniq -c | sort -rn
+# Requests per IP address, sorted by frequency
+
+$ awk '{print $7}' access.log | sort | uniq -c | sort -rn
+# Top requested URLs
+
+$ grep "/bin/bash" /etc/passwd | cut -d: -f1
+# Users with bash shell
+
+$ awk -F: '$3 &lt; 1000 {count++} END {print "System users:", count}' /etc/passwd
+# Count system vs regular users</div>
+        <div class="callout">
+            <strong>Power pattern:</strong> <span class="code-block">extract | sort | uniq -c | sort -rn</span> &mdash; the universal frequency analysis pipeline.
+        </div>
+        <span class="slide-section-label">DATA ANALYSIS</span>
+        <span class="slide-num">15 / 30</span>
+    </div>
+
+    <!-- Slide 16: Process Management Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-16">
+        <h2>Process Management</h2>
+        <p class="section-desc">Monitor, control, and signal processes like a sysadmin</p>
+        <span class="slide-num">16</span>
+    </div>
+
+    <!-- Slide 17: Process Commands -->
+    <div class="slide content-slide slide-content-bg" id="slide-17">
+        <h2>Process Monitoring Commands</h2>
+        <table class="slide-table">
+            <tr><th>Command</th><th>Purpose</th><th>Type</th></tr>
+            <tr><td><span class="code-block">ps aux</span></td><td>Snapshot of all processes</td><td>Static (redirectable)</td></tr>
+            <tr><td><span class="code-block">ps --forest</span></td><td>Process tree view</td><td>Static (redirectable)</td></tr>
+            <tr><td><span class="code-block">top</span></td><td>Real-time process viewer</td><td><span class="highlight-red">Interactive (screenshot)</span></td></tr>
+            <tr><td><span class="code-block">htop</span></td><td>Enhanced process viewer</td><td><span class="highlight-red">Interactive (screenshot)</span></td></tr>
+            <tr><td><span class="code-block">pgrep name</span></td><td>Find PID by name</td><td>Static (redirectable)</td></tr>
+            <tr><td><span class="code-block">pkill name</span></td><td>Kill processes by name</td><td>Action</td></tr>
+        </table>
+        <div class="callout callout-warn">
+            <strong>Important:</strong> <span class="code-block">top</span> and <span class="code-block">htop</span> are interactive &mdash; they do NOT produce useful output when redirected to a file. Take <strong>screenshots</strong> instead.
+        </div>
+        <span class="slide-section-label">PROCESSES</span>
+        <span class="slide-num">17 / 30</span>
+    </div>
+
+    <!-- Slide 18: Job Control -->
+    <div class="slide content-slide slide-content-bg" id="slide-18">
+        <h2>Job Control</h2>
+        <div class="diagram-box">
+            [Foreground] &mdash;<span class="highlight-yellow">Ctrl+Z</span>&mdash;&rarr; [Stopped] &mdash;<span class="highlight-green">bg</span>&mdash;&rarr; [Background]<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&uarr;<br>
+            [Background] &mdash;<span class="highlight-green">fg</span>&mdash;&rarr; [Foreground]
+        </div>
+        <ul>
+            <li><span class="code-block">command &amp;</span> &mdash; start in background</li>
+            <li><span class="code-block">Ctrl+Z</span> &mdash; suspend foreground process</li>
+            <li><span class="code-block">jobs -l</span> &mdash; list jobs with PIDs</li>
+            <li><span class="code-block">fg %1</span> &mdash; bring job 1 to foreground</li>
+            <li><span class="code-block">bg %1</span> &mdash; resume job 1 in background</li>
+            <li><span class="code-block">nohup cmd &amp;</span> &mdash; run immune to terminal close</li>
+        </ul>
+        <span class="slide-section-label">PROCESSES</span>
+        <span class="slide-num">18 / 30</span>
+    </div>
+
+    <!-- Slide 19: Signals -->
+    <div class="slide content-slide slide-content-bg" id="slide-19">
+        <h2>Linux Signals</h2>
+        <table class="slide-table">
+            <tr><th>Signal</th><th>#</th><th>Name</th><th>Action</th><th>Catchable?</th></tr>
+            <tr><td><span class="code-block">SIGTERM</span></td><td>15</td><td>Terminate</td><td>Graceful shutdown</td><td><span class="highlight-green">Yes</span></td></tr>
+            <tr><td><span class="code-block">SIGKILL</span></td><td>9</td><td>Kill</td><td>Immediate termination</td><td><span class="highlight-red">No</span></td></tr>
+            <tr><td><span class="code-block">SIGSTOP</span></td><td>19</td><td>Stop</td><td>Suspend process</td><td><span class="highlight-red">No</span></td></tr>
+            <tr><td><span class="code-block">SIGCONT</span></td><td>18</td><td>Continue</td><td>Resume stopped process</td><td><span class="highlight-green">Yes</span></td></tr>
+            <tr><td><span class="code-block">SIGINT</span></td><td>2</td><td>Interrupt</td><td>Ctrl+C from keyboard</td><td><span class="highlight-green">Yes</span></td></tr>
+            <tr><td><span class="code-block">SIGHUP</span></td><td>1</td><td>Hangup</td><td>Terminal closed</td><td><span class="highlight-green">Yes</span></td></tr>
+        </table>
+        <div class="code-block code-multi">$ kill -SIGSTOP $PID    # pause
+$ kill -SIGCONT $PID    # resume
+$ kill -SIGTERM $PID    # graceful kill
+$ kill -9 $PID          # force kill (last resort)</div>
+        <span class="slide-section-label">PROCESSES</span>
+        <span class="slide-num">19 / 30</span>
+    </div>
+
+    <!-- Slide 20: Orphan & Zombie Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-20">
+        <h2>Orphan &amp; Zombie Processes</h2>
+        <p class="section-desc">What happens when parent processes die or children go unreaped?</p>
+        <span class="slide-num">20</span>
+    </div>
+
+    <!-- Slide 21: Orphan Process -->
+    <div class="slide content-slide slide-content-bg" id="slide-21">
+        <h2>Orphan Processes</h2>
+        <div class="diagram-box">
+            <span class="highlight-green">Parent (exits)</span> &nbsp;&rarr;&nbsp; Child still running &nbsp;&rarr;&nbsp; <span class="highlight-yellow">Adopted by init (PID 1)</span>
+        </div>
+        <ul>
+            <li>An <strong>orphan</strong> is a child process whose parent has terminated</li>
+            <li>The <span class="code-block">init</span> / <span class="code-block">systemd</span> process (PID 1) <strong>adopts</strong> the orphan</li>
+            <li>The child&rsquo;s PPID changes to 1 &mdash; verify with <span class="code-block">ps -o pid,ppid,cmd</span></li>
+            <li>Orphans continue running normally and are cleaned up when they exit</li>
+        </ul>
+        <div class="callout">
+            <strong>Key observation:</strong> Run the orphan program, then quickly check with <span class="code-block">ps</span> &mdash; the child&rsquo;s PPID should be 1.
+        </div>
+        <span class="slide-section-label">ORPHAN &amp; ZOMBIE</span>
+        <span class="slide-num">21 / 30</span>
+    </div>
+
+    <!-- Slide 22: Zombie Process -->
+    <div class="slide content-slide slide-content-bg" id="slide-22">
+        <h2>Zombie Processes</h2>
+        <div class="diagram-box">
+            Child exits &nbsp;&rarr;&nbsp; <span class="highlight-red">Parent doesn't call wait()</span> &nbsp;&rarr;&nbsp; <span class="highlight-red">Zombie (Z / &lt;defunct&gt;)</span>
+        </div>
+        <ul>
+            <li>A <strong>zombie</strong> is a child that has exited but whose parent hasn&rsquo;t read its exit status</li>
+            <li>The process entry remains in the process table (state <span class="code-block">Z</span>)</li>
+            <li>Shows as <span class="code-block">&lt;defunct&gt;</span> in <span class="code-block">ps</span> output</li>
+            <li><span class="highlight-red">Cannot be killed with</span> <span class="code-block">kill -9</span> &mdash; it&rsquo;s already dead!</li>
+            <li>Cleaned up when the parent calls <span class="code-block">wait()</span> or when the parent exits</li>
+        </ul>
+        <div class="callout callout-warn">
+            <strong>Danger:</strong> Too many zombies can exhaust the process table. The fix is to fix the parent (add <span class="code-block">wait()</span>), not to try killing the zombie.
+        </div>
+        <span class="slide-section-label">ORPHAN &amp; ZOMBIE</span>
+        <span class="slide-num">22 / 30</span>
+    </div>
+
+    <!-- Slide 23: Orphan vs Zombie Comparison -->
+    <div class="slide content-slide slide-content-bg" id="slide-23">
+        <h2>Orphan vs. Zombie</h2>
+        <table class="slide-table">
+            <tr><th>Aspect</th><th>Orphan</th><th>Zombie</th></tr>
+            <tr><td>Who dies first?</td><td><span class="highlight-green">Parent</span></td><td><span class="highlight-red">Child</span></td></tr>
+            <tr><td>Is child still running?</td><td>Yes</td><td>No (exited)</td></tr>
+            <tr><td>Process state</td><td>Normal (S/R)</td><td>Z (defunct)</td></tr>
+            <tr><td>Who adopts/cleans up?</td><td>init (PID 1)</td><td>Parent must call wait()</td></tr>
+            <tr><td>Can you kill it?</td><td>Yes (normal process)</td><td>No &mdash; already dead</td></tr>
+            <tr><td>Resource impact</td><td>Uses CPU/memory</td><td>Only a process table entry</td></tr>
+        </table>
+        <span class="slide-section-label">ORPHAN &amp; ZOMBIE</span>
+        <span class="slide-num">23 / 30</span>
+    </div>
+
+    <!-- Slide 24: Lab Tasks Section Header -->
+    <div class="slide section-slide slide-section-bg" id="slide-24">
+        <h2>Lab Tasks</h2>
+        <p class="section-desc">Hands-on exercises &mdash; 5 tasks covering all concepts</p>
+        <span class="slide-num">24</span>
+    </div>
+
+    <!-- Slide 25: Tasks 1 & 2 -->
+    <div class="slide content-slide slide-content-bg" id="slide-25">
+        <h2>Tasks 1 &amp; 2: Redirection &amp; Pipelines</h2>
+        <div class="two-col">
+            <div class="col">
+                <h3 style="color:var(--accent);margin-bottom:15px;">Task 1: I/O Redirection</h3>
+                <ul>
+                    <li>Redirect stdout with <span class="code-block">&gt;</span> and <span class="code-block">&gt;&gt;</span></li>
+                    <li>Capture stderr with <span class="code-block">2&gt;</span></li>
+                    <li>Combine streams with <span class="code-block">&amp;&gt;</span></li>
+                    <li>Discard output with <span class="code-block">/dev/null</span></li>
+                    <li>Use stdin redirection <span class="code-block">&lt;</span></li>
+                </ul>
+                <p class="note-text">Output: task1_redirection.txt</p>
+            </div>
+            <div class="col">
+                <h3 style="color:var(--accent);margin-bottom:15px;">Task 2: Pipelines &amp; Filters</h3>
+                <ul>
+                    <li>Count files with <span class="code-block">ls | wc -l</span></li>
+                    <li>Sort and deduplicate</li>
+                    <li>Use <span class="code-block">head</span> and <span class="code-block">tail</span></li>
+                    <li>Build multi-stage pipelines</li>
+                    <li>Split output with <span class="code-block">tee</span></li>
+                </ul>
+                <p class="note-text">Output: task2_pipelines.txt</p>
+            </div>
+        </div>
+        <span class="slide-section-label">LAB TASKS</span>
+        <span class="slide-num">25 / 30</span>
+    </div>
+
+    <!-- Slide 26: Task 3 -->
+    <div class="slide content-slide slide-content-bg" id="slide-26">
+        <h2>Task 3: Data Analysis</h2>
+        <ul>
+            <li>Create a sample <span class="code-block">access.log</span> with 10 HTTP log entries</li>
+            <li>Use <span class="code-block">grep</span> to search: GET requests, specific IPs, error codes</li>
+            <li>Use <span class="code-block">cut</span> to extract fields from <span class="code-block">/etc/passwd</span> and log files</li>
+            <li>Use <span class="code-block">awk</span> for advanced extraction: IP + status, total bytes, requests per IP</li>
+            <li>Build combined pipelines: top URLs, unique IPs, status code summaries</li>
+            <li>Analyze real system files: bash users, system vs regular user counts</li>
+        </ul>
+        <div class="callout">
+            <strong>Challenge:</strong> Find all 403 requests and extract IP + URL, count users per shell, and find the most active IP &mdash; all in single pipelines.
+        </div>
+        <p class="note-text">Output: task3_analysis.txt + access.log</p>
+        <span class="slide-section-label">LAB TASKS</span>
+        <span class="slide-num">26 / 30</span>
+    </div>
+
+    <!-- Slide 27: Task 4 -->
+    <div class="slide content-slide slide-content-bg" id="slide-27">
+        <h2>Task 4: Process Management</h2>
+        <ul>
+            <li>Take <span class="code-block">ps</span> snapshots: user processes, all processes, process tree</li>
+            <li>Explore <span class="code-block">top</span>: sort by CPU (<span class="code-block">Shift+P</span>), by memory (<span class="code-block">Shift+M</span>), per-core (<span class="code-block">1</span>)</li>
+            <li>Explore <span class="code-block">htop</span>: tree view (<span class="code-block">F5</span>), sort column (<span class="code-block">F6</span>)</li>
+            <li>Practice job control: <span class="code-block">sleep &amp;</span>, <span class="code-block">Ctrl+Z</span>, <span class="code-block">bg</span>, <span class="code-block">fg</span>, <span class="code-block">jobs</span></li>
+            <li>Send signals: <span class="code-block">SIGSTOP</span>, <span class="code-block">SIGCONT</span>, <span class="code-block">SIGTERM</span></li>
+            <li>Use <span class="code-block">nohup</span> to survive terminal close</li>
+        </ul>
+        <div class="callout callout-warn">
+            <strong>Screenshots required:</strong> <span class="code-block">top</span> with process list visible, <span class="code-block">htop</span> in tree view (F5).
+        </div>
+        <p class="note-text">Output: task4_processes.txt + 2 screenshots</p>
+        <span class="slide-section-label">LAB TASKS</span>
+        <span class="slide-num">27 / 30</span>
+    </div>
+
+    <!-- Slide 28: Task 5 -->
+    <div class="slide content-slide slide-content-bg" id="slide-28">
+        <h2>Task 5: Orphan &amp; Zombie Processes</h2>
+        <ul>
+            <li>Write and compile <span class="code-block">orphan.c</span> &mdash; parent exits, child keeps running</li>
+            <li>Observe with <span class="code-block">ps -o pid,ppid,stat,cmd</span> &mdash; PPID changes to 1</li>
+            <li>Write and compile <span class="code-block">zombie.c</span> &mdash; child exits, parent doesn&rsquo;t <span class="code-block">wait()</span></li>
+            <li>Find the zombie: <span class="code-block">ps aux | grep -E 'Z|defunct'</span></li>
+            <li>Answer questions about cleanup and why <span class="code-block">kill -9</span> can&rsquo;t kill a zombie</li>
+        </ul>
+        <div class="callout">
+            <strong>Challenge:</strong> Modify zombie.c to add <span class="code-block">wait()</span> and verify the zombie disappears. Write a program that creates 3 children and waits for all.
+        </div>
+        <p class="note-text">Output: task5_orphan_zombie.txt + orphan.c + zombie.c + 2 screenshots</p>
+        <span class="slide-section-label">LAB TASKS</span>
+        <span class="slide-num">28 / 30</span>
+    </div>
+
+    <!-- Slide 29: Submission Workflow -->
+    <div class="slide content-slide slide-content-bg" id="slide-29">
+        <h2>Submission Workflow</h2>
+        <div class="code-block code-multi">$ cd ~/os-se-&lt;YourStudentID&gt;/os-lab-&lt;YourStudentID&gt;
+$ mkdir lab4 &amp;&amp; cd lab4
+
+# ... complete all 5 tasks ...
+
+$ cd ~/os-se-&lt;YourStudentID&gt;
+$ git add .
+$ git commit -m "Lab 4: I/O Redirection, Pipelines &amp; Process Management"
+$ git push origin main</div>
+        <div class="callout">
+            <strong>Reminder:</strong> Add screenshots to <span class="code-block">images/</span> folder and fill in the <span class="code-block">README.md</span> template with your name, screenshots, and Task 5 answers.
+        </div>
+        <span class="slide-section-label">SUBMISSION</span>
+        <span class="slide-num">29 / 30</span>
+    </div>
+
+    <!-- Slide 30: Folder Structure & Checklist -->
+    <div class="slide content-slide slide-content-bg" id="slide-30">
+        <h2>Folder Structure &amp; Checklist</h2>
+        <div class="two-col">
+            <div class="col">
+                <div class="code-block code-multi">lab4/
+&#9500;&#9472;&#9472; README.md
+&#9500;&#9472;&#9472; task1_redirection.txt
+&#9500;&#9472;&#9472; task2_pipelines.txt
+&#9500;&#9472;&#9472; task3_analysis.txt
+&#9500;&#9472;&#9472; task4_processes.txt
+&#9500;&#9472;&#9472; task5_orphan_zombie.txt
+&#9500;&#9472;&#9472; orphan.c
+&#9500;&#9472;&#9472; zombie.c
+&#9500;&#9472;&#9472; access.log
+&#9500;&#9472;&#9472; redirect_lab/
+&#9492;&#9472;&#9472; images/
+    &#9500;&#9472;&#9472; top_screenshot.png
+    &#9500;&#9472;&#9472; htop_tree_screenshot.png
+    &#9500;&#9472;&#9472; orphan_ps_output.png
+    &#9500;&#9472;&#9472; zombie_ps_output.png
+    &#9492;&#9472;&#9472; command_history.png</div>
+            </div>
+            <div class="col">
+                <div class="callout" style="margin-bottom:20px;">
+                    <strong>Checklist before submitting:</strong>
+                </div>
+                <ul>
+                    <li>&#x2705; All 5 <code>.txt</code> output files present</li>
+                    <li>&#x2705; <code>orphan.c</code> and <code>zombie.c</code> source files</li>
+                    <li>&#x2705; <code>access.log</code> sample data file</li>
+                    <li>&#x2705; 7 screenshots in <code>images/</code></li>
+                    <li>&#x2705; <code>README.md</code> completed with answers</li>
+                    <li>&#x2705; Pushed to GitHub</li>
+                    <li>&#x2705; Pulled to lab server</li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-section-label">SUMMARY</span>
+        <span class="slide-num">30 / 30</span>
+    </div>
+
+    <!-- Navigation Controls -->
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">&#9664; Prev</button>
+        <div class="nav-info"><span id="slideInfo">1 / 30</span></div>
+        <button class="nav-btn" onclick="nextSlide()">Next &#9654;</button>
+    </div>
+    </div><!-- end page-wrapper -->
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 30;
+
+        // Slide titles for the navigation map
+        const slideTitles = [
+            'Title',
+            'Lab Objectives',
+            'Task Overview',
+            'I/O Redirection',
+            'Three Streams',
+            'Redirection Operators',
+            'Redirection Examples',
+            'Pipelines & Filters',
+            'How Pipes Work',
+            'Filter Commands',
+            'Pipeline Examples',
+            'Data Analysis',
+            'grep',
+            'cut & awk',
+            'Combined Analysis',
+            'Process Management',
+            'Process Commands',
+            'Job Control',
+            'Linux Signals',
+            'Orphan & Zombie',
+            'Orphan Processes',
+            'Zombie Processes',
+            'Orphan vs Zombie',
+            'Lab Tasks',
+            'Tasks 1 & 2',
+            'Task 3: Data Analysis',
+            'Task 4: Processes',
+            'Task 5: Orphan & Zombie',
+            'Submission Workflow',
+            'Folder & Checklist'
+        ];
+
+        // Concept slides: 1-23, Lab slides: 24-30
+        const conceptSlideEnd = 23;
+
+        // Build navigation map
+        function buildNavMap() {
+            var conceptsContainer = document.getElementById('navMapConcepts');
+            var labContainer = document.getElementById('navMapLab');
+            for (var i = 1; i <= totalSlides; i++) {
+                var item = document.createElement('div');
+                item.className = 'nav-map-item';
+                item.setAttribute('data-slide', i);
+                item.innerHTML = '<span class="nm-num">' + i + '</span><span class="nm-title">' + slideTitles[i - 1] + '</span>';
+                (function(idx) {
+                    item.addEventListener('click', function() {
+                        showSlide(idx);
+                    });
+                })(i);
+                if (i <= conceptSlideEnd) conceptsContainer.appendChild(item);
+                else labContainer.appendChild(item);
+            }
+        }
+
+        function updateNavMap(n) {
+            document.querySelectorAll('.nav-map-item').forEach(function(item) {
+                item.classList.remove('active');
+                if (parseInt(item.getAttribute('data-slide')) === n) {
+                    item.classList.add('active');
+                    item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            });
+        }
+
+        // Nav map toggle
+        var navMap = document.getElementById('navMap');
+        var navMapToggle = document.getElementById('navMapToggle');
+        navMapToggle.addEventListener('click', function() {
+            document.body.classList.toggle('nav-open');
+        });
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+            currentSlide = n;
+
+            document.querySelectorAll('.slide').forEach(function(s) { s.classList.remove('active'); });
+            document.getElementById('slide-' + n).classList.add('active');
+            document.getElementById('slideInfo').textContent = n + ' / ' + totalSlides;
+            document.getElementById('progressBar').style.width = ((n / totalSlides) * 100) + '%';
+            updateNavMap(n);
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(1);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides);
+            }
+        });
+
+        // Touch support for mobile
+        var touchStartX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        document.addEventListener('touchend', function(e) {
+            var touchEndX = e.changedTouches[0].screenX;
+            var diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) nextSlide();
+                else prevSlide();
+            }
+        });
+
+        // Add copy buttons to all code blocks (except multi-line)
+        document.querySelectorAll('.code-block:not(.code-multi)').forEach(function(block) {
+            var btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            var copyIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M5 11H3.5A1.5 1.5 0 0 1 2 9.5V3.5A1.5 1.5 0 0 1 3.5 2h6A1.5 1.5 0 0 1 11 3.5V5"/></svg>';
+            var checkIcon = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8.5l3.5 3.5 6.5-7"/></svg>';
+            btn.innerHTML = copyIcon;
+            btn.title = 'Copy command';
+            btn.setAttribute('aria-label', 'Copy command');
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var text = block.childNodes[0].textContent.trim();
+                navigator.clipboard.writeText(text).then(function() {
+                    btn.innerHTML = checkIcon;
+                    btn.classList.add('copied');
+                    setTimeout(function() {
+                        btn.innerHTML = copyIcon;
+                        btn.classList.remove('copied');
+                    }, 1500);
+                });
+            });
+            block.appendChild(btn);
+        });
+
+        // Theme toggle
+        var themeToggle = document.getElementById('themeToggle');
+        function setTheme(dark) {
+            if (dark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeToggle.innerHTML = '&#9788;';
+                localStorage.setItem('slide-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeToggle.innerHTML = '&#9790;';
+                localStorage.setItem('slide-theme', 'light');
+            }
+        }
+        themeToggle.addEventListener('click', function() {
+            var isDark = document.documentElement.hasAttribute('data-theme');
+            setTheme(!isDark);
+        });
+        // Load saved theme preference
+        if (localStorage.getItem('slide-theme') === 'dark') {
+            setTheme(true);
+        }
+
+        // Initialize
+        buildNavMap();
+        showSlide(1);
+    </script>
+</body>
+</html>
