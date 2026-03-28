@@ -928,7 +928,7 @@
                 var penalty = d.penalty !== undefined ? d.penalty : 5;
                 html += '<div class="admin-deadline-row">'
                     + '<label class="admin-deadline-lab">' + escapeHtml(lab.toUpperCase()) + '</label>'
-                    + '<input type="datetime-local" class="admin-input" id="dl-due-' + escapeHtml(lab) + '" value="' + escapeHtml(due) + '">'
+                    + '<input type="datetime-local" step="1" class="admin-input admin-datetime" id="dl-due-' + escapeHtml(lab) + '" value="' + escapeHtml(due) + '">'
                     + '<span style="color:var(--comment);font-size:10px;">penalty:</span>'
                     + '<input type="number" class="admin-input admin-input-sm" id="dl-pen-' + escapeHtml(lab) + '" value="' + penalty + '" min="0" max="100">'
                     + '<span style="color:var(--comment);font-size:10px;">pts/day</span>'
@@ -938,7 +938,7 @@
             // Add new lab row
             html += '<div class="admin-deadline-row" style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">'
                 + '<input type="text" class="admin-input admin-input-sm" id="dl-new-lab" placeholder="lab5" style="width:60px;">'
-                + '<input type="datetime-local" class="admin-input" id="dl-new-due" value="">'
+                + '<input type="datetime-local" step="1" class="admin-input admin-datetime" id="dl-new-due" value="">'
                 + '<span style="color:var(--comment);font-size:10px;">penalty:</span>'
                 + '<input type="number" class="admin-input admin-input-sm" id="dl-new-pen" value="5" min="0" max="100">'
                 + '<span style="color:var(--comment);font-size:10px;">pts/day</span>'
@@ -1048,6 +1048,54 @@
         renderStudentGrades(tab);
     };
 
+    // Refresh deadlines from server and re-render My Grades
+    window.refreshStudentDeadlines = function () {
+        var url = serverUrl();
+        if (!url || !authToken) return;
+        var btn = document.querySelector('.deadline-refresh-btn');
+        if (btn) { btn.disabled = true; btn.textContent = '\u27F3 Refreshing...'; }
+        fetch(url + '/api/deadlines', {
+            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+            if (data && data.deadlines) {
+                _serverDeadlines = data.deadlines;
+                renderDeadlines(); // sidebar
+            }
+            // Re-render current student tab to update deadline info
+            if (studentCurrentTab === 'my-grades') fetchStudentGrades(url);
+            else if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDD04 Refresh Deadlines'; }
+        })
+        .catch(function () {
+            if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDD04 Refresh Deadlines'; }
+        });
+    };
+
+    // Live countdown ticker for student grade cards
+    var _gradeCountdownInterval = null;
+    function startGradeCountdowns() {
+        if (_gradeCountdownInterval) clearInterval(_gradeCountdownInterval);
+        _gradeCountdownInterval = setInterval(function () {
+            document.querySelectorAll('.lab-deadline-countdown[data-due]').forEach(function (el) {
+                var due = parseInt(el.getAttribute('data-due'));
+                var diff = due - Date.now();
+                if (diff <= 0) {
+                    el.innerHTML = '\u23F0 OVERDUE';
+                    el.removeAttribute('data-due');
+                    return;
+                }
+                var totalSec = Math.floor(diff / 1000);
+                var dd = Math.floor(totalSec / 86400);
+                var hh = Math.floor((totalSec % 86400) / 3600);
+                var mm = Math.floor((totalSec % 3600) / 60);
+                var ss = totalSec % 60;
+                var str = (dd > 0 ? dd + 'd ' : '') + hh + 'h ' + mm + 'm ' + ss + 's';
+                el.innerHTML = '&#x23F1; ' + str + ' remaining';
+            });
+        }, 1000);
+    }
+
     function studentContent() {
         return document.getElementById('student-tab-content');
     }
@@ -1076,6 +1124,7 @@
             var html = '<div class="student-summary">'
                 + '<span class="student-summary-label">Overall:</span> '
                 + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
+                + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh Deadlines</button>'
                 + '</div>';
 
             grades.forEach(function (g) {
@@ -1088,17 +1137,31 @@
                 getActiveDeadlines().forEach(function (d) { if (d.lab === g.lab) dl = d; });
                 if (dl) {
                     var now = Date.now();
-                    var due = new Date(dl.due).getTime();
+                    var dueDate = new Date(dl.due);
+                    var due = dueDate.getTime();
                     var diff = due - now;
+                    // Full date display: e.g. "Sat, Mar 28, 2026 23:59:59"
+                    var fullDateStr = dueDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
                     if (diff > 0) {
-                        var daysLeft = Math.ceil(diff / 86400000);
-                        if (daysLeft <= 3) {
-                            deadlineHtml = '<div class="lab-deadline-tag deadline-warn">&#x23F1; ' + daysLeft + 'd left to submit</div>';
-                        }
+                        var totalSec = Math.floor(diff / 1000);
+                        var dd = Math.floor(totalSec / 86400);
+                        var hh = Math.floor((totalSec % 86400) / 3600);
+                        var mm = Math.floor((totalSec % 3600) / 60);
+                        var ss = totalSec % 60;
+                        var countdownStr = (dd > 0 ? dd + 'd ' : '') + hh + 'h ' + mm + 'm ' + ss + 's';
+                        var urgencyClass = dd > 3 ? 'deadline-ok' : dd > 0 ? 'deadline-warn' : 'deadline-urgent';
+                        deadlineHtml = '<div class="lab-deadline-info ' + urgencyClass + '">'
+                            + '<span class="lab-deadline-date">&#x1F4C5; Due: ' + escapeHtml(fullDateStr) + '</span>'
+                            + '<span class="lab-deadline-countdown" data-due="' + due + '">&#x23F1; ' + countdownStr + ' remaining</span>'
+                            + '</div>';
                     } else {
-                        var lateDays = Math.ceil(-diff / 86400000);
+                        var lateSec = Math.floor(-diff / 1000);
+                        var lateDays = Math.ceil(lateSec / 86400);
                         var penalty = lateDays * (dl.penalty || 5);
-                        deadlineHtml = '<div class="lab-deadline-tag deadline-overdue">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</div>';
+                        deadlineHtml = '<div class="lab-deadline-info deadline-overdue">'
+                            + '<span class="lab-deadline-date">&#x1F4C5; Was due: ' + escapeHtml(fullDateStr) + '</span>'
+                            + '<span class="lab-deadline-countdown">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</span>'
+                            + '</div>';
                     }
                 }
 
@@ -1137,6 +1200,7 @@
                 html += '</div>';
             });
             container.innerHTML = html;
+            startGradeCountdowns();
         })
         .catch(function (err) {
             container.innerHTML = '<div class="error" style="padding:12px;">Failed to load grades: ' + escapeHtml(err.message) + '</div>';
