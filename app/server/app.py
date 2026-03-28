@@ -630,6 +630,10 @@ ACTIVITY_SPECS["activity1"] = {
         "task3_strace/strace_sys_reader.txt",
         "task3_strace/strace_summary_lib.txt",
         "task3_strace/strace_summary_sys.txt",
+        "screenshots/task4_system_info.png",
+        "screenshots/task4_process_info.png",
+        "screenshots/task4_modules.png",
+        "screenshots/task4_os_layers_diagram.png",
     ],
     "dirs": [
         "screenshots",
