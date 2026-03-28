@@ -624,11 +624,18 @@ ACTIVITY_SPECS["activity1"] = {
         "task1/file_reader_sys.c",
         "task2/dir_list_lib.c",
         "task2/dir_list_sys.c",
+        "task3_strace/strace_lib_task1.txt",
+        "task3_strace/strace_sys_task1.txt",
+        "task3_strace/strace_lib_reader.txt",
+        "task3_strace/strace_sys_reader.txt",
+        "task3_strace/strace_summary_lib.txt",
+        "task3_strace/strace_summary_sys.txt",
     ],
     "dirs": [
         "screenshots",
         "task1",
         "task2",
+        "task3_strace",
     ],
 }
 
