@@ -1027,30 +1027,21 @@
             var labs = data.labs || [];
 
             var html = '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">Name</th>';
-            labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
-            html += '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
+                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th>'
+                + '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="' + (labs.length + 4) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="4" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
                     var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
                     var isMe = s.username === authUser;
+                    var displayId = isMe ? escapeHtml(s.username) + ' \u2B50' : (s.username ? escapeHtml(s.username.replace(/./g, function (c, i) { return i < 3 ? c : '*'; })) : '\u2014');
                     html += '<tr' + (isMe ? ' class="leaderboard-me"' : '') + '>'
                         + '<td class="rank-cell">' + rankIcon + '</td>'
-                        + '<td>' + escapeHtml(s.name || s.username) + (isMe ? ' \u2B50' : '') + '</td>';
-                    labs.forEach(function (l) {
-                        var labData = s.labs[l];
-                        if (labData) {
-                            var lc = labData.percentage >= 80 ? 'grade-a' : labData.percentage >= 50 ? 'grade-b' : 'grade-c';
-                            html += '<td><span class="' + lc + '">' + labData.score + '/' + labData.total + '</span></td>';
-                        } else {
-                            html += '<td style="color:var(--comment);">\u2014</td>';
-                        }
-                    });
-                    html += '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
+                        + '<td>' + displayId + '</td>'
+                        + '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
                         + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
                         + '</tr>';
                 });
@@ -1608,7 +1599,7 @@
         document.getElementById('mobile-sidebar-overlay').classList.remove('visible');
     };
 
-    document.querySelectorAll('.sidebar-nav li, .sidebar-schedule a, .sidebar-back').forEach(function (el) {
+    document.querySelectorAll('.sidebar-nav li, .sidebar-schedule a, .sidebar-back, .sidebar-exit').forEach(function (el) {
         el.addEventListener('click', window.closeMobileSidebar);
     });
 

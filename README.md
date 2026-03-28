@@ -78,7 +78,9 @@ ITC-OS-2026/
 │   │
 │   └── class-activity/        # 🧪 Hands-on programming activities
 │       ├── README.md          #   Activity index
-│       └── class-activity1.md #   System Calls with POSIX (Linux)
+│       ├── class-activity1.md #   System Calls with POSIX (Linux)
+│       ├── class-activity2.md #   Processes & IPC (Linux + Windows)
+│       └── class-activity3.md #   Socket Communication & Multithreading
 │
 └── labs/
     ├── lab1/                  # Lab 1 — Exploring OS Basics
@@ -90,10 +92,13 @@ ITC-OS-2026/
     │   ├── lab2-instruction.md
     │   ├── README.md
     │   └── guides/
-    └── lab3/                  # Lab 3 — Wildcards, Links, GRUB & Shared Libraries
-        ├── lab3-instruction.md
-        ├── README.md
-        └── guides/
+    ├── lab3/                  # Lab 3 — Wildcards, Links, GRUB & Shared Libraries
+    │   ├── lab3-instruction.md
+    │   ├── README.md
+    │   └── guides/
+    └── lab4/                  # Lab 4 — I/O Redirection, Pipelines & Process Mgmt
+        ├── lab4-instruction.md
+        └── README.md
 ```
 
 ---
@@ -126,7 +131,7 @@ ITC-OS-2026/
 | 4 | Threads & Multicore | [ch4.pdf](lectures/files/ch4.pdf) | — |
 | 5 | CPU Scheduling I | [ch5.pdf](lectures/files/ch5.pdf) | [Lab 2](labs/lab2/) |
 | 6 | CPU Scheduling II | [ch6.pdf](lectures/files/ch6.pdf) | [Lab 3](labs/lab3/) |
-| 7 | Critical Sections | [ch7.pdf](lectures/files/ch7.pdf) | — |
+| 7 | Critical Sections | [ch7.pdf](lectures/files/ch7.pdf) | [Lab 4](labs/lab4/) |
 | 8 | Semaphores & Sync Problems | [ch8.pdf](lectures/files/ch8.pdf) | — |
 | 9 | Deadlocks | [ch9.pdf](lectures/files/ch9.pdf) | — |
 | 10 | Memory Management I | [ch10.pdf](lectures/files/ch10.pdf) | — |
@@ -144,6 +149,7 @@ ITC-OS-2026/
 | 1 | Exploring Operating System Basics | ✅ Available | [Instructions](labs/lab1/lab1-instruction.md) |
 | 2 | Linux Navigation & File Management | ✅ Available | [Instructions](labs/lab2/lab2-instruction.md) |
 | 3 | Wildcards, Links, GRUB & Shared Libraries | ✅ Available | [Instructions](labs/lab3/lab3-instruction.md) |
+| 4 | I/O Redirection, Pipelines & Process Management | ✅ Available | [Instructions](labs/lab4/lab4-instruction.md) |
 
 ### Lab 1 Highlights
 

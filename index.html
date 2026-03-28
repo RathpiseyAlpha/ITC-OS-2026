@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITC Operating Systems 2026</title>
-    <link rel="stylesheet" href="app/css/styles.css?v=2">
+    <link rel="stylesheet" href="app/css/styles.css?v=3">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Firebase SDK (for web visitor presence — optional, enable in app/js/config.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -150,8 +150,11 @@
                         <li style="color:var(--comment);font-size:10px;padding:3px 8px;">No server data</li>
                     </ul>
                 </div>
-                <div class="sidebar-back" onclick="backToLanding()">
-                    &#x2190; back to welcome
+                <div class="sidebar-back-row">
+                    <div class="sidebar-back" onclick="backToLanding()">
+                        &#x2190; back to welcome
+                    </div>
+                    <span class="sidebar-exit" onclick="performLogout()" title="Logout">exit &#x21A9;</span>
                 </div>
             </aside>
 
@@ -232,7 +235,7 @@
 <script src="app/js/config.js"></script>
 <script src="app/js/github.js"></script>
 <script src="app/js/presence.js"></script>
-<script src="app/js/app.js?v=2"></script>
+<script src="app/js/app.js?v=3"></script>
 
 </body>
 </html>

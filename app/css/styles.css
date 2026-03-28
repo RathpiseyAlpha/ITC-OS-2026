@@ -225,7 +225,7 @@ body.readme-mode::after { opacity: 0; }
     overflow: hidden;
 }
 .sidebar.collapsed .sidebar-section,
-.sidebar.collapsed .sidebar-back { display: none; }
+.sidebar.collapsed .sidebar-back-row { display: none; }
 .sidebar-collapse-btn {
     display: block;
     background: none;
@@ -290,17 +290,30 @@ body.readme-mode::after { opacity: 0; }
 .sidebar-schedule a:hover { color: var(--cyan); }
 .sidebar-schedule .status-dot.ok { color: var(--green); font-size: 8px; }
 .sidebar-schedule .status-dot.pending { color: var(--comment); font-size: 8px; }
+.sidebar-back-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border-top: 1px dashed var(--green-dark);
+    margin-top: 12px;
+    padding: 10px 8px 0;
+}
 .sidebar-back {
     color: var(--comment);
     font-size: 11px;
     cursor: pointer;
-    padding: 10px 8px 0;
-    text-align: center;
     transition: color 0.2s;
-    border-top: 1px dashed var(--green-dark);
-    margin-top: 12px;
 }
 .sidebar-back:hover { color: var(--green); }
+.sidebar-exit {
+    color: var(--red, #ff5555);
+    font-size: 11px;
+    cursor: pointer;
+    border-bottom: 1px dashed var(--red, #ff5555);
+    transition: color 0.2s;
+}
+.sidebar-exit:hover { color: #ff7979; }
 
 /* ─── Online Users Panel ─── */
 .online-users-list { list-style: none; padding: 0; margin: 0; }
