@@ -109,6 +109,7 @@
             position: relative;
             flex-direction: column;
             justify-content: center;
+            overflow-y: auto;
         }
 
         .slide.active {
@@ -284,6 +285,9 @@
             align-items: center;
             gap: 10px;
             position: relative;
+            max-width: 100%;
+            overflow-x: auto;
+            word-break: break-word;
         }
 
         .copy-btn {
@@ -620,6 +624,45 @@
             background: var(--accent);
             border-color: var(--accent);
             color: #fff;
+        }
+
+        /* Responsive scaling */
+        @media (max-width: 1200px) {
+            .slide { padding: 40px 50px; }
+            .title-slide h1 { font-size: 3em; }
+            .title-slide h2 { font-size: 1.5em; }
+            .section-slide h2 { font-size: 2.4em; }
+            .content-slide h2 { font-size: 2em; margin-bottom: 20px; }
+            .content-slide ul li { font-size: 1.1em; line-height: 1.6; padding: 6px 0 6px 25px; }
+            .two-col { gap: 30px; }
+        }
+
+        @media (max-width: 900px) {
+            .slide { padding: 30px 30px; }
+            .title-slide h1 { font-size: 2.2em; }
+            .title-slide h2 { font-size: 1.2em; letter-spacing: 2px; }
+            .section-slide h2 { font-size: 2em; }
+            .content-slide h2 { font-size: 1.6em; margin-bottom: 15px; padding-bottom: 10px; }
+            .content-slide ul li { font-size: 1em; line-height: 1.5; padding: 4px 0 4px 20px; }
+            .content-slide ul li ul li { font-size: 0.9em; padding: 3px 0 3px 20px; }
+            .content-slide p { font-size: 1em; line-height: 1.6; }
+            .two-col { flex-direction: column; gap: 20px; }
+            .two-col .col-img img { max-height: 250px; }
+            .callout { padding: 15px 18px; margin-top: 15px; }
+            .code-block { font-size: 0.9em; padding: 10px 14px; }
+            .slide-num { bottom: 15px; right: 20px; }
+            .slide-section-label { top: 15px; right: 20px; font-size: 0.8em; }
+        }
+
+        @media (max-width: 600px) {
+            .slide { padding: 20px 18px; }
+            .title-slide h1 { font-size: 1.6em; letter-spacing: 1px; }
+            .title-slide h2 { font-size: 1em; letter-spacing: 1px; }
+            .section-slide h2 { font-size: 1.5em; }
+            .content-slide h2 { font-size: 1.3em; margin-bottom: 10px; }
+            .content-slide ul li { font-size: 0.9em; padding: 3px 0 3px 18px; }
+            .code-block { font-size: 0.8em; padding: 8px 10px; }
+            .title-slide .title-image { max-width: 280px; }
         }
     </style>
 </head>
