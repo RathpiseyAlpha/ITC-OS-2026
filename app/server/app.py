@@ -12,7 +12,7 @@ Usage:
 """
 
 import argparse
-import crypt as _crypt
+import crypt as _crypt  # type: ignore[deprecated]
 import json
 import os
 import re
