@@ -809,6 +809,26 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     margin-left: 4px;
 }
 
+/* ─── Sort Indicators ─── */
+.admin-table thead th[onclick] {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+.admin-table thead th[onclick]:hover {
+    color: var(--cyan);
+}
+.admin-table thead th.sort-asc::after {
+    content: ' \25B2';
+    font-size: 9px;
+    color: var(--cyan);
+}
+.admin-table thead th.sort-desc::after {
+    content: ' \25BC';
+    font-size: 9px;
+    color: var(--cyan);
+}
+
 /* ─── Grades Tab ─── */
 .admin-lab-filters {
     display: flex;

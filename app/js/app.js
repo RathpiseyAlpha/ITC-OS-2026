@@ -544,6 +544,47 @@
         }
     };
 
+    // ── Admin Table Sort ──
+    var _adminSortCol = -1;
+    var _adminSortAsc = true;
+
+    window.adminSortTable = function (th) {
+        var table = th.closest('table');
+        if (!table) return;
+        var headers = th.parentNode.querySelectorAll('th');
+        var colIdx = Array.prototype.indexOf.call(headers, th);
+        if (colIdx === _adminSortCol) {
+            _adminSortAsc = !_adminSortAsc;
+        } else {
+            _adminSortCol = colIdx;
+            _adminSortAsc = true;
+        }
+        // Update sort indicators
+        for (var h = 0; h < headers.length; h++) {
+            headers[h].classList.remove('sort-asc', 'sort-desc');
+        }
+        th.classList.add(_adminSortAsc ? 'sort-asc' : 'sort-desc');
+
+        var tbody = table.querySelector('tbody');
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        rows.sort(function (a, b) {
+            var aText = (a.children[colIdx] || {}).textContent || '';
+            var bText = (b.children[colIdx] || {}).textContent || '';
+            // Try numeric comparison first
+            var aNum = parseFloat(aText.replace(/[^0-9.\-]/g, ''));
+            var bNum = parseFloat(bText.replace(/[^0-9.\-]/g, ''));
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return _adminSortAsc ? aNum - bNum : bNum - aNum;
+            }
+            // Fall back to string comparison
+            var cmp = aText.localeCompare(bText, undefined, { numeric: true, sensitivity: 'base' });
+            return _adminSortAsc ? cmp : -cmp;
+        });
+        for (var i = 0; i < rows.length; i++) {
+            tbody.appendChild(rows[i]);
+        }
+    };
+
     // ── Stats Tab ──
     function fetchAdminStats(url) {
         var container = adminContent();
@@ -568,7 +609,7 @@
                 + '</div>'
                 + adminSearchHtml('admin-search-users', '\uD83D\uDD0D Search users...')
                 + '<table class="admin-table">'
-                + '<thead><tr><th>User</th><th>Logins</th><th>Last Login</th><th>Duration</th><th>Status</th></tr></thead>'
+                + '<thead><tr><th onclick="adminSortTable(this)">User</th><th onclick="adminSortTable(this)">Logins</th><th onclick="adminSortTable(this)">Last Login</th><th onclick="adminSortTable(this)">Duration</th><th onclick="adminSortTable(this)">Status</th></tr></thead>'
                 + '<tbody>';
 
             if (users.length === 0) {
@@ -645,7 +686,7 @@
             } else {
                 html += adminSearchHtml('admin-search-grades', '\uD83D\uDD0D Search by ID, name, score...')
                     + '<table class="admin-table">'
-                    + '<thead><tr><th>ID</th><th>Name</th><th>Lab</th><th>Score</th><th>%</th><th>Status</th><th>Details</th></tr></thead>'
+                    + '<thead><tr><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">Lab</th><th onclick="adminSortTable(this)">Score</th><th onclick="adminSortTable(this)">%</th><th onclick="adminSortTable(this)">Status</th><th>Details</th></tr></thead>'
                     + '<tbody>';
                 grades.forEach(function (g) {
                     var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
@@ -792,9 +833,9 @@
 
             html += adminSearchHtml('admin-search-leaderboard', '\uD83D\uDD0D Search students...')
                 + '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th>#</th><th>ID</th><th>Name</th>';
-            labs.forEach(function (l) { html += '<th>' + escapeHtml(l) + '</th>'; });
-            html += '<th>Total</th><th>%</th></tr></thead><tbody>';
+                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th>';
+            labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
+            html += '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
                 html += '<tr><td colspan="' + (labs.length + 5) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
@@ -959,9 +1000,9 @@
             var labs = data.labs || [];
 
             var html = '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th>#</th><th>Name</th>';
-            labs.forEach(function (l) { html += '<th>' + escapeHtml(l) + '</th>'; });
-            html += '<th>Total</th><th>%</th></tr></thead><tbody>';
+                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">Name</th>';
+            labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
+            html += '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
                 html += '<tr><td colspan="' + (labs.length + 4) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
