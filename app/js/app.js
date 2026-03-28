@@ -495,7 +495,8 @@
 
         var tabsHtml = '<div class="admin-tabs">'
             + '<span class="admin-tab' + (adminCurrentTab === 'stats' ? ' active' : '') + '" onclick="switchAdminTab(\'stats\')">Users</span>'
-            + '<span class="admin-tab' + (adminCurrentTab === 'grades' ? ' active' : '') + '" onclick="switchAdminTab(\'grades\')">Grades</span>'
+            + '<span class="admin-tab' + (adminCurrentTab === 'total' ? ' active' : '') + '" onclick="switchAdminTab(\'total\')">Total</span>'
+            + '<span class="admin-tab' + (adminCurrentTab === 'labs' ? ' active' : '') + '" onclick="switchAdminTab(\'labs\')">Labs</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'activities' ? ' active' : '') + '" onclick="switchAdminTab(\'activities\')">Activities</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'leaderboard' ? ' active' : '') + '" onclick="switchAdminTab(\'leaderboard\')">Leaderboard</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'deadlines' ? ' active' : '') + '" onclick="switchAdminTab(\'deadlines\')">Deadlines</span>'
@@ -504,7 +505,8 @@
         viewerEl.innerHTML = '<div class="admin-panel">' + tabsHtml + '<div id="admin-tab-content"><div class="admin-loading">Loading...</div></div></div>';
 
         if (adminCurrentTab === 'stats') fetchAdminStats(url);
-        else if (adminCurrentTab === 'grades') fetchAdminGrades(url);
+        else if (adminCurrentTab === 'total') fetchAdminTotal(url);
+        else if (adminCurrentTab === 'labs') fetchAdminGrades(url);
         else if (adminCurrentTab === 'activities') fetchAdminActivities(url);
         else if (adminCurrentTab === 'leaderboard') fetchAdminLeaderboard(url);
         else if (adminCurrentTab === 'deadlines') fetchAdminDeadlines(url);
@@ -678,7 +680,79 @@
         fetchAdminStats(url);
     };
 
-    // ── Grades Tab ──
+    // ── Admin Total Tab (combined labs + activities per student) ──
+    function fetchAdminTotal(url) {
+        var container = adminContent();
+        if (!container) return;
+        container.innerHTML = '<div class="admin-loading">Computing totals...</div>';
+
+        fetch(url + '/api/admin/leaderboard', {
+            mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function (data) {
+            var board = data.leaderboard || [];
+            var labs = data.labs || [];
+            var activities = data.activities || [];
+
+            var html = '<div class="admin-section-header">Total Grades (Labs + Activities)'
+                + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="switchAdminTab(\'total\')">&#x21BB; refresh</span>'
+                + adminSearchHtml('admin-search-total', '\uD83D\uDD0D Search students...')
+                + '</div>'
+                + '<table class="admin-table leaderboard-table">'
+                + '<thead><tr><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th>';
+            labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
+            activities.forEach(function (a) {
+                var label = a.replace('activity', 'A');
+                html += '<th onclick="adminSortTable(this)">' + escapeHtml(label) + '</th>';
+            });
+            html += '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
+
+            if (board.length === 0) {
+                html += '<tr><td colspan="' + (labs.length + activities.length + 4) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+            } else {
+                board.forEach(function (s) {
+                    var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
+                    html += '<tr>'
+                        + '<td class="admin-user">' + escapeHtml(s.id || s.username) + '</td>'
+                        + '<td>' + escapeHtml(s.name || s.username) + '</td>';
+                    labs.forEach(function (l) {
+                        var labData = s.labs[l];
+                        if (labData) {
+                            var lc = labData.percentage >= 80 ? 'grade-a' : labData.percentage >= 50 ? 'grade-b' : 'grade-c';
+                            html += '<td><span class="' + lc + '">' + labData.score + '/' + labData.total + '</span></td>';
+                        } else {
+                            html += '<td style="color:var(--comment);">\u2014</td>';
+                        }
+                    });
+                    activities.forEach(function (a) {
+                        var actData = s.activities ? s.activities[a] : null;
+                        if (actData) {
+                            var ac = actData.percentage >= 80 ? 'grade-a' : actData.percentage >= 50 ? 'grade-b' : 'grade-c';
+                            html += '<td><span class="' + ac + '">' + actData.score + '/' + actData.total + '</span></td>';
+                        } else {
+                            html += '<td style="color:var(--comment);">\u2014</td>';
+                        }
+                    });
+                    html += '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
+                        + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
+                        + '</tr>';
+                });
+            }
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load totals: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    // ── Labs Tab ──
     var gradesLabFilter = null;
 
     function fetchAdminGrades(url, labFilter) {
@@ -773,7 +847,7 @@
             var tree = results[1];
 
             var html = '<div class="admin-section-header">'
-                + '<span class="admin-back-btn" onclick="switchAdminTab(\'grades\')">\u2190 back</span> '
+                + '<span class="admin-back-btn" onclick="switchAdminTab(\'labs\')">\u2190 back</span> '
                 + escapeHtml(username) + ' / ' + escapeHtml(lab)
                 + ' \u2014 <span class="' + (g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c') + '">'
                 + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
@@ -1160,7 +1234,7 @@
     // ──────────────────────────────────────
     //  Student Grades Panel (Tabbed: My Grades | Leaderboard)
     // ──────────────────────────────────────
-    var studentCurrentTab = 'my-grades';
+    var studentCurrentTab = 'total';
 
     function renderStudentGrades(tab) {
         if (!authToken || authRole === 'admin') {
@@ -1169,7 +1243,7 @@
         }
         var url = serverUrl();
         if (!url) return;
-        studentCurrentTab = tab || studentCurrentTab || 'my-grades';
+        studentCurrentTab = tab || studentCurrentTab || 'total';
 
         var viewerEl = document.getElementById('file-viewer');
         var outlineEl = document.getElementById('outline-content');
@@ -1182,7 +1256,7 @@
         document.getElementById('explorer-cmd').textContent = 'cat grades/' + studentCurrentTab;
 
         var tabsHtml = '<div class="admin-tabs">'
-            + '<span class="admin-tab' + (studentCurrentTab === 'my-grades' ? ' active' : '') + '" onclick="switchStudentTab(\'my-grades\')">My Grades</span>'
+            + '<span class="admin-tab' + (studentCurrentTab === 'total' ? ' active' : '') + '" onclick="switchStudentTab(\'total\')">Total</span>'
             + '<span class="admin-tab' + (studentCurrentTab === 'my-labs' ? ' active' : '') + '" onclick="switchStudentTab(\'my-labs\')">My Labs</span>'
             + '<span class="admin-tab' + (studentCurrentTab === 'my-activities' ? ' active' : '') + '" onclick="switchStudentTab(\'my-activities\')">My Class Activity</span>'
             + '<span class="admin-tab' + (studentCurrentTab === 'leaderboard' ? ' active' : '') + '" onclick="switchStudentTab(\'leaderboard\')">Leaderboard</span>'
@@ -1190,7 +1264,7 @@
 
         viewerEl.innerHTML = '<div class="admin-panel">' + tabsHtml + '<div id="student-tab-content"><div class="admin-loading">Loading...</div></div></div>';
 
-        if (studentCurrentTab === 'my-grades') fetchStudentGrades(url);
+        if (studentCurrentTab === 'total') fetchStudentTotal(url);
         else if (studentCurrentTab === 'my-labs') fetchStudentLabs(url);
         else if (studentCurrentTab === 'my-activities') fetchStudentActivities(url);
         else if (studentCurrentTab === 'leaderboard') fetchStudentLeaderboard(url);
@@ -1217,8 +1291,9 @@
                 renderDeadlines(); // sidebar
             }
             // Re-render current student tab to update deadline info
-            if (studentCurrentTab === 'my-grades') fetchStudentGrades(url);
-            else if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDD04 Refresh Deadlines'; }
+            if (studentCurrentTab === 'total') fetchStudentTotal(url);
+            else if (studentCurrentTab === 'my-labs') fetchStudentLabs(url);
+            else if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDD04 Refresh'; }
         })
         .catch(function () {
             if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDD04 Refresh Deadlines'; }
@@ -1253,110 +1328,97 @@
         return document.getElementById('student-tab-content');
     }
 
-    // ── My Grades Tab ──
-    function fetchStudentGrades(url) {
+    // ── Student Total Tab (labs + activities combined) ──
+    function fetchStudentTotal(url) {
         var container = studentContent();
         if (!container) return;
-        fetch(url + '/api/my/grades', {
-            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
-        })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-            if (data.error) {
-                container.innerHTML = '<div class="error" style="padding:12px;">' + escapeHtml(data.error) + '</div>';
+        Promise.all([
+            fetch(url + '/api/my/grades', {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.json(); }),
+            fetch(url + '/api/my/activities', {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.json(); })
+        ])
+        .then(function (results) {
+            var labData = results[0];
+            var actData = results[1];
+            if (labData.error && actData.error) {
+                container.innerHTML = '<div class="error" style="padding:12px;">' + escapeHtml(labData.error) + '</div>';
                 return;
             }
-            var grades = data.grades || [];
+            var labGrades = labData.grades || [];
+            var actGrades = actData.grades || [];
 
-            // Summary bar
+            // Combined totals
             var totalScore = 0, totalPossible = 0;
-            grades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            labGrades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            actGrades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
             var totalPct = totalPossible > 0 ? Math.round(totalScore / totalPossible * 1000) / 10 : 0;
             var summaryClass = totalPct >= 80 ? 'grade-a' : totalPct >= 50 ? 'grade-b' : 'grade-c';
 
             var html = '<div class="student-summary">'
-                + '<span class="student-summary-label">Overall:</span> '
+                + '<span class="student-summary-label">Overall Total:</span> '
                 + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
-                + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh Deadlines</button>'
+                + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh</button>'
                 + '</div>';
 
-            grades.forEach(function (g) {
-                var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-                var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+            // Sub-totals
+            var labScore = 0, labPossible = 0;
+            labGrades.forEach(function (g) { labScore += g.score; labPossible += g.total; });
+            var labPct = labPossible > 0 ? Math.round(labScore / labPossible * 1000) / 10 : 0;
+            var actScore = 0, actPossible = 0;
+            actGrades.forEach(function (g) { actScore += g.score; actPossible += g.total; });
+            var actPct = actPossible > 0 ? Math.round(actScore / actPossible * 1000) / 10 : 0;
 
-                // Deadline penalty info
-                var deadlineHtml = '';
-                var dl = null;
-                getActiveDeadlines().forEach(function (d) { if (d.lab === g.lab) dl = d; });
-                if (dl) {
-                    var now = Date.now();
-                    var dueDate = new Date(dl.due);
-                    var due = dueDate.getTime();
-                    var diff = due - now;
-                    // Full date display: e.g. "Sat, Mar 28, 2026 23:59:59"
-                    var fullDateStr = dueDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-                    if (diff > 0) {
-                        var totalSec = Math.floor(diff / 1000);
-                        var dd = Math.floor(totalSec / 86400);
-                        var hh = Math.floor((totalSec % 86400) / 3600);
-                        var mm = Math.floor((totalSec % 3600) / 60);
-                        var ss = totalSec % 60;
-                        var countdownStr = (dd > 0 ? dd + 'd ' : '') + hh + 'h ' + mm + 'm ' + ss + 's';
-                        var urgencyClass = dd > 3 ? 'deadline-ok' : dd > 0 ? 'deadline-warn' : 'deadline-urgent';
-                        deadlineHtml = '<div class="lab-deadline-info ' + urgencyClass + '">'
-                            + '<span class="lab-deadline-date">&#x1F4C5; Due: ' + escapeHtml(fullDateStr) + '</span>'
-                            + '<span class="lab-deadline-countdown" data-due="' + due + '">&#x23F1; ' + countdownStr + ' remaining</span>'
-                            + '</div>';
-                    } else {
-                        var lateSec = Math.floor(-diff / 1000);
-                        var lateDays = Math.ceil(lateSec / 86400);
-                        var penalty = lateDays * (dl.penalty || 5);
-                        deadlineHtml = '<div class="lab-deadline-info deadline-overdue">'
-                            + '<span class="lab-deadline-date">&#x1F4C5; Was due: ' + escapeHtml(fullDateStr) + '</span>'
-                            + '<span class="lab-deadline-countdown">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</span>'
-                            + '</div>';
-                    }
-                }
+            html += '<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">'
+                + '<div class="student-subtotal">'
+                + '<span style="color:var(--cyan);font-size:11px;">Labs:</span> '
+                + '<span class="' + (labPct >= 80 ? 'grade-a' : labPct >= 50 ? 'grade-b' : 'grade-c') + '">' + labScore + '/' + labPossible + ' (' + labPct + '%)</span>'
+                + '</div>'
+                + '<div class="student-subtotal">'
+                + '<span style="color:var(--cyan);font-size:11px;">Activities:</span> '
+                + '<span class="' + (actPct >= 80 ? 'grade-a' : actPct >= 50 ? 'grade-b' : 'grade-c') + '">' + actScore + '/' + actPossible + ' (' + actPct + '%)</span>'
+                + '</div>'
+                + '</div>';
 
-                html += '<div class="student-lab-card">'
-                    + deadlineHtml
-                    + '<div class="student-lab-header">'
-                    + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
-                    + statusIcon + ' '
-                    + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
-                    + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view details</span>'
-                    + '</div>';
+            // Labs section
+            if (labGrades.length > 0) {
+                html += '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;border-bottom:1px solid var(--border);padding-bottom:4px;">Labs</div>';
+                labGrades.forEach(function (g) {
+                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    html += '<div class="student-lab-card" style="margin-bottom:6px;padding:6px 8px;">'
+                        + '<div class="student-lab-header">'
+                        + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
+                        + statusIcon + ' '
+                        + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                        + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view</span>'
+                        + '</div></div>';
+                });
+            }
 
-                // Brief checklist summary
-                if (g.items && g.items.length > 0) {
-                    var okCount = 0, warnCount = 0, missCount = 0;
-                    g.items.forEach(function (item) {
-                        if (item.status === 'ok') okCount++;
-                        else if (item.status === 'case_mismatch') warnCount++;
-                        else missCount++;
-                    });
-                    html += '<div class="student-checklist-summary">'
-                        + '\u2705 ' + okCount + ' ok';
-                    if (warnCount > 0) html += ' &nbsp;\u26A0\uFE0F ' + warnCount + ' naming';
-                    if (missCount > 0) html += ' &nbsp;\u274C ' + missCount + ' missing';
-                    html += '</div>';
-                }
+            // Activities section
+            if (actGrades.length > 0) {
+                html += '<div style="color:var(--cyan);font-size:12px;margin:8px 0 4px;border-bottom:1px solid var(--border);padding-bottom:4px;">Class Activities</div>';
+                actGrades.forEach(function (g) {
+                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    var actLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
+                    html += '<div class="student-lab-card" style="margin-bottom:6px;padding:6px 8px;">'
+                        + '<div class="student-lab-header">'
+                        + '<span class="student-lab-name">' + escapeHtml(actLabel) + '</span> '
+                        + statusIcon + ' '
+                        + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                        + ' <span class="admin-detail-btn" onclick="showStudentActivityDetail(\'' + escapeHtml(g.activity) + '\')">view</span>'
+                        + '</div></div>';
+                });
+            }
 
-                // Feedback
-                if (g.feedback && g.feedback.length > 0) {
-                    html += '<div class="grade-feedback">';
-                    g.feedback.forEach(function (f) {
-                        html += '<div>\u25B8 ' + escapeHtml(f) + '</div>';
-                    });
-                    html += '</div>';
-                }
-                html += '</div>';
-            });
             container.innerHTML = html;
-            startGradeCountdowns();
         })
         .catch(function (err) {
-            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load grades: ' + escapeHtml(err.message) + '</div>';
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load total: ' + escapeHtml(err.message) + '</div>';
         });
     }
 
@@ -1647,7 +1709,7 @@
             var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
 
             var html = '<div class="admin-section-header">'
-                + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-grades\')">\u2190 back</span> '
+                + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-labs\')">\u2190 back</span> '
                 + escapeHtml(lab)
                 + ' \u2014 <span class="' + pctClass + '">'
                 + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
