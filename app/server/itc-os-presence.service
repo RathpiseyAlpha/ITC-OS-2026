@@ -1,0 +1,15 @@
+[Unit]
+Description=ITC-OS 2026 Presence Server
+After=network.target
+
+[Service]
+Type=simple
+User=rathpisey
+WorkingDirectory=/home/rathpisey/ITC-OS-2026/app/server
+ExecStart=/usr/bin/python3 app.py --host 0.0.0.0 --port 5000
+Restart=always
+RestartSec=3
+Environment=TZ=Asia/Phnom_Penh
+
+[Install]
+WantedBy=multi-user.target
