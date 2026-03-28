@@ -832,6 +832,7 @@ Everything goes in your **README.md** — there is no separate answers file. You
 2. **Screenshots** of compiling and running each program (both versions side by side)
 3. **Answers** to all questions listed under each task
 4. **Source code** files (`.c` files in the task folders)
+5. **Output files** (`.txt` files) as specified in each task
 
 ### Submission Folder Structure
 
@@ -840,33 +841,55 @@ All class activities go inside your personal `os-se-<YourStudentID>/` repository
 ```
 os-se-<YourStudentID>/
 ├── os-lab-<YourStudentID>/                # ← Your lab submissions (already exists)
-│   ├── lab1/
-│   ├── lab2/
 │   └── ...
 │
 └── os-class-activities-<YourStudentID>/   # ← Your class activity submissions
     └── activity1/
         ├── README.md                      # ← Your report: screenshots + answers + reflection
         ├── screenshots/                   # Screenshot images
+        │   ├── hello_syscall.png
+        │   ├── hello_winapi.png
+        │   ├── copyfilesyscall.png
         │   ├── task1_creator_lib.png
         │   ├── task1_creator_sys.png
         │   ├── task1_reader_lib.png
         │   ├── task1_reader_sys.png
         │   ├── task2_lib.png
         │   ├── task2_sys.png
-        │   ├── strace_*.png
+        │   ├── strace_lib_creator.png
+        │   ├── strace_sys_creator.png
+        │   ├── strace_lib_reader.png
+        │   ├── strace_sys_reader.png
+        │   ├── strace_summary_lib.png
+        │   ├── strace_summary_sys.png
         │   ├── task4_system_info.png
-        │   ├── task4_os_layers_diagram.png
-        │   └── ...
+        │   ├── task4_process_info.png
+        │   ├── task4_modules.png
+        │   └── task4_os_layers_diagram.png
         ├── task1/
         │   ├── file_creator_lib.c         # Provided (copy from instructions)
         │   ├── file_creator_sys.c         # YOU WRITE THIS
         │   ├── file_reader_lib.c          # Provided (copy from instructions)
         │   ├── file_reader_sys.c          # YOU WRITE THIS
-        │   └── file_creator_win.c         # (optional bonus)
-        └── task2/
-            ├── dir_list_lib.c             # Provided (copy from instructions)
-            └── dir_list_sys.c             # YOU WRITE THIS
+        │   ├── file_creator_win.c         # (optional bonus)
+        │   └── command_used_task1.txt
+        ├── task2/
+        │   ├── dir_list_lib.c             # Provided (copy from instructions)
+        │   ├── dir_list_sys.c             # YOU WRITE THIS
+        │   └── command_used_task2.txt
+        ├── task3_strace/
+        │   ├── strace_lib_task1.txt
+        │   ├── strace_sys_task1.txt
+        │   ├── strace_lib_reader.txt
+        │   ├── strace_sys_reader.txt
+        │   ├── strace_summary_lib.txt
+        │   ├── strace_summary_sys.txt
+        │   └── command_used_strace.txt
+        └── task4_os_structure/
+            ├── system_info.txt
+            ├── process_info.txt
+            ├── kernel_modules.txt
+            └── command_used_task4.txt
 ```
 
 ### Setting Up Your Activity Folder
