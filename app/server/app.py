@@ -648,7 +648,7 @@ ACTIVITY_SPECS["activity1"] = {
 # (extension-stripped) contains ALL listed keywords.  Extension is ignored.
 _SCREENSHOT_KEYWORDS = {
     "screenshots/task4_system_info.png": [["system", "info"], ["cpuinfo"], ["meminfo"], ["cpu"], ["mem"]],
-    "screenshots/task4_process_info.png": [["process", "info"]],
+    "screenshots/task4_process_info.png": [["process", "info"], ["process"], ["proc"]],
     "screenshots/task4_modules.png": [["mod"]],
     "screenshots/task4_os_layers_diagram.png": [["layer"]],
 }
