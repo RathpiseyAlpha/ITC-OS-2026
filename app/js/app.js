@@ -497,6 +497,7 @@
             + '<span class="admin-tab' + (adminCurrentTab === 'stats' ? ' active' : '') + '" onclick="switchAdminTab(\'stats\')">Users</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'grades' ? ' active' : '') + '" onclick="switchAdminTab(\'grades\')">Grades</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'leaderboard' ? ' active' : '') + '" onclick="switchAdminTab(\'leaderboard\')">Leaderboard</span>'
+            + '<span class="admin-tab' + (adminCurrentTab === 'deadlines' ? ' active' : '') + '" onclick="switchAdminTab(\'deadlines\')">Deadlines</span>'
             + '</div>';
 
         viewerEl.innerHTML = '<div class="admin-panel">' + tabsHtml + '<div id="admin-tab-content"><div class="admin-loading">Loading...</div></div></div>';
@@ -504,6 +505,7 @@
         if (adminCurrentTab === 'stats') fetchAdminStats(url);
         else if (adminCurrentTab === 'grades') fetchAdminGrades(url);
         else if (adminCurrentTab === 'leaderboard') fetchAdminLeaderboard(url);
+        else if (adminCurrentTab === 'deadlines') fetchAdminDeadlines(url);
     }
 
     window.switchAdminTab = function (tab) {
@@ -897,6 +899,115 @@
         });
     }
 
+    // ── Admin Deadlines Tab ──
+    function fetchAdminDeadlines(url) {
+        var container = adminContent();
+        if (!container) return;
+        container.innerHTML = '<div class="admin-loading">Loading deadlines...</div>';
+
+        fetch(url + '/api/deadlines', {
+            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            var deadlines = data.deadlines || {};
+            var labs = Object.keys(CONFIG.deadlines ? CONFIG.deadlines.reduce(function (m, d) { m[d.lab] = 1; return m; }, {}) : {});
+            // Merge server + config labs
+            Object.keys(deadlines).forEach(function (k) { if (labs.indexOf(k) === -1) labs.push(k); });
+            labs.sort();
+
+            var html = '<div class="admin-section-header">Lab Deadlines'
+                + ' <span style="color:var(--comment);font-size:10px;margin-left:8px;">penalty = points deducted per calendar day late</span>'
+                + '</div>';
+
+            html += '<div class="admin-deadline-form">';
+            // Editable rows for existing labs
+            labs.forEach(function (lab) {
+                var d = deadlines[lab] || {};
+                var due = d.due || '';
+                var penalty = d.penalty !== undefined ? d.penalty : 5;
+                html += '<div class="admin-deadline-row">'
+                    + '<label class="admin-deadline-lab">' + escapeHtml(lab.toUpperCase()) + '</label>'
+                    + '<input type="datetime-local" class="admin-input" id="dl-due-' + escapeHtml(lab) + '" value="' + escapeHtml(due) + '">'
+                    + '<span style="color:var(--comment);font-size:10px;">penalty:</span>'
+                    + '<input type="number" class="admin-input admin-input-sm" id="dl-pen-' + escapeHtml(lab) + '" value="' + penalty + '" min="0" max="100">'
+                    + '<span style="color:var(--comment);font-size:10px;">pts/day</span>'
+                    + '</div>';
+            });
+
+            // Add new lab row
+            html += '<div class="admin-deadline-row" style="margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;">'
+                + '<input type="text" class="admin-input admin-input-sm" id="dl-new-lab" placeholder="lab5" style="width:60px;">'
+                + '<input type="datetime-local" class="admin-input" id="dl-new-due" value="">'
+                + '<span style="color:var(--comment);font-size:10px;">penalty:</span>'
+                + '<input type="number" class="admin-input admin-input-sm" id="dl-new-pen" value="5" min="0" max="100">'
+                + '<span style="color:var(--comment);font-size:10px;">pts/day</span>'
+                + '</div>';
+
+            html += '<div style="margin-top:12px;">'
+                + '<button class="admin-btn" onclick="saveAdminDeadlines()">Save Deadlines</button>'
+                + ' <span id="dl-save-status" style="color:var(--green);font-size:11px;"></span>'
+                + '</div>';
+            html += '</div>';
+
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load deadlines: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    window.saveAdminDeadlines = function () {
+        var url = serverUrl();
+        if (!url) return;
+
+        var deadlines = {};
+        // Collect existing lab rows
+        document.querySelectorAll('.admin-deadline-row').forEach(function (row) {
+            var labEl = row.querySelector('.admin-deadline-lab');
+            var dueEl = row.querySelector('input[type="datetime-local"]');
+            var penEl = row.querySelector('input[type="number"]');
+            if (labEl && dueEl && dueEl.value) {
+                var lab = labEl.textContent.trim().toLowerCase();
+                deadlines[lab] = { due: dueEl.value, penalty: parseInt(penEl.value) || 5 };
+            }
+        });
+
+        // New lab entry
+        var newLab = (document.getElementById('dl-new-lab').value || '').trim().toLowerCase();
+        var newDue = document.getElementById('dl-new-due').value;
+        var newPen = parseInt(document.getElementById('dl-new-pen').value) || 5;
+        if (newLab && newDue) {
+            deadlines[newLab] = { due: newDue, penalty: newPen };
+        }
+
+        var statusEl = document.getElementById('dl-save-status');
+        if (statusEl) statusEl.textContent = 'Saving...';
+
+        fetch(url + '/api/admin/deadlines', {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify(deadlines)
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (data.ok) {
+                if (statusEl) statusEl.textContent = '\u2705 Saved!';
+                // Refresh sidebar deadlines with server data
+                _serverDeadlines = data.deadlines || deadlines;
+                startDeadlineTimer();
+                // Re-render to show new lab if added
+                setTimeout(function () { fetchAdminDeadlines(url); }, 800);
+            } else {
+                if (statusEl) statusEl.textContent = '\u274C ' + (data.error || 'Failed');
+            }
+        })
+        .catch(function (err) {
+            if (statusEl) statusEl.textContent = '\u274C ' + err.message;
+        });
+    };
+
     // ──────────────────────────────────────
     //  Student Grades Panel (Tabbed: My Grades | Leaderboard)
     // ──────────────────────────────────────
@@ -974,7 +1085,7 @@
                 // Deadline penalty info
                 var deadlineHtml = '';
                 var dl = null;
-                (CONFIG.deadlines || []).forEach(function (d) { if (d.lab === g.lab) dl = d; });
+                getActiveDeadlines().forEach(function (d) { if (d.lab === g.lab) dl = d; });
                 if (dl) {
                     var now = Date.now();
                     var due = new Date(dl.due).getTime();
@@ -1046,23 +1157,24 @@
                 return;
             }
             var board = data.leaderboard || [];
-            var labs = data.labs || [];
 
             var html = '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th>'
+                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">ID</th>'
                 + '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="4" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="5" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
                     var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
                     var isMe = s.username === authUser;
-                    var displayId = isMe ? escapeHtml(s.username) + ' \u2B50' : (s.username ? escapeHtml(s.username.replace(/./g, function (c, i) { return i < 3 ? c : '*'; })) : '\u2014');
+                    var displayName = escapeHtml(s.name || s.username || '\u2014') + (isMe ? ' \u2B50' : '');
+                    var displayId = escapeHtml(s.id || '\u2014');
                     html += '<tr' + (isMe ? ' class="leaderboard-me"' : '') + '>'
                         + '<td class="rank-cell">' + rankIcon + '</td>'
-                        + '<td>' + displayId + '</td>'
+                        + '<td>' + displayName + '</td>'
+                        + '<td class="admin-user">' + displayId + '</td>'
                         + '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
                         + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
                         + '</tr>';
@@ -1329,14 +1441,49 @@
     //  Deadline Countdowns
     // ──────────────────────────────────────
     var deadlineInterval = null;
+    var _serverDeadlines = null; // { lab1: { due, penalty }, ... } from server
+
+    function getActiveDeadlines() {
+        // Server deadlines take priority; fall back to CONFIG.deadlines array
+        if (_serverDeadlines && Object.keys(_serverDeadlines).length > 0) {
+            var list = [];
+            Object.keys(_serverDeadlines).sort().forEach(function (lab) {
+                var d = _serverDeadlines[lab];
+                list.push({ lab: lab, due: d.due, penalty: d.penalty || 5 });
+            });
+            return list;
+        }
+        return CONFIG.deadlines || [];
+    }
+
+    function loadServerDeadlines() {
+        var url = serverUrl();
+        if (!url || !authToken) return;
+        fetch(url + '/api/deadlines', {
+            mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+            if (data && data.deadlines) {
+                _serverDeadlines = data.deadlines;
+                renderDeadlines();
+            }
+        })
+        .catch(function () { /* use config fallback */ });
+    }
 
     function renderDeadlines() {
         var el = document.getElementById('sidebar-deadlines');
-        if (!el || !CONFIG.deadlines || !CONFIG.deadlines.length) return;
+        if (!el) return;
+        var deadlines = getActiveDeadlines();
+        if (!deadlines.length) {
+            el.innerHTML = '<div style="color:var(--comment);font-size:10px;">No deadlines set</div>';
+            return;
+        }
 
         var now = Date.now();
         var html = '';
-        CONFIG.deadlines.forEach(function (d) {
+        deadlines.forEach(function (d) {
             var due = new Date(d.due).getTime();
             var diff = due - now;
             var label = d.lab.toUpperCase();
@@ -1382,6 +1529,7 @@
     }
 
     function startDeadlineTimer() {
+        loadServerDeadlines();
         renderDeadlines();
         if (deadlineInterval) clearInterval(deadlineInterval);
         deadlineInterval = setInterval(renderDeadlines, 1000);

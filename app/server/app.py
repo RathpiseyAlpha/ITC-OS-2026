@@ -40,6 +40,31 @@ MAX_LOGIN_ATTEMPTS = 5
 LOGIN_WINDOW_SEC = 60
 SESSION_TIMEOUT_SEC = 3600  # 1 hour
 
+# ── Deadline Storage ───────────────────────────────────────────
+
+_DEADLINES_FILE = Path(__file__).resolve().parent / "deadlines.json"
+
+
+def _load_deadlines():
+    """Load deadlines from JSON file."""
+    if _DEADLINES_FILE.exists():
+        try:
+            with open(_DEADLINES_FILE, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def _save_deadlines(data):
+    """Save deadlines to JSON file."""
+    with open(_DEADLINES_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# In-memory cache refreshed from disk on every read
+_deadlines = _load_deadlines()
+
 # ── Student Roster ─────────────────────────────────────────────
 # Maps student ID → { "name": display name, "user": Linux username }
 STUDENTS = {
@@ -795,6 +820,33 @@ class PresenceHandler(SimpleHTTPRequestHandler):
             _prune_web_users()
             self._json_response({"ok": True, "count": len(_web_users)})
 
+        elif path == "/api/admin/deadlines":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session or session["role"] != "admin":
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            # body: { "lab1": { "due": "2026-03-22T23:59:00", "penalty": 5 }, ... }
+            deadlines = body if isinstance(body, dict) else {}
+            # Validate entries
+            clean = {}
+            for lab_key, val in deadlines.items():
+                lab_key = str(lab_key).strip()[:20]
+                if not lab_key or not isinstance(val, dict):
+                    continue
+                due = str(val.get("due", "")).strip()[:30]
+                penalty = val.get("penalty", 5)
+                if isinstance(penalty, (int, float)):
+                    penalty = max(0, min(100, int(penalty)))
+                else:
+                    penalty = 5
+                if due:
+                    clean[lab_key] = {"due": due, "penalty": penalty}
+            global _deadlines
+            _deadlines = clean
+            _save_deadlines(clean)
+            self._json_response({"ok": True, "deadlines": clean})
+
         else:
             self._json_response({"error": "not found"}, 404)
 
@@ -866,6 +918,14 @@ class PresenceHandler(SimpleHTTPRequestHandler):
                 self._json_response({"error": "Lab directory not found"}, 404)
                 return
             self._json_response(tree)
+        # ── Deadlines (any authenticated user can read) ──
+        elif path == "/api/deadlines":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
+            self._json_response({"deadlines": _load_deadlines()})
         # ── Student-facing endpoints (any authenticated user) ──
         elif path == "/api/my/grades":
             token = self._get_token()
