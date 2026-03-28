@@ -608,6 +608,30 @@ def _build_activity_specs():
 
 ACTIVITY_SPECS = _build_activity_specs()
 
+# Override activity1 — the markdown was revised after students submitted.
+# Students followed the eb3f441 version (commit "Class Activity 1") which had:
+#   task1/ = file_creator + file_reader (combined)
+#   task2/ = dir_list
+#   task3_strace & task4_os_structure created by mkdir but no specific files
+#     were listed in the tree, so only grade the explicitly listed deliverables.
+ACTIVITY_SPECS["activity1"] = {
+    "total_points": 100,
+    "files": [
+        "README.md",
+        "task1/file_creator_lib.c",
+        "task1/file_creator_sys.c",
+        "task1/file_reader_lib.c",
+        "task1/file_reader_sys.c",
+        "task2/dir_list_lib.c",
+        "task2/dir_list_sys.c",
+    ],
+    "dirs": [
+        "screenshots",
+        "task1",
+        "task2",
+    ],
+}
+
 
 def _find_lab_root(username, lab_name):
     """Find a student's lab directory under their home.
