@@ -643,6 +643,16 @@ ACTIVITY_SPECS["activity1"] = {
     ],
 }
 
+# Flexible keyword matching for task4 screenshot files.
+# When exact match fails, match any file under screenshots/ whose basename
+# (extension-stripped) contains ALL listed keywords.  Extension is ignored.
+_SCREENSHOT_KEYWORDS = {
+    "screenshots/task4_system_info.png": ["system", "info"],
+    "screenshots/task4_process_info.png": ["process", "info"],
+    "screenshots/task4_modules.png": ["mod"],
+    "screenshots/task4_os_layers_diagram.png": ["layer"],
+}
+
 
 def _find_lab_root(username, lab_name):
     """Find a student's lab directory under their home.
@@ -965,11 +975,35 @@ def grade_student_activity(username, activity_name):
                     "points": round(points_per_item, 2), "maxPoints": round(points_per_item, 2), "type": item_type,
                 })
         else:
-            items.append({
-                "expected": expected, "status": "missing",
-                "points": 0, "maxPoints": round(points_per_item, 2), "type": item_type,
-            })
-            feedback.append(f"Missing {item_type}: '{expected}'")
+            # Fallback: keyword-based matching for screenshot files
+            matched_path = None
+            if expected in _SCREENSHOT_KEYWORDS:
+                keywords = _SCREENSHOT_KEYWORDS[expected]
+                for ex_lower, ex_actual in existing.items():
+                    if not ex_lower.startswith("screenshots/"):
+                        continue
+                    base = ex_lower.rsplit("/", 1)[-1]
+                    base = base.rsplit(".", 1)[0] if "." in base else base
+                    if all(kw in base for kw in keywords):
+                        full = act_root / ex_actual
+                        if full.is_file():
+                            matched_path = ex_actual
+                            break
+
+            if matched_path is not None:
+                score += points_per_item
+                items.append({
+                    "expected": expected, "actual": matched_path,
+                    "status": "ok",
+                    "points": round(points_per_item, 2),
+                    "maxPoints": round(points_per_item, 2), "type": "file",
+                })
+            else:
+                items.append({
+                    "expected": expected, "status": "missing",
+                    "points": 0, "maxPoints": round(points_per_item, 2), "type": item_type,
+                })
+                feedback.append(f"Missing {item_type}: '{expected}'")
 
     score = round(min(score, spec["total_points"]), 2)
     sub_date = _get_submission_date(act_root)
