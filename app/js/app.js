@@ -970,7 +970,29 @@
             grades.forEach(function (g) {
                 var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
                 var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+
+                // Deadline penalty info
+                var deadlineHtml = '';
+                var dl = null;
+                (CONFIG.deadlines || []).forEach(function (d) { if (d.lab === g.lab) dl = d; });
+                if (dl) {
+                    var now = Date.now();
+                    var due = new Date(dl.due).getTime();
+                    var diff = due - now;
+                    if (diff > 0) {
+                        var daysLeft = Math.ceil(diff / 86400000);
+                        if (daysLeft <= 3) {
+                            deadlineHtml = '<div class="lab-deadline-tag deadline-warn">&#x23F1; ' + daysLeft + 'd left to submit</div>';
+                        }
+                    } else {
+                        var lateDays = Math.ceil(-diff / 86400000);
+                        var penalty = lateDays * (dl.penalty || 5);
+                        deadlineHtml = '<div class="lab-deadline-tag deadline-overdue">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</div>';
+                    }
+                }
+
                 html += '<div class="student-lab-card">'
+                    + deadlineHtml
                     + '<div class="student-lab-header">'
                     + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
                     + statusIcon + ' '
@@ -1298,6 +1320,71 @@
             + '<div class="progress-bar" style="flex:1;height:12px;"><div class="progress-fill" style="width:' + labPct + '%"></div></div>'
             + '<span class="highlight" style="font-size:10px">' + completedLabs + '/' + totalLabs + '</span>'
             + '</div>';
+
+        // Start deadline countdowns
+        startDeadlineTimer();
+    }
+
+    // ──────────────────────────────────────
+    //  Deadline Countdowns
+    // ──────────────────────────────────────
+    var deadlineInterval = null;
+
+    function renderDeadlines() {
+        var el = document.getElementById('sidebar-deadlines');
+        if (!el || !CONFIG.deadlines || !CONFIG.deadlines.length) return;
+
+        var now = Date.now();
+        var html = '';
+        CONFIG.deadlines.forEach(function (d) {
+            var due = new Date(d.due).getTime();
+            var diff = due - now;
+            var label = d.lab.toUpperCase();
+            var penaltyNote = '';
+            var cls, timeStr;
+
+            if (diff > 0) {
+                // Still open
+                var totalSec = Math.floor(diff / 1000);
+                var days = Math.floor(totalSec / 86400);
+                var hrs  = Math.floor((totalSec % 86400) / 3600);
+                var mins = Math.floor((totalSec % 3600) / 60);
+                var secs = totalSec % 60;
+
+                if (days > 3) {
+                    timeStr = days + 'd ' + hrs + 'h remaining';
+                    cls = 'deadline-ok';
+                } else if (days > 0) {
+                    timeStr = days + 'd ' + hrs + 'h ' + mins + 'm';
+                    cls = 'deadline-warn';
+                } else {
+                    timeStr = hrs + 'h ' + mins + 'm ' + secs + 's';
+                    cls = 'deadline-urgent';
+                }
+            } else {
+                // Past deadline
+                var lateSec = Math.floor(-diff / 1000);
+                var lateDays = Math.ceil(lateSec / 86400);
+                var penalty = lateDays * (d.penalty || 5);
+                timeStr = 'OVERDUE';
+                cls = 'deadline-overdue';
+                penaltyNote = '<span class="deadline-penalty">-' + penalty + ' pts (' + lateDays + 'd late)</span>';
+            }
+
+            html += '<div class="deadline-row ' + cls + '">'
+                + '<span class="deadline-lab">' + label + '</span>'
+                + '<span class="deadline-time">' + timeStr + '</span>'
+                + penaltyNote
+                + '</div>';
+        });
+
+        el.innerHTML = html;
+    }
+
+    function startDeadlineTimer() {
+        renderDeadlines();
+        if (deadlineInterval) clearInterval(deadlineInterval);
+        deadlineInterval = setInterval(renderDeadlines, 1000);
     }
 
     // ──────────────────────────────────────

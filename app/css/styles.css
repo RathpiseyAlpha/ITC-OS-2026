@@ -956,6 +956,55 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     border-left: 2px solid var(--green);
 }
 
+/* ─── Deadline Countdowns (sidebar) ─── */
+.deadline-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 11px;
+    font-family: 'Fira Code', monospace;
+    flex-wrap: wrap;
+}
+.deadline-lab {
+    color: var(--cyan);
+    min-width: 38px;
+    font-weight: bold;
+    font-size: 10px;
+}
+.deadline-time { font-weight: bold; }
+.deadline-ok .deadline-time { color: var(--green); }
+.deadline-warn .deadline-time { color: var(--yellow); }
+.deadline-urgent .deadline-time { color: #ff6b35; animation: deadline-blink 1s step-end infinite; }
+.deadline-overdue .deadline-time { color: var(--red); }
+.deadline-penalty {
+    color: var(--red);
+    font-size: 10px;
+    opacity: 0.85;
+}
+@keyframes deadline-blink {
+    50% { opacity: 0.4; }
+}
+
+/* ─── Deadline Tag (inside lab card) ─── */
+.lab-deadline-tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    margin-bottom: 6px;
+    border-radius: 2px;
+    font-family: 'Fira Code', monospace;
+}
+.lab-deadline-tag.deadline-warn {
+    background: rgba(255, 213, 0, 0.08);
+    border-left: 2px solid var(--yellow);
+    color: var(--yellow);
+}
+.lab-deadline-tag.deadline-overdue {
+    background: rgba(255, 85, 85, 0.08);
+    border-left: 2px solid var(--red);
+    color: var(--red);
+}
+
 /* ─── Student Grades View ─── */
 .student-summary {
     padding: 10px 14px;

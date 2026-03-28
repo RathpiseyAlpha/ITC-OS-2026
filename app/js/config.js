@@ -61,6 +61,15 @@ const CONFIG = {
         { week: 12, file: 'lectures/files/ch12.pdf', title: 'File Systems' }
     ],
 
+    // Lab submission deadlines (ISO 8601, local timezone)
+    // penalty: points deducted per calendar day late
+    deadlines: [
+        { lab: 'lab1', due: '2026-02-22T23:59:00', penalty: 5 },
+        { lab: 'lab2', due: '2026-03-08T23:59:00', penalty: 5 },
+        { lab: 'lab3', due: '2026-03-22T23:59:00', penalty: 5 },
+        { lab: 'lab4', due: '2026-04-05T23:59:00', penalty: 5 }
+    ],
+
     // Cache duration for GitHub API responses (ms)
     cacheDuration: 5 * 60 * 1000 // 5 minutes
 };

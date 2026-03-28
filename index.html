@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITC Operating Systems 2026</title>
-    <link rel="stylesheet" href="app/css/styles.css?v=3">
+    <link rel="stylesheet" href="app/css/styles.css?v=4">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Firebase SDK (for web visitor presence — optional, enable in app/js/config.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -133,6 +133,15 @@
                     </div>
                 </div>
                 <div class="sidebar-section">
+                    <div class="sidebar-title sidebar-title-toggle" onclick="toggleSection('sidebar-deadlines')">
+                        <span>// deadlines</span>
+                        <span class="section-arrow" id="sidebar-deadlines-arrow">&#x25B6;</span>
+                    </div>
+                    <div id="sidebar-deadlines" style="display:none;padding:0 8px;">
+                        <div style="color:var(--comment);font-size:10px;">Loading...</div>
+                    </div>
+                </div>
+                <div class="sidebar-section">
                     <div class="sidebar-title sidebar-title-toggle" onclick="toggleSection('web-users')">
                         <span>// web visitors <span class="online-count" id="web-count"></span></span>
                         <span class="section-arrow" id="web-users-arrow">&#x25BC;</span>
@@ -235,7 +244,7 @@
 <script src="app/js/config.js"></script>
 <script src="app/js/github.js"></script>
 <script src="app/js/presence.js"></script>
-<script src="app/js/app.js?v=3"></script>
+<script src="app/js/app.js?v=4"></script>
 
 </body>
 </html>
