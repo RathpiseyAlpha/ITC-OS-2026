@@ -496,6 +496,7 @@
         var tabsHtml = '<div class="admin-tabs">'
             + '<span class="admin-tab' + (adminCurrentTab === 'stats' ? ' active' : '') + '" onclick="switchAdminTab(\'stats\')">Users</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'grades' ? ' active' : '') + '" onclick="switchAdminTab(\'grades\')">Grades</span>'
+            + '<span class="admin-tab' + (adminCurrentTab === 'activities' ? ' active' : '') + '" onclick="switchAdminTab(\'activities\')">Activities</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'leaderboard' ? ' active' : '') + '" onclick="switchAdminTab(\'leaderboard\')">Leaderboard</span>'
             + '<span class="admin-tab' + (adminCurrentTab === 'deadlines' ? ' active' : '') + '" onclick="switchAdminTab(\'deadlines\')">Deadlines</span>'
             + '</div>';
@@ -504,6 +505,7 @@
 
         if (adminCurrentTab === 'stats') fetchAdminStats(url);
         else if (adminCurrentTab === 'grades') fetchAdminGrades(url);
+        else if (adminCurrentTab === 'activities') fetchAdminActivities(url);
         else if (adminCurrentTab === 'leaderboard') fetchAdminLeaderboard(url);
         else if (adminCurrentTab === 'deadlines') fetchAdminDeadlines(url);
     }
@@ -1007,6 +1009,151 @@
         })
         .catch(function (err) {
             if (statusEl) statusEl.textContent = '\u274C ' + err.message;
+        });
+    };
+
+    // ── Admin Activity Grades Tab ──
+    var activitiesFilter = null;
+
+    function fetchAdminActivities(url, actFilter) {
+        var container = adminContent();
+        if (!container) return;
+        activitiesFilter = actFilter || null;
+        container.innerHTML = '<div class="admin-loading">Grading activity submissions...</div>';
+
+        var endpoint = url + '/api/admin/activities';
+        if (activitiesFilter) endpoint += '?activity=' + encodeURIComponent(activitiesFilter);
+
+        fetch(endpoint, {
+            mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function (data) {
+            var grades = data.grades || [];
+            var activities = data.activities || [];
+
+            var html = '<div class="admin-section-header">Activity Grading'
+                + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="fetchAdminActivities_refresh()">&#x21BB; refresh</span>'
+                + adminSearchHtml('admin-search-activities', '\uD83D\uDD0D Search by ID, name, score...')
+                + '</div>'
+                + '<div class="admin-lab-filters">'
+                + '<span class="admin-lab-btn' + (!activitiesFilter ? ' active' : '') + '" onclick="filterActivities(null)">All Activities</span>';
+            activities.forEach(function (a) {
+                var label = a.replace('activity', 'Activity ');
+                html += '<span class="admin-lab-btn' + (activitiesFilter === a ? ' active' : '') + '" onclick="filterActivities(\'' + escapeHtml(a) + '\')">' + escapeHtml(label) + '</span>';
+            });
+            html += '</div>';
+
+            if (grades.length === 0) {
+                html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
+            } else {
+                html += '<table class="admin-table">'
+                    + '<thead><tr><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">Activity</th><th onclick="adminSortTable(this)">Score</th><th onclick="adminSortTable(this)">%</th><th onclick="adminSortTable(this)">Status</th><th>Details</th></tr></thead>'
+                    + '<tbody>';
+                grades.forEach(function (g) {
+                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    var actLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
+                    html += '<tr>'
+                        + '<td class="admin-user">' + escapeHtml(g.id || g.username) + '</td>'
+                        + '<td>' + escapeHtml(g.name || g.username) + '</td>'
+                        + '<td>' + escapeHtml(actLabel) + '</td>'
+                        + '<td><span class="' + pctClass + '">' + g.score + '/' + g.total + '</span></td>'
+                        + '<td><span class="' + pctClass + '">' + g.percentage + '%</span></td>'
+                        + '<td>' + statusIcon + '</td>'
+                        + '<td><span class="admin-detail-btn" onclick="showActivityGradeDetail(\'' + escapeHtml(g.username) + '\',\'' + escapeHtml(g.activity) + '\')">view</span></td>'
+                        + '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load activity grades: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+
+    window.filterActivities = function (act) {
+        var url = serverUrl();
+        if (url) fetchAdminActivities(url, act);
+    };
+
+    window.fetchAdminActivities_refresh = function () {
+        var url = serverUrl();
+        if (url) fetchAdminActivities(url, activitiesFilter);
+    };
+
+    window.showActivityGradeDetail = function (username, activity) {
+        var url = serverUrl();
+        if (!url) return;
+        var container = adminContent();
+        if (!container) return;
+        var actLabel = activity ? activity.replace('activity', 'Activity ') : activity;
+        container.innerHTML = '<div class="admin-loading">Loading details for ' + escapeHtml(username) + ' / ' + escapeHtml(actLabel) + '...</div>';
+
+        Promise.all([
+            fetch(url + '/api/admin/activities?user=' + encodeURIComponent(username) + '&activity=' + encodeURIComponent(activity), {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.json(); }),
+            fetch(url + '/api/admin/activity-tree?user=' + encodeURIComponent(username) + '&activity=' + encodeURIComponent(activity), {
+                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
+            }).then(function (r) { return r.ok ? r.json() : null; })
+        ])
+        .then(function (results) {
+            var g = results[0];
+            var tree = results[1];
+
+            var html = '<div class="admin-section-header">'
+                + '<span class="admin-back-btn" onclick="switchAdminTab(\'activities\')">' + '\u2190 back</span> '
+                + escapeHtml(username) + ' / ' + escapeHtml(actLabel)
+                + ' \u2014 <span class="' + (g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c') + '">'
+                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + '</div>';
+
+            if (g.activityPath) {
+                html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.activityPath) + '</div>';
+            }
+
+            if (tree && tree.tree) {
+                html += '<div class="grade-detail-columns"><div class="grade-tree-col">'
+                    + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">File Tree:</div>'
+                    + '<pre class="grade-tree">' + renderTreeText(tree.tree, '') + '</pre>'
+                    + '</div>';
+            }
+
+            html += '<div class="grade-items-col">'
+                + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Checklist:</div>'
+                + '<div class="grade-items">';
+            (g.items || []).forEach(function (item) {
+                var icon = item.status === 'ok' ? '\u2705' : item.status === 'case_mismatch' ? '\u26A0\uFE0F' : '\u274C';
+                var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
+                var detail = '';
+                if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                html += '<div class="grade-item ' + cls + '">'
+                    + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
+                    + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
+                    + detail
+                    + '</div>';
+            });
+            html += '</div></div>';
+
+            if (tree && tree.tree) html += '</div>';
+
+            if (g.feedback && g.feedback.length > 0) {
+                html += '<div style="margin-top:12px;"><div style="color:var(--red);font-size:12px;margin-bottom:4px;">Feedback:</div>';
+                g.feedback.forEach(function (f) {
+                    html += '<div class="grade-feedback">\u2022 ' + escapeHtml(f) + '</div>';
+                });
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        })
+        .catch(function (err) {
+            container.innerHTML = '<div class="error" style="padding:12px;">Failed: ' + escapeHtml(err.message) + '</div>';
         });
     };
 

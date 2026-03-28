@@ -1361,8 +1361,13 @@ class PresenceHandler(SimpleHTTPRequestHandler):
                 return
             qs = parse_qs(parsed.query)
             activity = qs.get("activity", [None])[0]
-            grades = grade_all_activities(activity)
-            self._json_response({"grades": grades, "activities": list(ACTIVITY_SPECS.keys())})
+            user = qs.get("user", [None])[0]
+            if user and activity:
+                result = grade_student_activity(user, activity)
+                self._json_response(result)
+            else:
+                grades = grade_all_activities(activity)
+                self._json_response({"grades": grades, "activities": list(ACTIVITY_SPECS.keys())})
         elif path == "/api/admin/activity-tree":
             token = self._get_token()
             session = validate_token(token)
