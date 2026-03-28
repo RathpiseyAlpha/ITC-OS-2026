@@ -515,6 +515,35 @@
         return document.getElementById('admin-tab-content');
     }
 
+    // ── Admin Search Helper ──
+    function adminSearchHtml(id, placeholder) {
+        return '<div class="admin-search-bar">'
+            + '<input type="text" id="' + id + '" placeholder="' + placeholder + '" oninput="adminFilterTable(\'' + id + '\')">'
+            + '<span class="admin-search-count" id="' + id + '-count"></span>'
+            + '</div>';
+    }
+
+    window.adminFilterTable = function (inputId) {
+        var input = document.getElementById(inputId);
+        if (!input) return;
+        var query = input.value.toLowerCase();
+        var container = input.closest('.admin-panel') || adminContent();
+        var table = container.querySelector('.admin-table');
+        if (!table) return;
+        var rows = table.querySelectorAll('tbody tr');
+        var visible = 0;
+        for (var i = 0; i < rows.length; i++) {
+            var text = rows[i].textContent.toLowerCase();
+            var show = !query || text.indexOf(query) !== -1;
+            rows[i].style.display = show ? '' : 'none';
+            if (show) visible++;
+        }
+        var countEl = document.getElementById(inputId + '-count');
+        if (countEl) {
+            countEl.textContent = query ? visible + ' / ' + rows.length : '';
+        }
+    };
+
     // ── Stats Tab ──
     function fetchAdminStats(url) {
         var container = adminContent();
@@ -537,6 +566,7 @@
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.length + '</span> total users</span>'
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.filter(function(u){return u.isOnline;}).length + '</span> online now</span>'
                 + '</div>'
+                + adminSearchHtml('admin-search-users', '\uD83D\uDD0D Search users...')
                 + '<table class="admin-table">'
                 + '<thead><tr><th>User</th><th>Logins</th><th>Last Login</th><th>Duration</th><th>Status</th></tr></thead>'
                 + '<tbody>';
@@ -613,7 +643,8 @@
             if (grades.length === 0) {
                 html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
             } else {
-                html += '<table class="admin-table">'
+                html += adminSearchHtml('admin-search-grades', '\uD83D\uDD0D Search by ID, name, score...')
+                    + '<table class="admin-table">'
                     + '<thead><tr><th>ID</th><th>Name</th><th>Lab</th><th>Score</th><th>%</th><th>Status</th><th>Details</th></tr></thead>'
                     + '<tbody>';
                 grades.forEach(function (g) {
@@ -759,7 +790,8 @@
                 + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="switchAdminTab(\'leaderboard\')">&#x21BB; refresh</span>'
                 + '</div>';
 
-            html += '<table class="admin-table leaderboard-table">'
+            html += adminSearchHtml('admin-search-leaderboard', '\uD83D\uDD0D Search students...')
+                + '<table class="admin-table leaderboard-table">'
                 + '<thead><tr><th>#</th><th>ID</th><th>Name</th>';
             labs.forEach(function (l) { html += '<th>' + escapeHtml(l) + '</th>'; });
             html += '<th>Total</th><th>%</th></tr></thead><tbody>';

@@ -777,6 +777,38 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     padding-bottom: 6px;
 }
 
+/* ─── Admin Search Bar ─── */
+.admin-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.admin-search-bar input {
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 3px;
+    width: 220px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+.admin-search-bar input:focus {
+    border-color: var(--cyan);
+}
+.admin-search-bar input::placeholder {
+    color: var(--comment);
+    opacity: 0.7;
+}
+.admin-search-count {
+    color: var(--comment);
+    font-size: 10px;
+    margin-left: 4px;
+}
+
 /* ─── Grades Tab ─── */
 .admin-lab-filters {
     display: flex;
