@@ -686,7 +686,7 @@
             </tr>
             <tr><td>1</td><td>Mastering Wildcards</td><td>Individual</td><td>WSL / Server</td><td>task1_wildcards.txt</td></tr>
             <tr><td>2</td><td>Hard &amp; Symbolic Links</td><td>Individual</td><td>WSL / Server</td><td>task2_links.txt</td></tr>
-            <tr><td>3</td><td>GRUB Exploration</td><td>Individual</td><td>WSL / Server</td><td>task3_grub.txt</td></tr>
+            <tr><td>3</td><td>GRUB Exploration</td><td>Individual</td><td>VM / Linux Machine</td><td>task3_grub.txt</td></tr>
             <tr><td>4</td><td>Shared Objects</td><td>Individual</td><td>WSL / Server</td><td>task4_shared_objects.txt</td></tr>
             <tr><td>5</td><td>Boot Break &amp; Recovery</td><td>Individual</td><td>VM only</td><td>task5_boot_recovery.txt</td></tr>
             <tr><td>6</td><td>GRUB Customization</td><td>Individual</td><td>VM only</td><td>task6_grub_custom.txt</td></tr>
@@ -994,7 +994,7 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
 
     <!-- Slide 23: Task 3 Part A - GRUB Exploration -->
     <div class="slide content-slide slide-content-bg" id="slide-23">
-        <h2>Task 3 Part A: GRUB Exploration (WSL)</h2>
+        <h2>Task 3 Part A: GRUB Exploration (VM / Linux Machine)</h2>
         <ul>
             <li>Check kernel version: <span class="code-block">uname -r</span></li>
             <li>Read <span class="code-block">/boot/grub/grub.cfg</span></li>
@@ -1003,7 +1003,7 @@ gcc main.c -L/usr/local/lib -lmylib -o myprogram</div>
             <li>View boot messages: <span class="code-block">dmesg</span></li>
         </ul>
         <div class="callout">
-            Task 3 has <strong>3 parts</strong>: Part A in WSL, Parts B &amp; C in a VM.
+            ⚠️ WSL does not have GRUB. All 3 parts (A, B &amp; C) require a <strong>VM or real Linux machine</strong>.
         </div>
         <span class="slide-section-label">LAB</span>
         <span class="slide-num">23 / 28</span>

@@ -69,7 +69,7 @@ After completing this lab, students will be able to:
 |:---:|-------|:----:|:-----------:|-------------|:------------:|
 | **1** | Mastering Wildcards | Individual | WSL / Server | `*`, `?`, `[]`, `{}`, `ls`, `cp`, `rm` | `task1_wildcards.txt` |
 | **2** | Hard Links & Symbolic Links | Individual | WSL / Server | `ln`, `ln -s`, `ls -li`, `stat`, `readlink` | `task2_links.txt` |
-| **3** | GRUB: Explore, Customize & Recover | Individual | WSL + **VM** | `cat`, `dmesg`, `/etc/default/grub`, `update-grub`, GRUB CLI | `task3_grub.txt` + screenshots |
+| **3** | GRUB: Explore, Customize & Recover | Individual | **VM / Linux Machine** | `cat`, `dmesg`, `/etc/default/grub`, `update-grub`, GRUB CLI | `task3_grub.txt` + screenshots |
 | **4** | Shared Objects Exploration | Individual | WSL / Server | `ldd`, `ldconfig -p`, `file`, `readelf` | `task4_shared_objects.txt` |
 | **5** | Build a Shared Library | **Pair** | WSL / Server | `gcc -shared -fPIC`, `ldconfig`, `ldd` | `task5_shared_library.txt` |
 
@@ -91,7 +91,7 @@ Each task in this lab redirects its output into `.txt` files, which serve as you
 
 1. **Output Files (No Screenshots Needed for Guided Steps):** The guided steps in each task automatically save results to `.txt` files (e.g., `task1_wildcards.txt`). These files will be committed to your repository as proof of completion.
 2. **Challenge Screenshots:** When you reach the 🧩 **Challenge** sections in Tasks 1, 2, 3, and 4, take a screenshot of your terminal showing the commands you used and their output.
-3. **VM Screenshots (Task 3 Parts B & C):** GRUB customization and boot recovery involve the VM console/display, so they must be documented with screenshots.
+3. **VM Screenshots (Task 3 Parts A, B & C):** GRUB exploration, customization, and boot recovery require a VM or real Linux machine (not WSL), so they must be documented with screenshots.
 4. **Pair Task Screenshot (Task 5):** Take screenshots showing the API design session and the integration test with both partners' work.
 5. **Full History Screenshot:** After finishing all tasks, run `history | tail -n 100` and take a screenshot.
 6. **Save All Images:** Save all screenshots to a folder on your host machine. You will add them to an `images/` folder in your `README.md` later.
@@ -104,29 +104,29 @@ Each task in this lab redirects its output into `.txt` files, which serve as you
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                          WSL / Linux Terminal                                │
 │                                                                              │
-│  ┌─────────┐  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
-│  │ Task 1  │  │ Task 2  │  │ Task 3A  │  │ Task 4   │  │ Task 5   │        │
-│  │Wildcards│─▶│  Links  │─▶│  GRUB    │─▶│ Shared   │─▶│ Build .so│        │
-│  │         │  │         │  │ Explore  │  │ Objects  │  │  (Pair)  │        │
-│  └─────────┘  └─────────┘  └─────┬────┘  └──────────┘  └────┬─────┘        │
-│                                   │                           │              │
-│                                   ▼                           ▼              │
-│                            ┌─────────────┐             ┌───────────┐         │
-│                            │ Continue to │             │ git push  │         │
-│                            │ VM (3B, 3C) │             │ to GitHub │         │
-│                            └──────┬──────┘             └─────┬─────┘         │
-└───────────────────────────────────┼──────────────────────────┼───────────────┘
-                                    │                          │
-┌───────────────────────────────────┼──────────────────────────┘
-│                                   ▼
+│  ┌─────────┐  ┌─────────┐  ┌──────────┐  ┌──────────┐                       │
+│  │ Task 1  │  │ Task 2  │  │ Task 4   │  │ Task 5   │                       │
+│  │Wildcards│─▶│  Links  │─▶│ Shared   │─▶│ Build .so│                       │
+│  │         │  │         │  │ Objects  │  │  (Pair)  │                       │
+│  └─────────┘  └─────────┘  └──────────┘  └────┬─────┘                       │
+│                                                │                             │
+│                                                ▼                             │
+│                                          ┌───────────┐                       │
+│                                          │ git push  │                       │
+│                                          │ to GitHub │                       │
+│                                          └─────┬─────┘                       │
+└────────────────────────────────────────────────┼────────────────────────────┘
+                                                 │
+┌────────────────────────────────────────────────┘
+│
 │  ┌──────────────────────────────────────────────────────────────────────────┐
-│  │                          VM (VirtualBox / VMware)                        │
+│  │                    VM / Linux Machine (not WSL)                          │
 │  │                                                                          │
-│  │  ┌──────────┐   ┌──────────┐   ┌──────────┐                             │
-│  │  │ Task 3B  │──▶│ Task 3C  │──▶│ Challenge│                             │
-│  │  │   GRUB   │   │Boot Break│   │  (GRUB)  │                             │
-│  │  │Customize │   │& Recovery│   │          │                             │
-│  │  └──────────┘   └──────────┘   └──────────┘                             │
+│  │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐              │
+│  │  │ Task 3A  │──▶│ Task 3B  │──▶│ Task 3C  │──▶│ Challenge│              │
+│  │  │   GRUB   │   │   GRUB   │   │Boot Break│   │  (GRUB)  │              │
+│  │  │ Explore  │   │Customize │   │& Recovery│   │          │              │
+│  │  └──────────┘   └──────────┘   └──────────┘   └──────────┘              │
 │  └──────────────────────────────────────────────────────────────────────────┘
 │
 ▼
@@ -536,7 +536,9 @@ echo "--- Challenge Links ---" >> task2_links.txt
 
 ---
 
-### Part A — Bootloader Exploration (WSL / Server)
+### Part A — Bootloader Exploration (VM / Linux Machine)
+
+> ⚠️ **WSL does not have GRUB** — it uses a custom Microsoft kernel and bypasses the standard Linux boot sequence entirely. You must perform this part on a **virtual machine** (VirtualBox, VMware, etc.) or an **actual Linux installation**.
 
 **Instructions:**
 

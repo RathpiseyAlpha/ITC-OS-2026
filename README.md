@@ -90,8 +90,10 @@ ITC-OS-2026/
     │   ├── lab2-instruction.md
     │   ├── README.md
     │   └── guides/
-    └── lab3/                  # Lab 3 — (Coming Soon)
-        └── lab3-instruction.md
+    └── lab3/                  # Lab 3 — Wildcards, Links, GRUB & Shared Libraries
+        ├── lab3-instruction.md
+        ├── README.md
+        └── guides/
 ```
 
 ---
@@ -122,8 +124,8 @@ ITC-OS-2026/
 | 2 | OS Structures & Interfaces | [ch2.pdf](lectures/files/ch2.pdf) | — |
 | 3 | Processes | [ch3.pdf](lectures/files/ch3.pdf) | [Lab 1](labs/lab1/) |
 | 4 | Threads & Multicore | [ch4.pdf](lectures/files/ch4.pdf) | — |
-| 5 | CPU Scheduling I | [ch5.pdf](lectures/files/ch5.pdf) | — |
-| 6 | CPU Scheduling II | [ch6.pdf](lectures/files/ch6.pdf) | — |
+| 5 | CPU Scheduling I | [ch5.pdf](lectures/files/ch5.pdf) | [Lab 2](labs/lab2/) |
+| 6 | CPU Scheduling II | [ch6.pdf](lectures/files/ch6.pdf) | [Lab 3](labs/lab3/) |
 | 7 | Critical Sections | [ch7.pdf](lectures/files/ch7.pdf) | — |
 | 8 | Semaphores & Sync Problems | [ch8.pdf](lectures/files/ch8.pdf) | — |
 | 9 | Deadlocks | [ch9.pdf](lectures/files/ch9.pdf) | — |
@@ -141,7 +143,7 @@ ITC-OS-2026/
 |:---:|-------|:------:|:----:|
 | 1 | Exploring Operating System Basics | ✅ Available | [Instructions](labs/lab1/lab1-instruction.md) |
 | 2 | Linux Navigation & File Management | ✅ Available | [Instructions](labs/lab2/lab2-instruction.md) |
-| 3 | *TBA* | 🔜 Coming Soon | [Placeholder](labs/lab3/) |
+| 3 | Wildcards, Links, GRUB & Shared Libraries | ✅ Available | [Instructions](labs/lab3/lab3-instruction.md) |
 
 ### Lab 1 Highlights
 
@@ -155,6 +157,20 @@ Task 4 ─ Programs vs Processes             (sleep, ps, background jobs)
 Task 5 ─ Multitasking & Real Applications  (htop, tmux, http.server)
 Task 6 ─ Virtualization Detection          (systemd-detect-virt, lscpu)
 ```
+
+### Lab 3 Highlights
+
+Lab 3 covers wildcards, links, bootloader administration, and shared libraries through **5 tasks** (Tasks 1–4 individual, Task 5 pair):
+
+```
+Task 1 ─ Mastering Wildcards              (*, ?, [], {})
+Task 2 ─ Hard Links & Symbolic Links       (ln, ln -s, ls -li, stat)
+Task 3 ─ GRUB Exploration & Recovery       (VM / Linux Machine — not WSL)
+Task 4 ─ Shared Objects Exploration        (ldd, ldconfig, readelf)
+Task 5 ─ Build a Shared Library (Pair)     (gcc -shared -fPIC, ldconfig)
+```
+
+> ⚠️ Task 3 (GRUB) requires a **VM or real Linux machine** — WSL does not have GRUB.
 
 ---
 
