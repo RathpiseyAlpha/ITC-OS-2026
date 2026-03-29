@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITC Operating Systems 2026</title>
-    <link rel="stylesheet" href="app/css/styles.css?v=11">
+    <link rel="stylesheet" href="app/css/styles.css?v=12">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Firebase SDK (for web visitor presence — optional, enable in app/js/config.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -60,6 +60,21 @@
 ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║╚════██║
 ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║███████║
 ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝╚══════╝
+</pre><pre class="totoro" id="totoro-anim">
+⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣶⣶⣶⣶⣶⣿⡷
+⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⠛⠛⠛⠛⠷⣶⣤⣀
+⠀⠀⠀⠀⠀⠀⣰⠟⠁⠈⢳⡀⢀⣠⣴⡿⠿⠛⠁
+⠀⠀⠀⠀⠀⢀⡞⠁⠀⠀⠀⣿⣿⣿
+⠀⠀⠀⠀⠀⡾⠀⢀⣠⣤⣄⢸⣿⣿⣿
+⠀⠀⠀⠀⣾⠁⠀⣾⠋⠈⠹⣿⣿⣿⣿⡇
+⠀⠀⠀⢸⡏⠀⠀⢻⡆⠀⠀⢹⣿⣿⣿⡇
+⠀⠀⠀⢸⡇⠀⠀⢸⡇⠀⠀⠈⣿⣿⣿
+⠀⠀⠀⢸⡇⠀⠀⢸⣇⠀⠀⠀⣿⣿⡿
+⠀⠀⠀⢸⡇⠀⠀⢸⣿⠀⠀⢠⣿⣿⡇
+⠀⠀⠀⠸⣷⠀⠀⠈⣿⠀⢀⣾⣿⣿
+⠀⠀⠀⠀⣿⡀⠀⠀⠻⢶⣿⣿⣿⡇
+⠀⠀⢀⣤⡾⠃⠀⠀⠀⠈⣿⣿⣿
+⢠⣶⣯⣤⣤⣤⣤⡴⠶⠶⣼⣿⣿⣷⣤⣀
 </pre>
                     <div style="margin-top: 10px; color: var(--cyan); font-size: 13px;">
                         Institute of Technology of Cambodia &middot; Department of Information and Communication Engineering
@@ -68,6 +83,19 @@
                         Course: SE-019 - Operating Systems &mdash; Instructor: Heng Rathpisey
                     </div>
                 </div>
+                <script>
+                (function(){
+                    var el=document.getElementById('totoro-anim');
+                    if(!el)return;
+                    var frames=[
+'⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣶⣶⣶⣶⣶⣿⡷\n⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⠛⠛⠛⠛⠷⣶⣤⣀\n⠀⠀⠀⠀⠀⠀⣰⠟⠁⠈⢳⡀⢀⣠⣴⡿⠿⠛⠁\n⠀⠀⠀⠀⠀⢀⡞⠁⠀⠀⠀⣿⣿⣿\n⠀⠀⠀⠀⠀⡾⠀⢀⣠⣤⣄⢸⣿⣿⣿\n⠀⠀⠀⠀⣾⠁⠀⣾⠋⠈⠹⣿⣿⣿⣿⡇\n⠀⠀⠀⢸⡏⠀⠀⢻⡆⠀⠀⢹⣿⣿⣿⡇\n⠀⠀⠀⢸⡇⠀⠀⢸⡇⠀⠀⠈⣿⣿⣿\n⠀⠀⠀⢸⡇⠀⠀⢸⣇⠀⠀⠀⣿⣿⡿\n⠀⠀⠀⢸⡇⠀⠀⢸⣿⠀⠀⢠⣿⣿⡇\n⠀⠀⠀⠸⣷⠀⠀⠈⣿⠀⢀⣾⣿⣿\n⠀⠀⠀⠀⣿⡀⠀⠀⠻⢶⣿⣿⣿⡇\n⠀⠀⢀⣤⡾⠃⠀⠀⠀⠈⣿⣿⣿\n⢠⣶⣯⣤⣤⣤⣤⡴⠶⠶⣼⣿⣿⣷⣤⣀',
+'⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣶⣶⣶⣶⣶⣿⡷\n⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⠛⠛⠛⠛⠷⣶⣤⣀\n⠀⠀⠀⠀⠀⠀⣰⠟⠁⠈⢳⡀⢀⣠⣴⡿⠿⠛⠁\n⠀⠀⠀⠀⠀⢀⡞⠁⠀⠀⠀⣿⣿⣿\n⠀⠀⠀⠀⠀⡾⠀⢀⣠⣤⣄⢸⣿⣿⣿\n⠀⠀⠀⠀⣾⠁⠀⣾⠋⠈⠹⣿⣿⣿⣿⡇\n⠀⠀⠀⢸⡏⠀⠀⢻⡆⠀⠀⢹⣿⣿⣿⡇\n⠀⠀⠀⢸⡇⠀⠀⢸⡇⠀⠀⠈⣿⣿⣿\n⠀⠀⠀⢸⡇⠀⠀⢸⣇⠀⠀⠀⣿⣿⡿\n⠀⠀⠀⢸⡇⠀⠀⢸⣿⠀⠀⢠⣿⣿⡇\n⠀⠀⠀⠸⣷⠀⠀⠈⣿⠀⢀⣾⣿⣿\n⠀⠀⠀⠀⣿⡀⠀⠀⠻⢶⣿⣿⣿⡇\n⠀⢀⣤⡾⠃⠀⠀⠀⠀⠈⣿⣿⣿\n⣶⣯⣤⣤⣤⣤⣤⡴⠶⠶⣼⣿⣿⣷⣤⣀',
+'⠀⠀⠀⠀⠀⠀⠀⠀⣾⣿⣶⣶⣶⣶⣶⣿⡷\n⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⠛⠛⠛⠛⠷⣶⣤⣀\n⠀⠀⠀⠀⠀⠀⣰⠟⠁⠈⢳⡀⢀⣠⣴⡿⠿⠛⠁\n⠀⠀⠀⠀⠀⢀⡞⠁⠀⠀⠀⣿⣿⣿\n⠀⠀⠀⠀⠀⡾⠀⢀⣠⣤⣄⢸⣿⣿⣿\n⠀⠀⠀⠀⣾⠁⠀⣾⠋⠈⠹⣿⣿⣿⣿⡇\n⠀⠀⠀⠀⡏⠀⠀⢻⡆⠀⠀⢹⣿⣿⣿⡇\n⠀⠀⠀⠀⡇⠀⠀⢸⡇⠀⠀⠈⣿⣿⣿\n⠀⠀⠀⠀⡇⠀⠀⢸⣇⠀⠀⠀⣿⣿⡿\n⠀⠀⠀⢸⡇⠀⠀⢸⣿⠀⠀⢠⣿⣿⡇\n⠀⠀⠀⠸⣷⠀⠀⠈⣿⠀⢀⣾⣿⣿\n⠀⠀⠀⠀⣿⡀⠀⠀⠻⢶⣿⣿⣿⡇\n⠀⠀⢀⣤⡾⠃⠀⠀⠀⠈⣿⣿⣿\n⢠⣶⣯⣤⣤⣤⣤⡴⠶⠶⣼⣿⣿⣷⣤⣀'
+                    ];
+                    var i=0;
+                    setInterval(function(){i=(i+1)%frames.length;el.textContent=frames[i];},400);
+                })();
+                </script>
 
                 <div style="border-top: 1px dashed var(--green-dark); margin: 16px 0; padding-top: 14px;">
                     <div style="color:var(--comment);font-size:11px;margin-bottom:8px;">ITC-OS kernel 6.1.0-itc (tty1)</div>
