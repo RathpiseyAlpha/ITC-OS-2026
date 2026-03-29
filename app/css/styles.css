@@ -99,19 +99,12 @@ body.readme-mode::after { opacity: 0; }
     0%, 100% { text-shadow: 0 0 10px rgba(0,255,65,0.3); }
     50% { text-shadow: 0 0 20px rgba(0,255,65,0.6), 0 0 40px rgba(0,255,65,0.2); }
 }
-.totoro {
-    display: inline-block;
-    font-size: clamp(3px, 0.5vw, 5px);
-    line-height: 1;
-    color: var(--green);
-    text-shadow: 0 0 8px rgba(0,255,65,0.4), 0 0 16px rgba(0,255,65,0.15);
+img.totoro {
+    height: clamp(30px, 6vw, 60px);
     vertical-align: bottom;
     margin-left: 8px;
-    animation: totoroBob 3s ease-in-out infinite;
-}
-@keyframes totoroBob {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
+    filter: grayscale(1) brightness(1.5) sepia(1) hue-rotate(75deg) saturate(3);
+    image-rendering: pixelated;
 }
 
 /* ─── Text Styles ─── */
