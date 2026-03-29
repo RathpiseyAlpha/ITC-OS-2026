@@ -2138,6 +2138,111 @@
         document.getElementById('viewer-title').textContent = 'bash — preview';
     };
 
+    // ──────────────────────────────────────
+    //  Markdown TOC Builder
+    // ──────────────────────────────────────
+    function buildMdToc(container) {
+        var headings = container.querySelectorAll('h1, h2, h3, h4');
+        if (headings.length < 2) return;
+
+        // Ensure each heading has an id
+        headings.forEach(function (h, i) {
+            if (!h.id) {
+                h.id = 'md-heading-' + i;
+            }
+        });
+
+        // Find or create the TOC panel
+        var panel = document.getElementById('md-toc-panel');
+        if (!panel) {
+            // For outline-content: create panel as sibling
+            panel = document.createElement('div');
+            panel.className = 'md-toc-panel';
+            panel.id = 'md-toc-panel';
+            container.parentNode.style.position = 'relative';
+            container.parentNode.appendChild(panel);
+
+            // Create toggle button in viewer header
+            var headerBar = container.closest('.terminal-body');
+            if (headerBar) {
+                var titleBar = headerBar.previousElementSibling;
+                var existingBtn = titleBar ? titleBar.querySelector('.md-toc-btn') : null;
+                if (!existingBtn && titleBar) {
+                    var btn = document.createElement('button');
+                    btn.className = 'md-toc-btn';
+                    btn.id = 'md-toc-toggle';
+                    btn.title = 'Table of contents';
+                    btn.innerHTML = '&#9776; TOC';
+                    var actionsDiv = titleBar.querySelector('.pane-actions') || titleBar;
+                    actionsDiv.insertBefore(btn, actionsDiv.firstChild);
+                }
+            }
+        }
+
+        // Build TOC HTML
+        var tocHtml = '<div class="toc-header"><span>Table of Contents</span>'
+            + '<button class="toc-close" id="md-toc-close" title="Close">&times;</button></div>';
+        headings.forEach(function (h) {
+            var level = h.tagName.toLowerCase();
+            var text = h.textContent.replace(/^[#\s]+/, '').trim();
+            if (!text) return;
+            tocHtml += '<a href="#' + h.id + '" class="toc-' + level + '" title="' + text.replace(/"/g, '&quot;') + '">' + text + '</a>';
+        });
+        panel.innerHTML = tocHtml;
+
+        // TOC link clicks -> smooth scroll
+        panel.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var targetId = this.getAttribute('href').slice(1);
+                var target = document.getElementById(targetId);
+                if (target) {
+                    var scrollParent = container.closest('.pane-bottom') || container.closest('.terminal-body') || container;
+                    var offset = target.getBoundingClientRect().top - scrollParent.getBoundingClientRect().top + scrollParent.scrollTop;
+                    scrollParent.scrollTo({ top: offset - 10, behavior: 'smooth' });
+                    // Highlight active
+                    panel.querySelectorAll('a').forEach(function (a) { a.classList.remove('active'); });
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Toggle button
+        function bindToggle() {
+            var toggleBtn = document.getElementById('md-toc-toggle');
+            var closeBtn = document.getElementById('md-toc-close');
+            if (toggleBtn) {
+                toggleBtn.onclick = function () {
+                    panel.classList.toggle('open');
+                    toggleBtn.classList.toggle('active', panel.classList.contains('open'));
+                };
+            }
+            if (closeBtn) {
+                closeBtn.onclick = function () {
+                    panel.classList.remove('open');
+                    var tb = document.getElementById('md-toc-toggle');
+                    if (tb) tb.classList.remove('active');
+                };
+            }
+        }
+        bindToggle();
+
+        // Highlight on scroll
+        var scrollParent = container.closest('.pane-bottom') || container.closest('.terminal-body') || container;
+        scrollParent.addEventListener('scroll', function () {
+            var scrollTop = scrollParent.scrollTop + scrollParent.getBoundingClientRect().top + 20;
+            var current = null;
+            headings.forEach(function (h) {
+                if (h.getBoundingClientRect().top <= 20) current = h;
+            });
+            if (current) {
+                panel.querySelectorAll('a').forEach(function (a) {
+                    a.classList.toggle('active', a.getAttribute('href') === '#' + current.id);
+                });
+            }
+        });
+    }
+
     function renderFileView(filePath) {
         var viewerEl = document.getElementById('file-viewer');
         var outlineEl = document.getElementById('outline-content');
@@ -2155,8 +2260,12 @@
             html = '<div style="padding:6px 12px;background:rgba(0,255,65,0.04);border-bottom:1px solid var(--border);font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:6px;">'
                 + '<span style="color:var(--comment);">// navigation links may not work here —</span>'
                 + '<a href="' + ghUrl + '" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);text-decoration:none;border-bottom:1px dashed var(--cyan);transition:color 0.2s;">view on GitHub ↗</a>'
+                + '<button class="md-toc-btn" id="md-toc-toggle" title="Table of contents">&#9776; TOC</button>'
                 + '</div>'
-                + '<div class="md-viewer" id="md-render" style="max-height:none;flex:1;"></div>';
+                + '<div style="position:relative;flex:1;display:flex;overflow:hidden;">'
+                + '<div class="md-viewer" id="md-render" style="max-height:none;flex:1;overflow-y:auto;"></div>'
+                + '<div class="md-toc-panel" id="md-toc-panel"></div>'
+                + '</div>';
             viewerEl.innerHTML = html;
             viewerEl.style.display = 'flex';
 
@@ -2194,6 +2303,8 @@
                             }
                         });
                     });
+                    // Build TOC panel
+                    buildMdToc(container);
                 })
                 .catch(function () { container.innerHTML = '<span style="color:var(--red)">Error loading file.</span>'; });
         } else if (ext === 'pdf') {
@@ -2228,7 +2339,7 @@
         container.innerHTML = '<span style="color:#5c6370;font-style:italic">Loading...</span>';
         fetch('course-outline.md')
             .then(function (r) { return r.text(); })
-            .then(function (md) { container.innerHTML = marked.parse(md); })
+            .then(function (md) { container.innerHTML = marked.parse(md); buildMdToc(container); })
             .catch(function () { container.innerHTML = '<span style="color:#ff3e3e">Error loading file.</span>'; });
     };
 

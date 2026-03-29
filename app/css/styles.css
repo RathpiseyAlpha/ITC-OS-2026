@@ -371,7 +371,7 @@ body.readme-mode::after { opacity: 0; }
 }
 .pane-bottom { flex: 1; overflow-y: auto; min-height: 80px; background: var(--terminal-bg); }
 .pane-bottom .terminal { margin: 0; border-radius: 0; border: none; height: 100%; display: flex; flex-direction: column; }
-.pane-bottom .terminal-body { flex: 1; overflow-y: auto; }
+.pane-bottom .terminal-body { flex: 1; overflow-y: auto; position: relative; }
 .pane-bottom .file-viewer { margin-top: 0; }
 .pane-bottom .file-viewer iframe { height: 100%; min-height: 300px; }
 .pane-bottom .md-viewer { max-height: none; }
@@ -629,6 +629,88 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
 .md-viewer blockquote { border-left: 3px solid var(--green-dark); padding-left: 12px; color: var(--comment); margin: 10px 0; }
 .md-viewer ul, .md-viewer ol { padding-left: 24px; margin: 8px 0; }
 .md-viewer hr { border: none; border-top: 1px dashed var(--green-dark); margin: 16px 0; }
+
+/* ─── Markdown TOC ─── */
+.md-toc-btn {
+    background: rgba(0,255,65,0.08);
+    border: 1px solid var(--border);
+    color: var(--comment);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    margin-left: auto;
+}
+.md-toc-btn:hover, .md-toc-btn.active {
+    background: rgba(0,255,65,0.15);
+    color: var(--green);
+    border-color: var(--green-dark);
+}
+.md-toc-panel {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 240px;
+    max-height: 100%;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    z-index: 10;
+    overflow-y: auto;
+    padding: 10px 0;
+    box-shadow: -4px 0 12px rgba(0,0,0,0.3);
+}
+.md-toc-panel.open { display: block; }
+.md-toc-panel .toc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 6px;
+}
+.md-toc-panel .toc-header span {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.md-toc-panel .toc-close {
+    background: none;
+    border: none;
+    color: var(--comment);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+}
+.md-toc-panel .toc-close:hover { color: var(--red); }
+.md-toc-panel a {
+    display: block;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--white);
+    text-decoration: none;
+    line-height: 1.5;
+    transition: background 0.15s, color 0.15s;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.md-toc-panel a:hover, .md-toc-panel a.active {
+    background: rgba(0,255,65,0.08);
+    color: var(--green);
+}
+.md-toc-panel a.toc-h1 { padding-left: 12px; font-weight: 600; }
+.md-toc-panel a.toc-h2 { padding-left: 24px; }
+.md-toc-panel a.toc-h3 { padding-left: 36px; font-size: 11px; color: var(--comment); }
+.md-toc-panel a.toc-h4 { padding-left: 48px; font-size: 11px; color: var(--comment); }
 
 /* ─── File Explorer ─── */
 .explorer-breadcrumb {
