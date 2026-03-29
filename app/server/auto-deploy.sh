@@ -28,19 +28,16 @@ fi
 
 echo "[$(date)] New commits detected ($LOCAL -> $REMOTE). Deploying..." >> "$LOG"
 
-# Pull latest
+# Pull latest (all files — frontend is served as static files)
 git pull origin main --quiet >> "$LOG" 2>&1
 
-# Check if server files changed
+echo "[$(date)] Pulled latest changes." >> "$LOG"
+
+# Only restart the backend service if server files changed
 CHANGED=$(git diff "$LOCAL" "$REMOTE" --name-only -- app/server/)
-if [ -z "$CHANGED" ]; then
-    echo "[$(date)] No server changes, skipping restart." >> "$LOG"
-    exit 0
+if [ -n "$CHANGED" ]; then
+    echo "[$(date)] Server files changed: $CHANGED — restarting service." >> "$LOG"
+    sudo systemctl restart itc-os-presence >> "$LOG" 2>&1
 fi
-
-echo "[$(date)] Server files changed: $CHANGED" >> "$LOG"
-
-# Restart the systemd service
-sudo systemctl restart itc-os-presence >> "$LOG" 2>&1
 
 echo "[$(date)] Deploy complete." >> "$LOG"
