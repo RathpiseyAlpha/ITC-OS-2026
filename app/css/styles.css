@@ -100,9 +100,10 @@ body.readme-mode::after { opacity: 0; }
     50% { text-shadow: 0 0 20px rgba(0,255,65,0.6), 0 0 40px rgba(0,255,65,0.2); }
 }
 img.totoro {
-    height: clamp(30px, 6vw, 60px);
+    height: clamp(35px, 7vw, 70px);
     vertical-align: bottom;
-    margin-left: 8px;
+    margin-left: 10px;
+    margin-bottom: 4px;
     filter: grayscale(1) brightness(1.5) sepia(1) hue-rotate(75deg) saturate(3);
     image-rendering: pixelated;
 }
