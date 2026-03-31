@@ -529,6 +529,45 @@
             + '</div>';
     }
 
+    function renderAdminRequestError(action, err) {
+        var html = '<div class="error" style="padding:12px;">'
+            + escapeHtml(action + ': ' + (err && err.message ? err.message : 'Request failed.'));
+        if (err && err.status === 403) {
+            html += '<div style="margin-top:8px;color:var(--comment);font-size:11px;">'
+                + 'Current session: user=' + escapeHtml(authUser || '(none)')
+                + ', role=' + escapeHtml(authRole || '(none)')
+                + '</div>'
+                + '<div style="margin-top:4px;color:var(--comment);font-size:11px;">'
+                + 'This endpoint requires an admin login. Log out and sign in with an admin account.'
+                + '</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function adminRequestJson(url) {
+        return fetch(url, {
+            mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        })
+        .then(function (r) {
+            return r.text().then(function (text) {
+                var data = {};
+                if (text) {
+                    try { data = JSON.parse(text); } catch (e) {}
+                }
+                if (!r.ok) {
+                    var msg = (data && data.error) ? data.error : ('HTTP ' + r.status);
+                    var err = new Error(msg);
+                    err.status = r.status;
+                    err.data = data;
+                    throw err;
+                }
+                return data;
+            });
+        });
+    }
+
     window.adminFilterTable = function (inputId) {
         var input = document.getElementById(inputId);
         if (!input) return;
@@ -764,14 +803,7 @@
         var endpoint = url + '/api/admin/grades';
         if (gradesLabFilter) endpoint += '?lab=' + encodeURIComponent(gradesLabFilter);
 
-        fetch(endpoint, {
-            mode: 'cors',
-            headers: { 'Authorization': 'Bearer ' + authToken }
-        })
-        .then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-        })
+        adminRequestJson(endpoint)
         .then(function (data) {
             var grades = data.grades || [];
             var labs = data.labs || [];
@@ -812,7 +844,7 @@
             container.innerHTML = html;
         })
         .catch(function (err) {
-            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load grades: ' + escapeHtml(err.message) + '</div>';
+            container.innerHTML = renderAdminRequestError('Failed to load grades', err);
         });
     }
 
@@ -835,9 +867,7 @@
 
         // Fetch grade detail and file tree in parallel
         Promise.all([
-            fetch(url + '/api/admin/grades?user=' + encodeURIComponent(username) + '&lab=' + encodeURIComponent(lab), {
-                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
-            }).then(function (r) { return r.json(); }),
+            adminRequestJson(url + '/api/admin/grades?user=' + encodeURIComponent(username) + '&lab=' + encodeURIComponent(lab)),
             fetch(url + '/api/admin/tree?user=' + encodeURIComponent(username) + '&lab=' + encodeURIComponent(lab), {
                 mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
             }).then(function (r) { return r.ok ? r.json() : null; })
@@ -906,7 +936,7 @@
             container.innerHTML = html;
         })
         .catch(function (err) {
-            container.innerHTML = '<div class="error" style="padding:12px;">Failed: ' + escapeHtml(err.message) + '</div>';
+            container.innerHTML = renderAdminRequestError('Failed to load grade detail', err);
         });
     };
 
@@ -1003,14 +1033,7 @@
         if (!container) return;
         container.innerHTML = '<div class="admin-loading">Computing leaderboard...</div>';
 
-        fetch(url + '/api/admin/leaderboard', {
-            mode: 'cors',
-            headers: { 'Authorization': 'Bearer ' + authToken }
-        })
-        .then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-        })
+        adminRequestJson(url + '/api/admin/leaderboard')
         .then(function (data) {
             var board = data.leaderboard || [];
             var labs = data.labs || [];
@@ -1067,7 +1090,7 @@
             container.innerHTML = html;
         })
         .catch(function (err) {
-            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load leaderboard: ' + escapeHtml(err.message) + '</div>';
+            container.innerHTML = renderAdminRequestError('Failed to load leaderboard', err);
         });
     }
 
@@ -1194,14 +1217,7 @@
         var endpoint = url + '/api/admin/activities';
         if (activitiesFilter) endpoint += '?activity=' + encodeURIComponent(activitiesFilter);
 
-        fetch(endpoint, {
-            mode: 'cors',
-            headers: { 'Authorization': 'Bearer ' + authToken }
-        })
-        .then(function (r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            return r.json();
-        })
+        adminRequestJson(endpoint)
         .then(function (data) {
             var grades = data.grades || [];
             var activities = data.activities || [];
@@ -1243,7 +1259,7 @@
             container.innerHTML = html;
         })
         .catch(function (err) {
-            container.innerHTML = '<div class="error" style="padding:12px;">Failed to load activity grades: ' + escapeHtml(err.message) + '</div>';
+            container.innerHTML = renderAdminRequestError('Failed to load activity grades', err);
         });
     }
 
@@ -1266,9 +1282,7 @@
         container.innerHTML = '<div class="admin-loading">Loading details for ' + escapeHtml(username) + ' / ' + escapeHtml(actLabel) + '...</div>';
 
         Promise.all([
-            fetch(url + '/api/admin/activities?user=' + encodeURIComponent(username) + '&activity=' + encodeURIComponent(activity), {
-                mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
-            }).then(function (r) { return r.json(); }),
+            adminRequestJson(url + '/api/admin/activities?user=' + encodeURIComponent(username) + '&activity=' + encodeURIComponent(activity)),
             fetch(url + '/api/admin/activity-tree?user=' + encodeURIComponent(username) + '&activity=' + encodeURIComponent(activity), {
                 mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
             }).then(function (r) { return r.ok ? r.json() : null; })
@@ -1335,7 +1349,7 @@
             container.innerHTML = html;
         })
         .catch(function (err) {
-            container.innerHTML = '<div class="error" style="padding:12px;">Failed: ' + escapeHtml(err.message) + '</div>';
+            container.innerHTML = renderAdminRequestError('Failed to load activity detail', err);
         });
     };
 
