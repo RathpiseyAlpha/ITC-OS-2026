@@ -779,6 +779,18 @@ def _get_file_submission_dates(root):
         _debug_log("git-dates: skipped; invalid root:", root)
         return {}
     try:
+        repo_prefix = ""
+        prefix_result = subprocess.run(
+            ["git", "rev-parse", "--show-prefix"],
+            capture_output=True, text=True, timeout=5,
+            cwd=str(root)
+        )
+        if prefix_result.returncode == 0:
+            repo_prefix = (prefix_result.stdout or "").strip().replace("\\", "/")
+            if repo_prefix and not repo_prefix.endswith("/"):
+                repo_prefix += "/"
+        _debug_log("git-dates: repo prefix", repr(repo_prefix), "for", str(root))
+
         _debug_log("git-dates: running git log in", str(root))
         result = subprocess.run(
             ["git", "log", "--diff-filter=A", "--format=DATE:%aI",
@@ -804,7 +816,13 @@ def _get_file_submission_dates(root):
             if line.startswith("DATE:"):
                 current_date = line[5:]
             elif line.strip() and current_date:
-                fname = line.strip()
+                fname = line.strip().replace("\\", "/")
+                if repo_prefix and fname.startswith(repo_prefix):
+                    fname = fname[len(repo_prefix):]
+                if fname.startswith("./"):
+                    fname = fname[2:]
+                if not fname:
+                    continue
                 # git log is newest-first, so later iterations overwrite
                 # with older dates — we end up with the earliest add date
                 file_dates[fname] = current_date
