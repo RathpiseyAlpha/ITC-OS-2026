@@ -66,6 +66,19 @@ def _save_deadlines(data):
 # In-memory cache refreshed from disk on every read
 _deadlines = _load_deadlines()
 
+
+def _debug_enabled():
+    """Return True when server debug logging is enabled."""
+    return os.environ.get("ITC_OS_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _debug_log(*parts):
+    """Print a debug log line when ITC_OS_DEBUG is enabled."""
+    if not _debug_enabled():
+        return
+    ts = datetime.now().isoformat(timespec="seconds")
+    print("[DEBUG " + ts + "]", *parts, flush=True)
+
 # ── Student Roster ─────────────────────────────────────────────
 # Maps student ID → { "name": display name, "user": Linux username }
 STUDENTS = {
@@ -763,8 +776,10 @@ def _get_file_submission_dates(root):
     date for each file (i.e. when the student first committed it).
     """
     if not root or not Path(root).is_dir():
+        _debug_log("git-dates: skipped; invalid root:", root)
         return {}
     try:
+        _debug_log("git-dates: running git log in", str(root))
         result = subprocess.run(
             ["git", "log", "--diff-filter=A", "--format=DATE:%aI",
              "--name-only", "--", "."],
@@ -772,6 +787,15 @@ def _get_file_submission_dates(root):
             cwd=str(root)
         )
         if result.returncode != 0 or not result.stdout.strip():
+            _debug_log(
+                "git-dates: empty or failed",
+                "cwd=" + str(root),
+                "returncode=" + str(result.returncode),
+                "stderr=" + repr((result.stderr or "").strip()[:400]),
+                "stdout=" + repr((result.stdout or "").strip()[:400]),
+                "service_user=" + os.environ.get("USER", "?"),
+                "path=" + os.environ.get("PATH", ""),
+            )
             return {}
 
         file_dates = {}  # filename -> earliest add date
@@ -784,8 +808,16 @@ def _get_file_submission_dates(root):
                 # git log is newest-first, so later iterations overwrite
                 # with older dates — we end up with the earliest add date
                 file_dates[fname] = current_date
+        _debug_log("git-dates: parsed", len(file_dates), "entries from", str(root))
         return file_dates
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+    except subprocess.TimeoutExpired as exc:
+        _debug_log("git-dates: timeout", "cwd=" + str(root), "timeout=" + str(exc.timeout))
+        return {}
+    except FileNotFoundError as exc:
+        _debug_log("git-dates: git not found", "cwd=" + str(root), repr(exc))
+        return {}
+    except OSError as exc:
+        _debug_log("git-dates: os error", "cwd=" + str(root), repr(exc))
         return {}
 
 
