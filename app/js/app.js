@@ -942,19 +942,36 @@
 
     function renderFileCommitDate(expectedName, fileDates, deadlineTs) {
         if (!fileDates) return '';
-        // Find matching file date — fileDates keys are relative paths from lab dir
-        var matchDate = null;
+        // fileDates keys are relative paths from lab dir (e.g. "README.md", "images/shot.png")
+        // expectedName can be a file ("README.md") or dir ("images", "techcorp/hr")
         var keys = Object.keys(fileDates);
+        var expectedLower = expectedName.toLowerCase();
+        var matchDate = null;
+
+        // 1. Exact match (file path matches exactly)
         for (var i = 0; i < keys.length; i++) {
-            var k = keys[i];
-            // Match by filename (end of path) case-insensitive
-            var parts = k.split('/');
-            var fname = parts[parts.length - 1];
-            if (fname.toLowerCase() === expectedName.toLowerCase() || k.toLowerCase() === expectedName.toLowerCase()) {
-                matchDate = fileDates[k];
+            if (keys[i].toLowerCase() === expectedLower) {
+                matchDate = fileDates[keys[i]];
                 break;
             }
         }
+
+        // 2. If no exact match, check if it's a directory — find latest commit
+        //    among all files under that directory prefix
+        if (!matchDate) {
+            var dirPrefix = expectedLower.replace(/\/$/, '') + '/';
+            var latestTs = 0;
+            for (var j = 0; j < keys.length; j++) {
+                if (keys[j].toLowerCase().indexOf(dirPrefix) === 0 || keys[j].toLowerCase() === expectedLower) {
+                    var ts = new Date(fileDates[keys[j]]).getTime();
+                    if (ts > latestTs) {
+                        latestTs = ts;
+                        matchDate = fileDates[keys[j]];
+                    }
+                }
+            }
+        }
+
         if (!matchDate) return '';
         var dt = new Date(matchDate);
         var dtStr = dt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
