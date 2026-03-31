@@ -971,6 +971,8 @@ def grade_student_lab(username, lab_name):
         "labPath": str(lab_root),
         "submissionDate": sub_date,
         "lateInfo": late_info,
+        "fileDates": file_dates,
+        "deadline": dl if dl else None,
         "items": items,
         "feedback": feedback,
     }
@@ -1149,6 +1151,8 @@ def grade_student_activity(username, activity_name):
         "activityPath": str(act_root),
         "submissionDate": sub_date,
         "lateInfo": late_info,
+        "fileDates": file_dates,
+        "deadline": dl if dl else None,
         "items": items,
         "feedback": feedback,
     }

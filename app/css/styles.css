@@ -1036,6 +1036,16 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     padding: 2px 0 2px 8px;
 }
 
+/* ─── Per-file commit dates in admin detail ─── */
+.file-commit-date {
+    font-size: 10px;
+    margin-top: 2px;
+    padding-left: 22px;
+    font-family: 'Fira Code', monospace;
+}
+.file-ontime { color: var(--green); opacity: 0.8; }
+.file-late { color: var(--red); font-weight: bold; }
+
 /* ─── Leaderboard ─── */
 .leaderboard-table .rank-cell {
     text-align: center;

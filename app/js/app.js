@@ -846,16 +846,24 @@
             var g = results[0];
             var tree = results[1];
 
+            // Score header with finalScore if penalty applied
+            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
+            if (g.finalScore !== undefined && g.finalScore < g.score) {
+                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
+            }
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchAdminTab(\'labs\')">\u2190 back</span> '
                 + escapeHtml(username) + ' / ' + escapeHtml(lab)
                 + ' \u2014 <span class="' + (g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c') + '">'
-                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + scoreDisplay + '</span>'
                 + '</div>';
 
             if (g.labPath) {
                 html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.labPath) + '</div>';
             }
+
+            // Deadline & penalty summary
+            html += renderDeadlineSummary(g);
 
             // File tree
             if (tree && tree.tree) {
@@ -865,7 +873,8 @@
                     + '</div>';
             }
 
-            // Items checklist
+            // Items checklist with per-file commit dates
+            var deadlineDt = g.deadline && g.deadline.due ? new Date(g.deadline.due).getTime() : null;
             html += '<div class="grade-items-col">'
                 + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Checklist:</div>'
                 + '<div class="grade-items">';
@@ -874,10 +883,12 @@
                 var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
                 var detail = '';
                 if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                // Per-file commit date
+                var commitInfo = renderFileCommitDate(item.expected, g.fileDates, deadlineDt);
                 html += '<div class="grade-item ' + cls + '">'
                     + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
                     + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
-                    + detail
+                    + detail + commitInfo
                     + '</div>';
             });
             html += '</div></div>';
@@ -898,6 +909,60 @@
             container.innerHTML = '<div class="error" style="padding:12px;">Failed: ' + escapeHtml(err.message) + '</div>';
         });
     };
+
+    // ── Helpers for admin detail views (deadline + per-file dates) ──
+
+    function renderDeadlineSummary(g) {
+        var html = '';
+        if (g.deadline && g.deadline.due) {
+            var dueDate = new Date(g.deadline.due);
+            var dueStr = dueDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+            html += '<div style="margin-bottom:10px;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:11px;">';
+            html += '<span style="color:var(--cyan);">&#x1F4C5; Deadline:</span> ' + escapeHtml(dueStr)
+                + ' <span style="color:var(--comment);margin-left:8px;">penalty: ' + (g.deadline.penalty || 5) + ' pts/day</span>';
+            if (g.lateInfo) {
+                if (g.lateInfo.late) {
+                    html += '<div style="color:var(--red);margin-top:4px;">'
+                        + '&#x23F0; <strong>' + g.lateInfo.lateFiles + '/' + g.lateInfo.totalFiles + '</strong> files late'
+                        + ' (max ' + g.lateInfo.daysLate + 'd)'
+                        + ' &mdash; weight: ' + Math.round(g.lateInfo.weight * 100) + '%'
+                        + ' &mdash; penalty: <strong>-' + g.lateInfo.penalty + ' pts</strong>'
+                        + '</div>';
+                    if (g.finalScore !== undefined) {
+                        html += '<div style="color:var(--yellow);margin-top:2px;">Score: ' + g.score + ' &rarr; ' + g.finalScore + '/' + g.total + '</div>';
+                    }
+                } else {
+                    html += '<div style="color:var(--green);margin-top:4px;">&#x2705; All files on time</div>';
+                }
+            }
+            html += '</div>';
+        }
+        return html;
+    }
+
+    function renderFileCommitDate(expectedName, fileDates, deadlineTs) {
+        if (!fileDates) return '';
+        // Find matching file date — fileDates keys are relative paths from lab dir
+        var matchDate = null;
+        var keys = Object.keys(fileDates);
+        for (var i = 0; i < keys.length; i++) {
+            var k = keys[i];
+            // Match by filename (end of path) case-insensitive
+            var parts = k.split('/');
+            var fname = parts[parts.length - 1];
+            if (fname.toLowerCase() === expectedName.toLowerCase() || k.toLowerCase() === expectedName.toLowerCase()) {
+                matchDate = fileDates[k];
+                break;
+            }
+        }
+        if (!matchDate) return '';
+        var dt = new Date(matchDate);
+        var dtStr = dt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+        var isLate = deadlineTs && dt.getTime() > deadlineTs;
+        return '<div class="file-commit-date' + (isLate ? ' file-late' : ' file-ontime') + '">'
+            + '&#x1F552; ' + escapeHtml(dtStr) + (isLate ? ' (LATE)' : '')
+            + '</div>';
+    }
 
     function renderTreeText(nodes, prefix) {
         var lines = '';
@@ -1195,16 +1260,24 @@
             var g = results[0];
             var tree = results[1];
 
+            // Score header with finalScore if penalty applied
+            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
+            if (g.finalScore !== undefined && g.finalScore < g.score) {
+                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
+            }
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchAdminTab(\'activities\')">' + '\u2190 back</span> '
                 + escapeHtml(username) + ' / ' + escapeHtml(actLabel)
                 + ' \u2014 <span class="' + (g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c') + '">'
-                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + scoreDisplay + '</span>'
                 + '</div>';
 
             if (g.activityPath) {
                 html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.activityPath) + '</div>';
             }
+
+            // Deadline & penalty summary
+            html += renderDeadlineSummary(g);
 
             if (tree && tree.tree) {
                 html += '<div class="grade-detail-columns"><div class="grade-tree-col">'
@@ -1213,6 +1286,8 @@
                     + '</div>';
             }
 
+            // Items checklist with per-file commit dates
+            var deadlineDt = g.deadline && g.deadline.due ? new Date(g.deadline.due).getTime() : null;
             html += '<div class="grade-items-col">'
                 + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Checklist:</div>'
                 + '<div class="grade-items">';
@@ -1221,10 +1296,12 @@
                 var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
                 var detail = '';
                 if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                // Per-file commit date
+                var commitInfo = renderFileCommitDate(item.expected, g.fileDates, deadlineDt);
                 html += '<div class="grade-item ' + cls + '">'
                     + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
                     + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
-                    + detail
+                    + detail + commitInfo
                     + '</div>';
             });
             html += '</div></div>';
@@ -1755,17 +1832,24 @@
             }
 
             var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
+            if (g.finalScore !== undefined && g.finalScore < g.score) {
+                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
+            }
 
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-labs\')">\u2190 back</span> '
                 + escapeHtml(lab)
                 + ' \u2014 <span class="' + pctClass + '">'
-                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + scoreDisplay + '</span>'
                 + '</div>';
 
             if (g.labPath) {
                 html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.labPath) + '</div>';
             }
+
+            // Deadline & penalty summary
+            html += renderDeadlineSummary(g);
 
             // Two-column layout: tree + checklist
             html += '<div class="grade-detail-columns">';
@@ -1783,7 +1867,8 @@
                     + '</div>';
             }
 
-            // Checklist column
+            // Checklist column with per-file commit dates
+            var deadlineDt = g.deadline && g.deadline.due ? new Date(g.deadline.due).getTime() : null;
             html += '<div class="grade-items-col">'
                 + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Required Items:</div>'
                 + '<div class="grade-items">';
@@ -1792,10 +1877,11 @@
                 var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
                 var detail = '';
                 if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                var commitInfo = renderFileCommitDate(item.expected, g.fileDates, deadlineDt);
                 html += '<div class="grade-item ' + cls + '">'
                     + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
                     + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
-                    + detail
+                    + detail + commitInfo
                     + '</div>';
             });
             html += '</div></div></div>'; // close items, items-col, columns
@@ -1844,17 +1930,24 @@
             }
 
             var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
+            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
+            if (g.finalScore !== undefined && g.finalScore < g.score) {
+                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
+            }
 
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-activities\')">\u2190 back</span> '
                 + escapeHtml(activityLabel)
                 + ' \u2014 <span class="' + pctClass + '">'
-                + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                + scoreDisplay + '</span>'
                 + '</div>';
 
             if (g.activityPath) {
                 html += '<div style="color:var(--comment);font-size:11px;margin-bottom:8px;">' + escapeHtml(g.activityPath) + '</div>';
             }
+
+            // Deadline & penalty summary
+            html += renderDeadlineSummary(g);
 
             html += '<div class="grade-detail-columns">';
 
@@ -1870,6 +1963,8 @@
                     + '</div>';
             }
 
+            // Checklist with per-file commit dates
+            var deadlineDt = g.deadline && g.deadline.due ? new Date(g.deadline.due).getTime() : null;
             html += '<div class="grade-items-col">'
                 + '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;">Required Items:</div>'
                 + '<div class="grade-items">';
@@ -1878,10 +1973,11 @@
                 var cls = item.status === 'ok' ? 'item-ok' : item.status === 'case_mismatch' ? 'item-warn' : 'item-miss';
                 var detail = '';
                 if (item.status === 'case_mismatch') detail = ' (found as: ' + escapeHtml(item.actual) + ')';
+                var commitInfo = renderFileCommitDate(item.expected, g.fileDates, deadlineDt);
                 html += '<div class="grade-item ' + cls + '">'
                     + icon + ' <span class="grade-item-name">' + escapeHtml(item.expected) + '</span>'
                     + ' <span class="grade-item-pts">' + item.points + '/' + item.maxPoints + '</span>'
-                    + detail
+                    + detail + commitInfo
                     + '</div>';
             });
             html += '</div></div></div>';
