@@ -1364,10 +1364,10 @@
             var labGrades = labData.grades || [];
             var actGrades = actData.grades || [];
 
-            // Combined totals
+            // Combined totals (use finalScore which includes late penalties)
             var totalScore = 0, totalPossible = 0;
-            labGrades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
-            actGrades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            labGrades.forEach(function (g) { totalScore += (g.finalScore !== undefined ? g.finalScore : g.score); totalPossible += g.total; });
+            actGrades.forEach(function (g) { totalScore += (g.finalScore !== undefined ? g.finalScore : g.score); totalPossible += g.total; });
             var totalPct = totalPossible > 0 ? Math.round(totalScore / totalPossible * 1000) / 10 : 0;
             var summaryClass = totalPct >= 80 ? 'grade-a' : totalPct >= 50 ? 'grade-b' : 'grade-c';
 
@@ -1379,10 +1379,10 @@
 
             // Sub-totals
             var labScore = 0, labPossible = 0;
-            labGrades.forEach(function (g) { labScore += g.score; labPossible += g.total; });
+            labGrades.forEach(function (g) { labScore += (g.finalScore !== undefined ? g.finalScore : g.score); labPossible += g.total; });
             var labPct = labPossible > 0 ? Math.round(labScore / labPossible * 1000) / 10 : 0;
             var actScore = 0, actPossible = 0;
-            actGrades.forEach(function (g) { actScore += g.score; actPossible += g.total; });
+            actGrades.forEach(function (g) { actScore += (g.finalScore !== undefined ? g.finalScore : g.score); actPossible += g.total; });
             var actPct = actPossible > 0 ? Math.round(actScore / actPossible * 1000) / 10 : 0;
 
             html += '<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">'
@@ -1402,11 +1402,15 @@
                 labGrades.forEach(function (g) {
                     var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
                     var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    var ds = g.finalScore !== undefined ? g.finalScore : g.score;
+                    var sl = g.finalScore !== undefined && g.finalScore < g.score
+                        ? '<s>' + g.score + '</s> ' + ds + '/' + g.total
+                        : ds + '/' + g.total;
                     html += '<div class="student-lab-card" style="margin-bottom:6px;padding:6px 8px;">'
                         + '<div class="student-lab-header">'
                         + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
                         + statusIcon + ' '
-                        + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                        + '<span class="' + pctClass + '">' + sl + ' (' + g.percentage + '%)</span>'
                         + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view</span>'
                         + '</div></div>';
                 });
@@ -1419,11 +1423,15 @@
                     var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
                     var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
                     var actLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
+                    var ds = g.finalScore !== undefined ? g.finalScore : g.score;
+                    var sl = g.finalScore !== undefined && g.finalScore < g.score
+                        ? '<s>' + g.score + '</s> ' + ds + '/' + g.total
+                        : ds + '/' + g.total;
                     html += '<div class="student-lab-card" style="margin-bottom:6px;padding:6px 8px;">'
                         + '<div class="student-lab-header">'
                         + '<span class="student-lab-name">' + escapeHtml(actLabel) + '</span> '
                         + statusIcon + ' '
-                        + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                        + '<span class="' + pctClass + '">' + sl + ' (' + g.percentage + '%)</span>'
                         + ' <span class="admin-detail-btn" onclick="showStudentActivityDetail(\'' + escapeHtml(g.activity) + '\')">view</span>'
                         + '</div></div>';
                 });
@@ -1495,7 +1503,7 @@
             }
             var grades = data.grades || [];
             var totalScore = 0, totalPossible = 0;
-            grades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            grades.forEach(function (g) { totalScore += (g.finalScore !== undefined ? g.finalScore : g.score); totalPossible += g.total; });
             var totalPct = totalPossible > 0 ? Math.round(totalScore / totalPossible * 1000) / 10 : 0;
             var summaryClass = totalPct >= 80 ? 'grade-a' : totalPct >= 50 ? 'grade-b' : 'grade-c';
 
@@ -1523,7 +1531,7 @@
                     if (g.submissionDate) {
                         var subDate = new Date(g.submissionDate);
                         var subStr = subDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-                        var wasLate = subDate.getTime() > due;
+                        var wasLate = g.lateInfo && g.lateInfo.late;
                         subDateHtml = '<span class="lab-submission-date' + (wasLate ? ' late' : '') + '">&#x1F4E4; Submitted: ' + escapeHtml(subStr) + (wasLate ? ' (LATE)' : ' (on time)') + '</span>';
                     }
                     if (diff > 0) {
@@ -1540,23 +1548,37 @@
                             + subDateHtml
                             + '</div>';
                     } else {
-                        var lateSec = Math.floor(-diff / 1000);
-                        var lateDays = Math.ceil(lateSec / 86400);
-                        var penalty = lateDays * (dl.penalty || 5);
+                        // Use server-side weighted penalty info
+                        var li = g.lateInfo;
+                        var penaltyStr = '';
+                        if (li && li.late) {
+                            penaltyStr = '&#x23F0; ' + li.lateFiles + '/' + li.totalFiles + ' files late (max '
+                                + li.daysLate + 'd) &mdash; penalty: -' + li.penalty + ' pts (weight ' + Math.round(li.weight * 100) + '%)';
+                        } else {
+                            var lateSec = Math.floor(-diff / 1000);
+                            var lateDays = Math.ceil(lateSec / 86400);
+                            penaltyStr = '&#x23F0; Overdue by ' + lateDays + 'd';
+                        }
                         deadlineHtml = '<div class="lab-deadline-info deadline-overdue">'
                             + '<span class="lab-deadline-date">&#x1F4C5; Was due: ' + escapeHtml(fullDateStr) + '</span>'
-                            + '<span class="lab-deadline-countdown">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</span>'
+                            + '<span class="lab-deadline-countdown">' + penaltyStr + '</span>'
                             + subDateHtml
                             + '</div>';
                     }
                 }
+
+                // Display finalScore (after penalty) if available
+                var displayScore = g.finalScore !== undefined ? g.finalScore : g.score;
+                var scoreLabel = g.finalScore !== undefined && g.finalScore < g.score
+                    ? '<s>' + g.score + '</s> ' + displayScore + '/' + g.total
+                    : displayScore + '/' + g.total;
 
                 html += '<div class="student-lab-card">'
                     + deadlineHtml
                     + '<div class="student-lab-header">'
                     + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
                     + statusIcon + ' '
-                    + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                    + '<span class="' + pctClass + '">' + scoreLabel + ' (' + g.percentage + '%)</span>'
                     + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view details</span>'
                     + '</div>';
 
@@ -1600,7 +1622,7 @@
             }
             var grades = data.grades || [];
             var totalScore = 0, totalPossible = 0;
-            grades.forEach(function (g) { totalScore += g.score; totalPossible += g.total; });
+            grades.forEach(function (g) { totalScore += (g.finalScore !== undefined ? g.finalScore : g.score); totalPossible += g.total; });
             var totalPct = totalPossible > 0 ? Math.round(totalScore / totalPossible * 1000) / 10 : 0;
             var summaryClass = totalPct >= 80 ? 'grade-a' : totalPct >= 50 ? 'grade-b' : 'grade-c';
 
@@ -1628,7 +1650,7 @@
                     if (g.submissionDate) {
                         var subDate = new Date(g.submissionDate);
                         var subStr = subDate.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-                        var wasLate = subDate.getTime() > due;
+                        var wasLate = g.lateInfo && g.lateInfo.late;
                         subDateHtml = '<span class="lab-submission-date' + (wasLate ? ' late' : '') + '">&#x1F4E4; Submitted: ' + escapeHtml(subStr) + (wasLate ? ' (LATE)' : ' (on time)') + '</span>';
                     }
                     if (diff > 0) {
@@ -1645,16 +1667,30 @@
                             + subDateHtml
                             + '</div>';
                     } else {
-                        var lateSec = Math.floor(-diff / 1000);
-                        var lateDays = Math.ceil(lateSec / 86400);
-                        var penalty = lateDays * (dl.penalty || 5);
+                        // Use server-side weighted penalty info
+                        var li = g.lateInfo;
+                        var penaltyStr = '';
+                        if (li && li.late) {
+                            penaltyStr = '&#x23F0; ' + li.lateFiles + '/' + li.totalFiles + ' files late (max '
+                                + li.daysLate + 'd) &mdash; penalty: -' + li.penalty + ' pts (weight ' + Math.round(li.weight * 100) + '%)';
+                        } else {
+                            var lateSec = Math.floor(-diff / 1000);
+                            var lateDays = Math.ceil(lateSec / 86400);
+                            penaltyStr = '&#x23F0; Overdue by ' + lateDays + 'd';
+                        }
                         deadlineHtml = '<div class="lab-deadline-info deadline-overdue">'
                             + '<span class="lab-deadline-date">&#x1F4C5; Was due: ' + escapeHtml(fullDateStr) + '</span>'
-                            + '<span class="lab-deadline-countdown">&#x23F0; LATE by ' + lateDays + 'd &mdash; penalty: -' + penalty + ' pts</span>'
+                            + '<span class="lab-deadline-countdown">' + penaltyStr + '</span>'
                             + subDateHtml
                             + '</div>';
                     }
                 }
+
+                // Display finalScore (after penalty) if available
+                var displayScore = g.finalScore !== undefined ? g.finalScore : g.score;
+                var scoreLabel = g.finalScore !== undefined && g.finalScore < g.score
+                    ? '<s>' + g.score + '</s> ' + displayScore + '/' + g.total
+                    : displayScore + '/' + g.total;
 
                 var activityLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
                 html += '<div class="student-lab-card">'
@@ -1662,7 +1698,7 @@
                     + '<div class="student-lab-header">'
                     + '<span class="student-lab-name">' + escapeHtml(activityLabel) + '</span> '
                     + statusIcon + ' '
-                    + '<span class="' + pctClass + '">' + g.score + '/' + g.total + ' (' + g.percentage + '%)</span>'
+                    + '<span class="' + pctClass + '">' + scoreLabel + ' (' + g.percentage + '%)</span>'
                     + ' <span class="admin-detail-btn" onclick="showStudentActivityDetail(\'' + escapeHtml(g.activity) + '\')">view details</span>'
                     + '</div>';
 

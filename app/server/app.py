@@ -17,6 +17,7 @@ import json
 import os
 import re
 import secrets
+import math
 import subprocess
 import time
 import warnings
@@ -161,7 +162,7 @@ def verify_password(username, password):
         stored = fields[1]
         if stored in ("!", "*", "!!", "", "x"):
             return False
-        return secrets.compare_digest(_crypt.crypt(password, stored), stored)
+        return secrets.compare_digest(_crypt.crypt(password, stored), stored) # type: ignore
     except Exception:
         return False
 
@@ -751,33 +752,93 @@ def _find_activity_root(username, activity_name):
     return None
 
 
-def _get_submission_date(root):
-    """Get the submission date for a directory using git log.
+def _get_file_submission_dates(root):
+    """Get per-file first-commit (add) dates using git log.
 
-    Uses `git log --diff-filter=A --format=%aI` to find when files were first
-    added (committed).  This is NOT affected by `git pull` — git preserves
-    the original author date of each commit.
+    Uses ``git log --diff-filter=A --format=DATE:%aI --name-only`` to find
+    when each file was first added.  Author date is used so that ``git pull``
+    does not shift the timestamp.
 
-    Returns ISO date string of the latest first-commit among files, or None.
+    Returns dict {relative_path: ISO_date_string} with the *earliest* add
+    date for each file (i.e. when the student first committed it).
     """
     if not root or not Path(root).is_dir():
-        return None
+        return {}
     try:
-        # Get the most recent author-date of the first commit that added any file
         result = subprocess.run(
-            ["git", "log", "--diff-filter=A", "--format=%aI", "--", "."],
+            ["git", "log", "--diff-filter=A", "--format=DATE:%aI",
+             "--name-only", "--", "."],
             capture_output=True, text=True, timeout=10,
             cwd=str(root)
         )
         if result.returncode != 0 or not result.stdout.strip():
-            return None
-        # Lines are newest-first; the first line is the latest "add" commit
-        dates = result.stdout.strip().splitlines()
-        if dates:
-            return dates[0]  # most recent add-commit's author date
+            return {}
+
+        file_dates = {}  # filename -> earliest add date
+        current_date = None
+        for line in result.stdout.strip().splitlines():
+            if line.startswith("DATE:"):
+                current_date = line[5:]
+            elif line.strip() and current_date:
+                fname = line.strip()
+                # git log is newest-first, so later iterations overwrite
+                # with older dates — we end up with the earliest add date
+                file_dates[fname] = current_date
+        return file_dates
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
-        pass
-    return None
+        return {}
+
+
+def _calc_late_penalty(file_dates, deadline_iso, penalty_per_day):
+    """Calculate weighted late penalty based on per-file submission dates.
+
+    Only files committed after the deadline are penalised.  The penalty is
+    weighted by the *proportion* of late files:
+
+        weighted_penalty = (late_files / total_files) * max_days_late * penalty_per_day
+
+    Returns dict with penalty details, or None if no deadline applies.
+    """
+    if not file_dates or not deadline_iso:
+        return None
+    try:
+        deadline_dt = datetime.fromisoformat(deadline_iso)
+        if deadline_dt.tzinfo is None:
+            deadline_dt = deadline_dt.replace(tzinfo=_PPH)
+    except (ValueError, TypeError):
+        return None
+
+    total_files = len(file_dates)
+    late_files = 0
+    max_days_late = 0
+
+    for fname, date_iso in file_dates.items():
+        try:
+            fdt = datetime.fromisoformat(date_iso)
+            if fdt.tzinfo is None:
+                fdt = fdt.replace(tzinfo=_PPH)
+            if fdt > deadline_dt:
+                late_files += 1
+                days = math.ceil((fdt - deadline_dt).total_seconds() / 86400)
+                if days > max_days_late:
+                    max_days_late = days
+        except (ValueError, TypeError):
+            continue
+
+    if late_files == 0:
+        return {"late": False, "lateFiles": 0, "totalFiles": total_files,
+                "weight": 0, "daysLate": 0, "penalty": 0}
+
+    weight = round(late_files / total_files, 4)
+    penalty = round(weight * max_days_late * penalty_per_day, 2)
+    return {
+        "late": True,
+        "lateFiles": late_files,
+        "totalFiles": total_files,
+        "weight": weight,
+        "daysLate": max_days_late,
+        "penalty": penalty,
+    }
 
 
 def _list_recursive(root):
@@ -884,16 +945,32 @@ def grade_student_lab(username, lab_name):
             feedback.append(f"Missing {item_type}: '{expected}'")
 
     score = round(min(score, spec["total_points"]), 2)
-    sub_date = _get_submission_date(lab_root)
+    file_dates = _get_file_submission_dates(lab_root)
+    sub_date = max(file_dates.values()) if file_dates else None
+
+    # Compute weighted late penalty if a deadline exists for this lab
+    dl = _deadlines.get(lab_name, {})
+    late_info = _calc_late_penalty(file_dates, dl.get("due"), dl.get("penalty", 5))
+    final_score = score
+    if late_info and late_info["late"]:
+        final_score = round(max(0, score - late_info["penalty"]), 2)
+        feedback.append(
+            f"Late penalty: {late_info['lateFiles']}/{late_info['totalFiles']} files "
+            f"submitted late (max {late_info['daysLate']}d) — "
+            f"-{late_info['penalty']} pts (weight {late_info['weight']:.0%})"
+        )
+
     return {
         "username": username,
         "lab": lab_name,
         "score": score,
+        "finalScore": final_score,
         "total": spec["total_points"],
         "percentage": round(score / spec["total_points"] * 100, 1),
         "found": True,
         "labPath": str(lab_root),
         "submissionDate": sub_date,
+        "lateInfo": late_info,
         "items": items,
         "feedback": feedback,
     }
@@ -1046,16 +1123,32 @@ def grade_student_activity(username, activity_name):
                 feedback.append(f"Missing {item_type}: '{expected}'")
 
     score = round(min(score, spec["total_points"]), 2)
-    sub_date = _get_submission_date(act_root)
+    file_dates = _get_file_submission_dates(act_root)
+    sub_date = max(file_dates.values()) if file_dates else None
+
+    # Compute weighted late penalty if a deadline exists for this activity
+    dl = _deadlines.get(activity_name, {})
+    late_info = _calc_late_penalty(file_dates, dl.get("due"), dl.get("penalty", 5))
+    final_score = score
+    if late_info and late_info["late"]:
+        final_score = round(max(0, score - late_info["penalty"]), 2)
+        feedback.append(
+            f"Late penalty: {late_info['lateFiles']}/{late_info['totalFiles']} files "
+            f"submitted late (max {late_info['daysLate']}d) — "
+            f"-{late_info['penalty']} pts (weight {late_info['weight']:.0%})"
+        )
+
     return {
         "username": username,
         "activity": activity_name,
         "score": score,
+        "finalScore": final_score,
         "total": spec["total_points"],
         "percentage": round(score / spec["total_points"] * 100, 1),
         "found": True,
         "activityPath": str(act_root),
         "submissionDate": sub_date,
+        "lateInfo": late_info,
         "items": items,
         "feedback": feedback,
     }
