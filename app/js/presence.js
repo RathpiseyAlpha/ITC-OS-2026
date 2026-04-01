@@ -32,6 +32,10 @@ const Presence = (function () {
         return h;
     }
 
+    function hasAuthenticatedSession() {
+        return !!sessionStorage.getItem('authToken');
+    }
+
     function initWeb() {
         sessionId = generateSessionId();
         var url = serverUrl();
@@ -55,8 +59,12 @@ const Presence = (function () {
 
     function pollWebUsers() {
         var url = serverUrl();
-        if (!url) return;
-        fetch(url + '/api/web/users', { mode: 'cors' })
+        if (!url || !hasAuthenticatedSession()) {
+            webUsers = [];
+            notifyWeb();
+            return;
+        }
+        fetch(url + '/api/web/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
             .then(function (data) {
                 webUsers = (data.users || []).map(function (u) {
@@ -133,15 +141,19 @@ const Presence = (function () {
             return;
         }
         console.log('[Presence/Server] Polling', url);
-        pollServer();
+        if (hasAuthenticatedSession()) pollServer();
         var interval = (CONFIG.server && CONFIG.server.pollInterval) || 10000;
         pollTimer = setInterval(pollServer, interval);
     }
 
     function pollServer() {
         var url = serverUrl();
-        if (!url) return;
-        fetch(serverUrl() + '/api/users', { mode: 'cors' })
+        if (!url || !hasAuthenticatedSession()) {
+            serverUsers = [];
+            notifyServer();
+            return;
+        }
+        fetch(serverUrl() + '/api/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
             .then(function (data) {
                 serverUsers = data.users || [];
@@ -180,12 +192,22 @@ const Presence = (function () {
     function login(username) {
         currentUser = username;
         webLogin(username);
-        pollServer();
+        if (hasAuthenticatedSession()) pollServer();
+        else {
+            webUsers = [];
+            serverUsers = [];
+            notifyWeb();
+            notifyServer();
+        }
     }
 
     function logout() {
         webLogout();
         currentUser = '';
+        webUsers = [];
+        serverUsers = [];
+        notifyWeb();
+        notifyServer();
     }
 
     function isLoggedIn() { return currentUser !== ''; }

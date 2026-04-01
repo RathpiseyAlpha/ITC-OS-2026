@@ -1490,8 +1490,18 @@ class PresenceHandler(SimpleHTTPRequestHandler):
         path = parsed.path.rstrip("/")
 
         if path == "/api/users":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
             self._json_response(self._api_users())
         elif path == "/api/web/users":
+            token = self._get_token()
+            session = validate_token(token)
+            if not session:
+                self._json_response({"error": "Unauthorized"}, 403)
+                return
             _prune_web_users()
             users = [{"name": v["name"], "loginTime": v["loginTime"], "sessionId": k}
                      for k, v in _web_users.items()]

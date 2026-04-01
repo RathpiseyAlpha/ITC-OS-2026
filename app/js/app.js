@@ -27,6 +27,23 @@
         return name.split('.').pop().toLowerCase();
     }
 
+    function hasPresenceAccess() {
+        return !!authToken;
+    }
+
+    function updatePresenceVisibility() {
+        var webList = document.getElementById('web-users');
+        var serverList = document.getElementById('server-users');
+        var webSection = webList && webList.parentElement;
+        var serverSection = serverList && serverList.parentElement;
+        var footer = document.getElementById('footer-presence');
+        var allowed = hasPresenceAccess();
+
+        if (webSection) webSection.style.display = allowed ? '' : 'none';
+        if (serverSection) serverSection.style.display = allowed ? '' : 'none';
+        if (footer && !allowed) footer.textContent = '';
+    }
+
     // ──────────────────────────────────────
     //  Matrix Rain Background
     // ──────────────────────────────────────
@@ -126,6 +143,12 @@
     function renderWebUsers(users) {
         var container = document.getElementById('web-users');
         if (!container) return;
+        if (!hasPresenceAccess()) {
+            container.innerHTML = '';
+            var countHidden = document.getElementById('web-count');
+            if (countHidden) countHidden.textContent = '';
+            return;
+        }
         if (!users || users.length === 0) {
             container.innerHTML = '<li style="color:var(--comment);font-size:10px;padding:3px 8px;">No web visitors</li>';
         } else {
@@ -145,6 +168,12 @@
     function renderServerUsers(users) {
         var container = document.getElementById('server-users');
         if (!container) return;
+        if (!hasPresenceAccess()) {
+            container.innerHTML = '';
+            var countHidden = document.getElementById('server-count');
+            if (countHidden) countHidden.textContent = '';
+            return;
+        }
         if (!users || users.length === 0) {
             container.innerHTML = '<li style="color:var(--comment);font-size:10px;padding:3px 8px;">No users logged in</li>';
         } else {
@@ -169,6 +198,10 @@
     function updateFooterPresence() {
         var el = document.getElementById('footer-presence');
         if (!el) return;
+        if (!hasPresenceAccess()) {
+            el.textContent = '';
+            return;
+        }
         var wc = Presence.getWebCount();
         var sc = Presence.getServerCount();
         var parts = [];
@@ -227,6 +260,7 @@
         // Show grades nav for authenticated students
         var gradesNav = document.getElementById('grades-nav');
         if (gradesNav) gradesNav.style.display = (role === 'user') ? '' : 'none';
+        updatePresenceVisibility();
     }
 
     function clearAuth() {
@@ -238,6 +272,7 @@
         if (adminNav) adminNav.style.display = 'none';
         var gradesNav = document.getElementById('grades-nav');
         if (gradesNav) gradesNav.style.display = 'none';
+        updatePresenceVisibility();
     }
 
     // Restore nav links on reload
@@ -249,6 +284,7 @@
         var gradesNav = document.getElementById('grades-nav');
         if (gradesNav) gradesNav.style.display = '';
     }
+    updatePresenceVisibility();
 
     // ──────────────────────────────────────
     //  Session Restore on Refresh
