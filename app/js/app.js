@@ -465,6 +465,35 @@
         if (input) setTimeout(function () { input.focus(); }, 200);
     };
 
+    // Verify token before logging out — prevents spurious 403 from proxies/Cloudflare
+    // from killing a valid session.  Only logs out if /api/auth/verify confirms invalid.
+    var _verifyInProgress = false;
+    window.verifyOrLogout = function () {
+        if (_verifyInProgress) return;
+        var url = serverUrl();
+        var tok = authToken;
+        if (!url || !tok) return;
+        _verifyInProgress = true;
+        fetch(url + '/api/auth/verify', {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            _verifyInProgress = false;
+            // Only logout if verify says invalid AND the token hasn't changed since
+            if (!data.valid && authToken === tok) {
+                console.warn('[Auth] Token confirmed invalid — logging out.');
+                window.performLogout();
+            }
+        })
+        .catch(function () {
+            _verifyInProgress = false;
+            // Network error — don't logout, give the session the benefit of the doubt
+        });
+    };
+
     // Login input handler
     (function () {
         var loginInput = document.getElementById('login-input');
@@ -594,10 +623,10 @@
                     try { data = JSON.parse(text); } catch (e) {}
                 }
                 if (r.status === 401 || r.status === 403) {
-                    // Only logout if the token hasn't changed (avoid race with re-login)
+                    // Only act if the token hasn't changed (avoid race with re-login)
                     if (authToken === tokenAtRequest) {
-                        console.warn('[Admin] Session expired or invalid — logging out.');
-                        window.performLogout();
+                        console.warn('[Admin] Got ' + r.status + ' — verifying session...');
+                        window.verifyOrLogout();
                     }
                 }
                 if (!r.ok) {
@@ -714,7 +743,7 @@
         })
         .then(function (r) {
             if (r.status === 401 || r.status === 403) {
-                if (authToken === tokenAtRequest) window.performLogout();
+                if (authToken === tokenAtRequest) window.verifyOrLogout();
                 throw new Error('Unauthorized');
             }
             if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -781,7 +810,7 @@
         })
         .then(function (r) {
             if (r.status === 401 || r.status === 403) {
-                if (authToken === tokenAtRequest) window.performLogout();
+                if (authToken === tokenAtRequest) window.verifyOrLogout();
                 throw new Error('Unauthorized');
             }
             if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1160,7 +1189,7 @@
         })
         .then(function (r) {
             if (r.status === 401 || r.status === 403) {
-                if (authToken === tokenAtRequest) window.performLogout();
+                if (authToken === tokenAtRequest) window.verifyOrLogout();
                 throw new Error('Unauthorized');
             }
             return r.json();
@@ -1252,8 +1281,8 @@
         .then(function (r) {
             if (r.status === 401 || r.status === 403) {
                 if (authToken === tokenAtRequest) {
-                    console.warn('[Admin] Session expired or invalid — logging out.');
-                    window.performLogout();
+                    console.warn('[Admin] Got ' + r.status + ' on deadline save — verifying session...');
+                    window.verifyOrLogout();
                 }
                 throw new Error('Unauthorized');
             }
@@ -2285,7 +2314,7 @@
         })
         .then(function (r) {
             if (r.status === 401 || r.status === 403) {
-                if (authToken === tokenAtRequest) window.performLogout();
+                if (authToken === tokenAtRequest) window.verifyOrLogout();
                 return null;
             }
             return r.ok ? r.json() : null;

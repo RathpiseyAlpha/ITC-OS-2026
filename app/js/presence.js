@@ -68,10 +68,10 @@ const Presence = (function () {
         fetch(url + '/api/web/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) {
                 if (r.status === 401 || r.status === 403) {
-                    // Only logout if the token hasn't changed (avoid race with re-login)
+                    // Only act if the token hasn't changed (avoid race with re-login)
                     if (sessionStorage.getItem('authToken') === tokenAtRequest) {
-                        console.warn('[Presence/Web] Session expired or invalid — logging out.');
-                        if (typeof window.performLogout === 'function') window.performLogout();
+                        console.warn('[Presence/Web] Got ' + r.status + ' — verifying session...');
+                        if (typeof window.verifyOrLogout === 'function') window.verifyOrLogout();
                     }
                     webUsers = [];
                     notifyWeb();
@@ -172,10 +172,10 @@ const Presence = (function () {
         fetch(serverUrl() + '/api/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) {
                 if (r.status === 401 || r.status === 403) {
-                    // Only logout if the token hasn't changed (avoid race with re-login)
+                    // Only act if the token hasn't changed (avoid race with re-login)
                     if (sessionStorage.getItem('authToken') === tokenAtRequest) {
-                        console.warn('[Presence/Server] Session expired or invalid — logging out.');
-                        if (typeof window.performLogout === 'function') window.performLogout();
+                        console.warn('[Presence/Server] Got ' + r.status + ' — verifying session...');
+                        if (typeof window.verifyOrLogout === 'function') window.verifyOrLogout();
                     }
                     serverUsers = [];
                     notifyServer();
