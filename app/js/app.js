@@ -592,6 +592,10 @@
                 if (text) {
                     try { data = JSON.parse(text); } catch (e) {}
                 }
+                if (r.status === 401 || r.status === 403) {
+                    console.warn('[Admin] Session expired or invalid — logging out.');
+                    window.performLogout();
+                }
                 if (!r.ok) {
                     var msg = (data && data.error) ? data.error : ('HTTP ' + r.status);
                     var err = new Error(msg);
@@ -1223,7 +1227,13 @@
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
             body: JSON.stringify(deadlines)
         })
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (r.status === 401 || r.status === 403) {
+                console.warn('[Admin] Session expired or invalid — logging out.');
+                window.performLogout();
+            }
+            return r.json();
+        })
         .then(function (data) {
             if (data.ok) {
                 if (statusEl) statusEl.textContent = '\u2705 Saved!';

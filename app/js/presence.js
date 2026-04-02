@@ -67,8 +67,8 @@ const Presence = (function () {
         fetch(url + '/api/web/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) {
                 if (r.status === 401 || r.status === 403) {
-                    console.warn('[Presence/Web] Session expired or invalid — clearing auth.');
-                    sessionStorage.removeItem('authToken');
+                    console.warn('[Presence/Web] Session expired or invalid — logging out.');
+                    if (typeof window.performLogout === 'function') window.performLogout();
                     webUsers = [];
                     notifyWeb();
                     return null;
@@ -167,8 +167,8 @@ const Presence = (function () {
         fetch(serverUrl() + '/api/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) {
                 if (r.status === 401 || r.status === 403) {
-                    console.warn('[Presence/Server] Session expired or invalid — clearing auth.');
-                    sessionStorage.removeItem('authToken');
+                    console.warn('[Presence/Server] Session expired or invalid — logging out.');
+                    if (typeof window.performLogout === 'function') window.performLogout();
                     serverUsers = [];
                     notifyServer();
                     return null;
