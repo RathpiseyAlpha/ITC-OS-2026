@@ -36,7 +36,8 @@ echo "[$(date)] Pulled latest changes." >> "$LOG"
 # Only restart the backend service if server files changed
 CHANGED=$(git diff "$LOCAL" "$REMOTE" --name-only -- app/server/)
 if [ -n "$CHANGED" ]; then
-    echo "[$(date)] Server files changed: $CHANGED — restarting service." >> "$LOG"
+    echo "[$(date)] Server files changed: $CHANGED — installing deps & restarting." >> "$LOG"
+    pip3 install --quiet -r "$REPO_DIR/app/server/requirements.txt" >> "$LOG" 2>&1
     sudo systemctl restart itc-os-presence >> "$LOG" 2>&1
 fi
 

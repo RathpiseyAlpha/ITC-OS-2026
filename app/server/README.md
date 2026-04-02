@@ -1,17 +1,19 @@
 # ITC-OS Presence Server
 
-A lightweight Python server that tracks Linux users currently logged into the server and exposes a REST API for the course website frontend.
+A Flask-based Python server that tracks Linux users currently logged into the server and exposes a REST API for the course website frontend.
 
 ## Requirements
 
-- Python 3.7+ (no external dependencies — uses only stdlib)
+- Python 3.12+
 - Linux server where students SSH in
+- `flask` and `flask-cors` (see `requirements.txt`)
 
 ## Quick Start
 
 ```bash
 # On the Linux server, from the project root:
 cd app/server
+pip3 install -r requirements.txt
 python3 app.py
 ```
 
@@ -63,9 +65,10 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/path/to/ITC-OS-2026/server
-ExecStart=/usr/bin/python3 /path/to/ITC-OS-2026/app/server/app.py --port 5000
+ExecStartPre=/usr/bin/pip3 install --quiet -r requirements.txt
+ExecStart=/usr/bin/python3 app.py --host 0.0.0.0 --port 5000
 Restart=always
-RestartSec=5
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
