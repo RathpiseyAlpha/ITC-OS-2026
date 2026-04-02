@@ -29,6 +29,9 @@ fi
 echo "[$(date)] New commits detected ($LOCAL -> $REMOTE). Deploying..." >> "$LOG"
 
 # Pull latest (all files — frontend is served as static files)
+# Clean untracked pycache and reset modified tracked files to avoid merge conflicts
+git clean -fd app/server/__pycache__/ >> "$LOG" 2>&1
+git checkout -- app/server/ >> "$LOG" 2>&1
 git pull origin main --quiet >> "$LOG" 2>&1
 
 echo "[$(date)] Pulled latest changes." >> "$LOG"
@@ -37,7 +40,7 @@ echo "[$(date)] Pulled latest changes." >> "$LOG"
 CHANGED=$(git diff "$LOCAL" "$REMOTE" --name-only -- app/server/)
 if [ -n "$CHANGED" ]; then
     echo "[$(date)] Server files changed: $CHANGED — installing deps & restarting." >> "$LOG"
-    pip3 install --quiet -r "$REPO_DIR/app/server/requirements.txt" >> "$LOG" 2>&1
+    python3 -m pip install --quiet --break-system-packages -r "$REPO_DIR/app/server/requirements.txt" >> "$LOG" 2>&1
     sudo systemctl restart itc-os-presence >> "$LOG" 2>&1
 fi
 
