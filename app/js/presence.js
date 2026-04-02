@@ -65,8 +65,19 @@ const Presence = (function () {
             return;
         }
         fetch(url + '/api/web/users', { mode: 'cors', headers: authHeaders() })
-            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (r) {
+                if (r.status === 401 || r.status === 403) {
+                    console.warn('[Presence/Web] Session expired or invalid — clearing auth.');
+                    sessionStorage.removeItem('authToken');
+                    webUsers = [];
+                    notifyWeb();
+                    return null;
+                }
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
             .then(function (data) {
+                if (!data) return;
                 webUsers = (data.users || []).map(function (u) {
                     return {
                         name: u.name,
@@ -154,8 +165,19 @@ const Presence = (function () {
             return;
         }
         fetch(serverUrl() + '/api/users', { mode: 'cors', headers: authHeaders() })
-            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (r) {
+                if (r.status === 401 || r.status === 403) {
+                    console.warn('[Presence/Server] Session expired or invalid — clearing auth.');
+                    sessionStorage.removeItem('authToken');
+                    serverUsers = [];
+                    notifyServer();
+                    return null;
+                }
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return r.json();
+            })
             .then(function (data) {
+                if (!data) return;
                 serverUsers = data.users || [];
                 notifyServer();
             })
