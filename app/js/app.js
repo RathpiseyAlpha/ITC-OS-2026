@@ -582,6 +582,7 @@
     }
 
     function adminRequestJson(url) {
+        var tokenAtRequest = authToken;
         return fetch(url, {
             mode: 'cors',
             headers: { 'Authorization': 'Bearer ' + authToken }
@@ -593,8 +594,11 @@
                     try { data = JSON.parse(text); } catch (e) {}
                 }
                 if (r.status === 401 || r.status === 403) {
-                    console.warn('[Admin] Session expired or invalid — logging out.');
-                    window.performLogout();
+                    // Only logout if the token hasn't changed (avoid race with re-login)
+                    if (authToken === tokenAtRequest) {
+                        console.warn('[Admin] Session expired or invalid — logging out.');
+                        window.performLogout();
+                    }
                 }
                 if (!r.ok) {
                     var msg = (data && data.error) ? data.error : ('HTTP ' + r.status);
@@ -703,11 +707,16 @@
         var container = adminContent();
         if (!container) return;
         container.innerHTML = '<div class="admin-loading">Fetching stats...</div>';
+        var tokenAtRequest = authToken;
         fetch(url + '/api/admin/stats', {
             mode: 'cors',
             headers: { 'Authorization': 'Bearer ' + authToken }
         })
         .then(function (r) {
+            if (r.status === 401 || r.status === 403) {
+                if (authToken === tokenAtRequest) window.performLogout();
+                throw new Error('Unauthorized');
+            }
             if (!r.ok) throw new Error('HTTP ' + r.status);
             return r.json();
         })
@@ -765,11 +774,16 @@
         if (!container) return;
         container.innerHTML = '<div class="admin-loading">Computing totals...</div>';
 
+        var tokenAtRequest = authToken;
         fetch(url + '/api/admin/leaderboard', {
             mode: 'cors',
             headers: { 'Authorization': 'Bearer ' + authToken }
         })
         .then(function (r) {
+            if (r.status === 401 || r.status === 403) {
+                if (authToken === tokenAtRequest) window.performLogout();
+                throw new Error('Unauthorized');
+            }
             if (!r.ok) throw new Error('HTTP ' + r.status);
             return r.json();
         })
@@ -1140,10 +1154,17 @@
         if (!container) return;
         container.innerHTML = '<div class="admin-loading">Loading deadlines...</div>';
 
+        var tokenAtRequest = authToken;
         fetch(url + '/api/deadlines', {
             mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
         })
-        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (r.status === 401 || r.status === 403) {
+                if (authToken === tokenAtRequest) window.performLogout();
+                throw new Error('Unauthorized');
+            }
+            return r.json();
+        })
         .then(function (data) {
             var deadlines = data.deadlines || {};
             var labs = Object.keys(CONFIG.deadlines ? CONFIG.deadlines.reduce(function (m, d) { m[d.lab] = 1; return m; }, {}) : {});
@@ -1221,6 +1242,7 @@
         var statusEl = document.getElementById('dl-save-status');
         if (statusEl) statusEl.textContent = 'Saving...';
 
+        var tokenAtRequest = authToken;
         fetch(url + '/api/admin/deadlines', {
             method: 'POST',
             mode: 'cors',
@@ -1229,8 +1251,11 @@
         })
         .then(function (r) {
             if (r.status === 401 || r.status === 403) {
-                console.warn('[Admin] Session expired or invalid — logging out.');
-                window.performLogout();
+                if (authToken === tokenAtRequest) {
+                    console.warn('[Admin] Session expired or invalid — logging out.');
+                    window.performLogout();
+                }
+                throw new Error('Unauthorized');
             }
             return r.json();
         })
@@ -2254,10 +2279,17 @@
     function loadServerDeadlines() {
         var url = serverUrl();
         if (!url || !authToken) return;
+        var tokenAtRequest = authToken;
         fetch(url + '/api/deadlines', {
             mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken }
         })
-        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (r) {
+            if (r.status === 401 || r.status === 403) {
+                if (authToken === tokenAtRequest) window.performLogout();
+                return null;
+            }
+            return r.ok ? r.json() : null;
+        })
         .then(function (data) {
             if (data && data.deadlines) {
                 _serverDeadlines = data.deadlines;

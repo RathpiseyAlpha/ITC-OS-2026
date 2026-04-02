@@ -64,11 +64,15 @@ const Presence = (function () {
             notifyWeb();
             return;
         }
+        var tokenAtRequest = sessionStorage.getItem('authToken');
         fetch(url + '/api/web/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) {
                 if (r.status === 401 || r.status === 403) {
-                    console.warn('[Presence/Web] Session expired or invalid — logging out.');
-                    if (typeof window.performLogout === 'function') window.performLogout();
+                    // Only logout if the token hasn't changed (avoid race with re-login)
+                    if (sessionStorage.getItem('authToken') === tokenAtRequest) {
+                        console.warn('[Presence/Web] Session expired or invalid — logging out.');
+                        if (typeof window.performLogout === 'function') window.performLogout();
+                    }
                     webUsers = [];
                     notifyWeb();
                     return null;
@@ -164,11 +168,15 @@ const Presence = (function () {
             notifyServer();
             return;
         }
+        var tokenAtRequest = sessionStorage.getItem('authToken');
         fetch(serverUrl() + '/api/users', { mode: 'cors', headers: authHeaders() })
             .then(function (r) {
                 if (r.status === 401 || r.status === 403) {
-                    console.warn('[Presence/Server] Session expired or invalid — logging out.');
-                    if (typeof window.performLogout === 'function') window.performLogout();
+                    // Only logout if the token hasn't changed (avoid race with re-login)
+                    if (sessionStorage.getItem('authToken') === tokenAtRequest) {
+                        console.warn('[Presence/Server] Session expired or invalid — logging out.');
+                        if (typeof window.performLogout === 'function') window.performLogout();
+                    }
                     serverUsers = [];
                     notifyServer();
                     return null;
