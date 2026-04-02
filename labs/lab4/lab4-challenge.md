@@ -52,13 +52,33 @@ Do not copy this example as your answer unless it is truly the result from your 
 
 ---
 
+## Commands Used
+
+Document every command you used to solve the challenge, in order, inside this file:
+
+```bash
+~/lab4-challenge/commands.txt
+```
+
+Write one command per line. Include the full pipeline if you used one. For example:
+
+```text
+ls ~/lab4-challenge/
+cat access.log | head -20
+grep 403 access.log | awk '{print $1}' | sort | uniq -c | sort -rn
+```
+
+This file is **required** — it shows your thought process and how you arrived at the answer.
+
+---
+
 ## Rules
 
 * Use terminal commands only.
 * Work only inside your own challenge folder.
 * You may inspect files, search text, filter logs, and use pipelines.
-* Do not edit the dataset files except `final_answer.txt`.
-* Final grading checks only the content of `final_answer.txt`.
+* Do not edit the dataset files except `final_answer.txt` and `commands.txt`.
+* Final grading checks the content of `final_answer.txt` and `commands.txt`.
 
 ---
 
@@ -84,11 +104,10 @@ You do not need to use every command above.
 
 ## What You Submit
 
-Your submission is complete when this file contains the final result:
+Your submission is complete when **both** of these files are ready:
 
-```bash
-~/lab4-challenge/final_answer.txt
-```
+1. **`~/lab4-challenge/final_answer.txt`** — contains your one-line answer (`IP|URL|COUNT`)
+2. **`~/lab4-challenge/commands.txt`** — contains the commands you used, one per line
 
 ---
 
