@@ -19,6 +19,7 @@ import os
 import re
 import secrets
 import subprocess
+import threading
 import time
 import warnings
 from datetime import datetime, timedelta, timezone
@@ -141,6 +142,40 @@ def _prune_web_users():
 
 _sessions = {}
 _login_attempts = {}
+_session_lock = threading.Lock()
+_SESSIONS_FILE = Path(__file__).resolve().parent / "sessions.json"
+_SESSION_SAVE_INTERVAL = 30  # persist at most every 30s during activity
+_last_session_save = 0.0
+
+
+def _load_sessions():
+    """Load sessions from disk (survives server restarts)."""
+    global _sessions
+    if _SESSIONS_FILE.exists():
+        try:
+            with open(_SESSIONS_FILE, "r") as f:
+                data = json.load(f)
+            now = time.time()
+            # Only restore sessions that haven't expired
+            _sessions = {
+                t: s for t, s in data.items()
+                if now - s.get("last_active", s.get("created", 0)) < SESSION_TIMEOUT_SEC
+            }
+        except (json.JSONDecodeError, OSError, TypeError):
+            _sessions = {}
+
+
+def _save_sessions():
+    """Persist sessions to disk. Must be called with _session_lock held."""
+    try:
+        with open(_SESSIONS_FILE, "w") as f:
+            json.dump(_sessions, f)
+    except OSError:
+        pass
+
+
+# Load sessions from previous run on startup
+_load_sessions()
 
 
 def _rate_limited(ip):
@@ -156,11 +191,14 @@ def _record_attempt(ip):
 
 
 def _prune_sessions():
+    """Remove expired sessions. Must be called with _session_lock held."""
     now = time.time()
     expired = [t for t, s in _sessions.items()
-               if now - s["created"] > SESSION_TIMEOUT_SEC]
+               if now - s.get("last_active", s.get("created", 0)) > SESSION_TIMEOUT_SEC]
     for t in expired:
-        del _sessions[t]
+        _sessions.pop(t, None)
+    if expired:
+        _save_sessions()
 
 
 def verify_password(username, password):
@@ -185,20 +223,32 @@ def verify_password(username, password):
 
 
 def create_session(username):
-    _prune_sessions()
-    token = secrets.token_urlsafe(32)
-    role = "admin" if username in ADMIN_USERS else "user"
-    _sessions[token] = {
-        "username": username, "role": role, "created": time.time(),
-    }
+    with _session_lock:
+        _prune_sessions()
+        token = secrets.token_urlsafe(32)
+        role = "admin" if username in ADMIN_USERS else "user"
+        now = time.time()
+        _sessions[token] = {
+            "username": username, "role": role,
+            "created": now, "last_active": now,
+        }
+        _save_sessions()
     return token, role
 
 
 def validate_token(token):
-    _prune_sessions()
-    s = _sessions.get(token)
-    if s and time.time() - s["created"] < SESSION_TIMEOUT_SEC:
-        return s
+    global _last_session_save
+    with _session_lock:
+        _prune_sessions()
+        s = _sessions.get(token)
+        if s and time.time() - s.get("last_active", s["created"]) < SESSION_TIMEOUT_SEC:
+            now = time.time()
+            s["last_active"] = now
+            # Throttle disk writes — persist activity updates periodically
+            if now - _last_session_save > _SESSION_SAVE_INTERVAL:
+                _save_sessions()
+                _last_session_save = now
+            return s
     return None
 
 
@@ -228,7 +278,7 @@ def auth_required(f):
         session = validate_token(token)
         if not session:
             return jsonify({"error": "Unauthorized"}), 403
-        request._session = session
+        request._session = session # type: ignore
         return f(*args, **kwargs)
     return decorated
 
@@ -240,7 +290,7 @@ def admin_required(f):
         session = validate_token(token)
         if not session or session["role"] != "admin":
             return jsonify({"error": "Unauthorized"}), 403
-        request._session = session
+        request._session = session # type: ignore
         return f(*args, **kwargs)
     return decorated
 
@@ -1393,7 +1443,9 @@ def route_auth_verify():
 def route_auth_logout():
     body = request.get_json(silent=True) or {}
     token = _get_token() or str(body.get("token", ""))
-    _sessions.pop(token, None)
+    with _session_lock:
+        _sessions.pop(token, None)
+        _save_sessions()
     return jsonify({"ok": True})
 
 
@@ -1603,7 +1655,7 @@ def route_api_deadlines():
 
 def _get_student_info():
     """Look up student from current session. Returns (sid, info)."""
-    username = request._session["username"]
+    username = request._session["username"] # type: ignore
     sid = _USER_TO_SID.get(username)
     info = STUDENTS.get(sid) if sid else None
     return sid, info

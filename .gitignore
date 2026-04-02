@@ -1,0 +1,4 @@
+.github/*
+!.github/workflows/
+app/js/env.js
+app/server/sessions.json
