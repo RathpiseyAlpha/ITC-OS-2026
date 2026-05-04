@@ -67,7 +67,8 @@ const CONFIG = {
         { lab: 'lab1', due: '2026-02-22T23:59:00', penalty: 5 },
         { lab: 'lab2', due: '2026-03-08T23:59:00', penalty: 5 },
         { lab: 'lab3', due: '2026-03-22T23:59:00', penalty: 5 },
-        { lab: 'lab4', due: '2026-04-05T23:59:00', penalty: 5 }
+        { lab: 'lab4', due: '2026-04-05T23:59:00', penalty: 5 },
+        { lab: 'lab5', due: '2026-04-19T23:59:00', penalty: 5 }
     ],
 
     // Cache duration for GitHub API responses (ms)

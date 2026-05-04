@@ -151,7 +151,7 @@ const GitHubAPI = (function () {
                     { name: 'index.html' }
                 ]
             },
-            'labs': { dirs: ['lab1', 'lab2', 'lab3'], files: [] },
+            'labs': { dirs: ['lab1', 'lab2', 'lab3', 'lab4', 'lab5'], files: [] },
             'lectures': { dirs: ['files', 'notes', 'class-activity'], files: [] }
         };
         allFiles = new Set(['README.md', 'course-outline.md', 'index.html']);

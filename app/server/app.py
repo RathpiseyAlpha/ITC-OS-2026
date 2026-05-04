@@ -561,6 +561,26 @@ LAB_SPECS = {
         ],
         "dirs": ["images", "redirect_lab"],
     },
+    "lab5": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "thread_lab/process_test.c",
+            "thread_lab/thread_test.c",
+            "thread_lab/multi_thread.c",
+            "thread_lab/sleeper_threads.c",
+            "thread_lab/signal_handler.c",
+            "thread_lab/challenge.c",
+            "images/process_vs_thread_1.png",
+            "images/process_vs_thread_2.png",
+            "images/thread_interaction.png",
+            "images/user_kernel_mapping.png",
+            "images/htop_kernel_threads.png",
+            "images/signal_sigint.png",
+            "images/challenge_shutdown.png",
+        ],
+        "dirs": ["images", "thread_lab"],
+    },
 }
 
 # ── Class Activity Specs ───────────────────────────────────────
