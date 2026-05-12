@@ -581,6 +581,32 @@ LAB_SPECS = {
         ],
         "dirs": ["images", "thread_lab"],
     },
+    "lab6": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1_users.txt",
+            "task2_groups.txt",
+            "task3_permissions.txt",
+            "task3_stat_output.txt",
+            "task4_special_bits.txt",
+            "task5_acl.txt",
+            "security_lab/whoami_suid.c",
+            "images/task1_user_creation.png",
+            "images/task1_user_modify.png",
+            "images/task2_group_setup.png",
+            "images/task2_multi_group.png",
+            "images/task3_dir_permissions.png",
+            "images/task3_access_denied.png",
+            "images/task4_setgid.png",
+            "images/task4_sticky_bit.png",
+            "images/task4_setuid.png",
+            "images/task5_acl_dir.png",
+            "images/task5_acl_test.png",
+            "images/task5_acl_output.png",
+        ],
+        "dirs": ["images", "security_lab"],
+    },
 }
 
 # ── Class Activity Specs ───────────────────────────────────────

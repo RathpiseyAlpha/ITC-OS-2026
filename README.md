@@ -96,8 +96,14 @@ ITC-OS-2026/
     │   ├── lab3-instruction.md
     │   ├── README.md
     │   └── guides/
-    └── lab4/                  # Lab 4 — I/O Redirection, Pipelines & Process Mgmt
-        ├── lab4-instruction.md
+    ├── lab4/                  # Lab 4 — I/O Redirection, Pipelines & Process Mgmt
+    │   ├── lab4-instruction.md
+    │   └── README.md
+    ├── lab5/                  # Lab 5 — Threads, Kernel Workers & Process Signals
+    │   ├── lab5-instruction.md
+    │   └── README.md
+    └── lab6/                  # Lab 6 — Linux Security, Users, Groups & Permissions
+        ├── lab6-instruction.md
         └── README.md
 ```
 
@@ -136,7 +142,7 @@ ITC-OS-2026/
 | 9 | Deadlocks | [ch9.pdf](lectures/files/ch9.pdf) | — |
 | 10 | Memory Management I | [ch10.pdf](lectures/files/ch10.pdf) | — |
 | 11 | Virtual Memory | *Coming Soon* | — |
-| 12 | File Systems | *Coming Soon* | — |
+| 12 | File Systems | *Coming Soon* | [Lab 6](labs/lab6/) |
 
 > 📋 See the full [course-outline.md](course-outline.md) for detailed weekly learning objectives.
 
@@ -150,6 +156,8 @@ ITC-OS-2026/
 | 2 | Linux Navigation & File Management | ✅ Available | [Instructions](labs/lab2/lab2-instruction.md) |
 | 3 | Wildcards, Links, GRUB & Shared Libraries | ✅ Available | [Instructions](labs/lab3/lab3-instruction.md) |
 | 4 | I/O Redirection, Pipelines & Process Management | ✅ Available | [Instructions](labs/lab4/lab4-instruction.md) |
+| 5 | Threads, Kernel Workers & Process Signals | ✅ Available | [Instructions](labs/lab5/lab5-instruction.md) |
+| 6 | Linux Security, Users, Groups & File Permissions | ✅ Available | [Instructions](labs/lab6/lab6-instruction.md) |
 
 ### Lab 1 Highlights
 
