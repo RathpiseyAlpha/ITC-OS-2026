@@ -16,6 +16,7 @@ This folder contains hands-on programming activities that accompany the lecture 
 | 1 | [Class Activity 1](class-activity1.md) | Week 2 — OS Structures & Interfaces | System Calls with POSIX (Linux) |
 | 2 | [Class Activity 2](class-activity2.md) | Week 3–4 — Processes & Threads | Processes & IPC (Linux + Windows) |
 | 3 | [Class Activity 3](class-activity3.md) | Week 3–4 — Processes & Threads | Socket Communication & Multithreading |
+| 4 | [Class Activity 4](class-activity4.md) | Week 7–8 — Critical Sections & Synchronization | Shared File API, C++ Mutex & Java Synchronization |
 
 _More activities will be added as the course progresses._
 
@@ -40,6 +41,16 @@ os-se-<YourStudentID>/
     ├── activity2/
     │   ├── README.md
     │   └── ...
+    ├── activity3/
+    │   ├── README.md
+    │   └── ...
+    ├── activity4/
+    │   ├── README.md
+    │   ├── screenshots/
+    │   ├── cpp_before/
+    │   ├── cpp_after/
+    │   ├── java_before/
+    │   └── java_after/
     └── ...
 ```
 

@@ -80,7 +80,8 @@ ITC-OS-2026/
 │       ├── README.md          #   Activity index
 │       ├── class-activity1.md #   System Calls with POSIX (Linux)
 │       ├── class-activity2.md #   Processes & IPC (Linux + Windows)
-│       └── class-activity3.md #   Socket Communication & Multithreading
+│       ├── class-activity3.md #   Socket Communication & Multithreading
+│       └── class-activity4.md #   Shared File API: C++ Mutex & Java synchronized
 │
 └── labs/
     ├── lab1/                  # Lab 1 — Exploring OS Basics
@@ -237,6 +238,9 @@ Hands-on programming activities that accompany the lecture topics.
 | # | Activity | Topic | Related Lecture |
 |---|----------|-------|-----------------|
 | 1 | [System Calls in Practice](lectures/class-activity/class-activity1.md) | POSIX System Calls (Linux) + Optional Windows API | Week 2 |
+| 2 | [Processes & Inter-Process Communication](lectures/class-activity/class-activity2.md) | Processes & IPC (Linux + Windows) | Week 3–4 |
+| 3 | [Socket Communication & Multithreading](lectures/class-activity/class-activity3.md) | Sockets, pthreads, Java threading, thread observation | Week 3–4 |
+| 4 | [Shared File API](lectures/class-activity/class-activity4.md) | Client/server API, shared file, C++ mutex, Java synchronization | Week 7–8 |
 
 → Browse them in [`lectures/class-activity/`](lectures/class-activity/)
 
@@ -269,8 +273,8 @@ $ git remote add origin https://github.com/<YourUsername>/OS-SE-<YourStudentID>.
 
 # 4. Start working on labs!
 
-# 5. When class activities are assigned, create the activities folder:
-$ mkdir -p os-class-activities-<YourStudentID>/activity1
+# 5. When class activities are assigned, create the activity folder you need:
+$ mkdir -p os-class-activities-<YourStudentID>/activity4
 ```
 
 ### 📂 Your Submission Repo Structure
@@ -291,6 +295,19 @@ os-se-<YourStudentID>/
     │   ├── task1/
     │   ├── task2/
     │   └── task3/
+    ├── activity2/
+    │   ├── README.md
+    │   └── ...
+    ├── activity3/
+    │   ├── README.md
+    │   └── ...
+    ├── activity4/
+    │   ├── README.md
+    │   ├── screenshots/
+    │   ├── cpp_before/
+    │   ├── cpp_after/
+    │   ├── java_before/
+    │   └── java_after/
     └── ...
 ```
 

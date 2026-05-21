@@ -1198,7 +1198,7 @@
             var deadlines = data.deadlines || {};
             var labs = Object.keys(CONFIG.deadlines ? CONFIG.deadlines.reduce(function (m, d) { m[d.lab] = 1; return m; }, {}) : {});
             // Include known activities
-            ['activity1', 'activity2', 'activity3'].forEach(function (a) { if (labs.indexOf(a) === -1) labs.push(a); });
+            ['activity1', 'activity2', 'activity3', 'activity4'].forEach(function (a) { if (labs.indexOf(a) === -1) labs.push(a); });
             // Merge server + config keys
             Object.keys(deadlines).forEach(function (k) { if (labs.indexOf(k) === -1) labs.push(k); });
             labs.sort();
