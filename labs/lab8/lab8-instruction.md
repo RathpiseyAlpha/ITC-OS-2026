@@ -67,10 +67,10 @@ After completing this lab, students will be able to:
 Navigate into your existing lab submission repository and create the `lab8` directory:
 
 ```bash
-$ cd ~/os-se-<YourStudentID>/os-lab-<YourStudentID>
-$ mkdir lab8
-$ cd lab8
-$ mkdir images scripts
+cd ~/os-se-<YourStudentID>/os-lab-<YourStudentID>
+mkdir lab8
+cd lab8
+mkdir images scripts
 ```
 
 ### Working Location
@@ -140,8 +140,8 @@ Your submission files and screenshots must be saved in:
 
 1. Create your script workspace:
    ```bash
-   $ mkdir -p ~/bin
-   $ cd ~/bin
+   mkdir -p ~/bin
+   cd ~/bin
    ```
 
 ### Part A - Argument Viewer
@@ -149,7 +149,7 @@ Your submission files and screenshots must be saved in:
 Create a very short script named `arg_viewer`. This script should help you explain the difference between the command you run, the arguments you pass, and the special variables Bash fills in.
 
 ```bash
-$ nano arg_viewer
+nano arg_viewer
 ```
 
 Use this script:
@@ -169,14 +169,14 @@ echo "Exit status of 'test -n \$1' (\$?): $?"
 Make it executable:
 
 ```bash
-$ chmod +x arg_viewer
+chmod +x arg_viewer
 ```
 
 Run it twice:
 
 ```bash
-$ arg_viewer Alice 3
-$ arg_viewer
+arg_viewer Alice 3
+arg_viewer
 ```
 
 What to understand:
@@ -191,7 +191,7 @@ What to understand:
 
 Create a script named `quantum_probe`:
    ```bash
-   $ nano quantum_probe
+   nano quantum_probe
    ```
 
 Your script must use:
@@ -249,27 +249,27 @@ Example structure:
 
 Make it executable:
    ```bash
-   $ chmod +x quantum_probe
+   chmod +x quantum_probe
    ```
 
 Save evidence for both warm-up scripts:
    ```bash
-   $ {
-   > cd ~/bin
-   > echo "=== argument viewer with arguments ==="
-   > arg_viewer Alice 3
-   > echo "=== argument viewer with no arguments ==="
-   > arg_viewer
-   > echo "=== successful probe ==="
-   > quantum_probe Alice 3
-   > echo "exit status after success: $?"
-   > echo "=== invalid probe ==="
-   > quantum_probe Bob not_a_number
-   > echo "exit status after invalid input: $?"
-   > echo "=== loop/log directory evidence ==="
-   > ls -ld ~/bin/probe_logs
-   > } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task0_warmup.txt
-   $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task0_warmup.txt
+   {
+       cd ~/bin
+       echo "=== argument viewer with arguments ==="
+       arg_viewer Alice 3
+       echo "=== argument viewer with no arguments ==="
+       arg_viewer
+       echo "=== successful probe ==="
+       quantum_probe Alice 3
+       echo "exit status after success: $?"
+       echo "=== invalid probe ==="
+       quantum_probe Bob not_a_number
+       echo "exit status after invalid input: $?"
+       echo "=== loop/log directory evidence ==="
+       ls -ld ~/bin/probe_logs
+   } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task0_warmup.txt
+   cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task0_warmup.txt
    ```
 
 > **Required Screenshot 1:** Save as `images/level0_warmup.png` and embed it in `README.md`.
@@ -282,18 +282,18 @@ Save evidence for both warm-up scripts:
 
 1. Create your script workspace:
    ```bash
-   $ mkdir -p ~/bin
-   $ cd ~/bin
+   mkdir -p ~/bin
+   cd ~/bin
    ```
 
 2. Create the inventory file:
    ```bash
-   $ echo 100 > inventory.txt
+   echo 100 > inventory.txt
    ```
 
 3. Create a script named `buy_widget`:
    ```bash
-   $ nano buy_widget
+   nano buy_widget
    ```
 
 4. Your script must:
@@ -304,20 +304,20 @@ Save evidence for both warm-up scripts:
 
 5. Make it executable:
    ```bash
-   $ chmod +x buy_widget
+   chmod +x buy_widget
    ```
 
 6. Save evidence:
    ```bash
-   $ {
-   > echo "=== missing argument test ==="
-   > buy_widget Alice
-   > echo "=== invalid quantity test ==="
-   > buy_widget Eve -3
-   > echo "=== script permissions ==="
-   > ls -l ~/bin/buy_widget
-   > } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task1_validation.txt
-   $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task1_validation.txt
+   {
+       echo "=== missing argument test ==="
+       buy_widget Alice
+       echo "=== invalid quantity test ==="
+       buy_widget Eve -3
+       echo "=== script permissions ==="
+       ls -l ~/bin/buy_widget
+   } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task1_validation.txt
+   cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task1_validation.txt
    ```
 
 ---
@@ -348,27 +348,27 @@ Modify `buy_widget` so it includes the actual purchase logic.
 Run these commands exactly in order:
 
 ```bash
-$ buy_widget Alice 5
-$ buy_widget Hacker_Bob 200
-$ buy_widget Eve -3
+buy_widget Alice 5
+buy_widget Hacker_Bob 200
+buy_widget Eve -3
 ```
 
 Save evidence:
 
 ```bash
-$ {
-> echo 100 > ~/bin/inventory.txt
-> rm -f ~/bin/sales.log
-> echo "=== transaction tests ==="
-> buy_widget Alice 5
-> buy_widget Hacker_Bob 200
-> buy_widget Eve -3
-> echo "=== inventory ==="
-> cat ~/bin/inventory.txt
-> echo "=== sales.log ==="
-> cat ~/bin/sales.log
-> } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
-$ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
+{
+    echo 100 > ~/bin/inventory.txt
+    rm -f ~/bin/sales.log
+    echo "=== transaction tests ==="
+    buy_widget Alice 5
+    buy_widget Hacker_Bob 200
+    buy_widget Eve -3
+    echo "=== inventory ==="
+    cat ~/bin/inventory.txt
+    echo "=== sales.log ==="
+    cat ~/bin/sales.log
+} > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
+cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
 ```
 
 > **Required Screenshot 2:** Save as `images/level2_audit.png` and embed it in `README.md`.
@@ -381,13 +381,13 @@ $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
 
 1. Reset your inventory and log:
    ```bash
-   $ echo 100 > ~/bin/inventory.txt
-   $ rm -f ~/bin/sales.log
+   echo 100 > ~/bin/inventory.txt
+   rm -f ~/bin/sales.log
    ```
 
 2. Create a new script named `bot_swarm`:
    ```bash
-   $ nano ~/bin/bot_swarm
+   nano ~/bin/bot_swarm
    ```
 
 3. Inside `bot_swarm`, run 50 concurrent purchases:
@@ -403,9 +403,9 @@ $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
 
 4. Make it executable and run it:
    ```bash
-   $ chmod +x ~/bin/bot_swarm
-   $ bot_swarm
-   $ cat ~/bin/inventory.txt
+   chmod +x ~/bin/bot_swarm
+   bot_swarm
+   cat ~/bin/inventory.txt
    ```
 
 ### Observation Checkpoint 2
@@ -475,30 +475,30 @@ Then use those variables inside the lock:
 
 1. Reset inventory and log:
    ```bash
-   $ echo 100 > ~/bin/inventory.txt
-   $ rm -f ~/bin/sales.log
+   echo 100 > ~/bin/inventory.txt
+   rm -f ~/bin/sales.log
    ```
 
 2. Run the swarm again:
    ```bash
-   $ bot_swarm
+   bot_swarm
    ```
 
 3. Verify inventory is exactly `0`:
    ```bash
-   $ cat ~/bin/inventory.txt
-   $ tail -5 ~/bin/sales.log
+   cat ~/bin/inventory.txt
+   tail -5 ~/bin/sales.log
    ```
 
 4. Save evidence:
    ```bash
-   $ {
-   > echo "=== final inventory ==="
-   > cat ~/bin/inventory.txt
-   > echo "=== last 5 sales ==="
-   > tail -5 ~/bin/sales.log
-   > } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task4_mutex.txt
-   $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task4_mutex.txt
+   {
+       echo "=== final inventory ==="
+       cat ~/bin/inventory.txt
+       echo "=== last 5 sales ==="
+       tail -5 ~/bin/sales.log
+   } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task4_mutex.txt
+   cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task4_mutex.txt
    ```
 
 > **Required Screenshot 3:** Save as `images/level4_mutex.png` and embed it in `README.md`.
@@ -515,29 +515,29 @@ Pair up with a classmate. Decide who is Player A and Player B.
 
 1. Create a public API folder:
    ```bash
-   $ mkdir -p ~/public_api
+   mkdir -p ~/public_api
    ```
 
 2. Move or copy your protected files into it:
    ```bash
-   $ cp ~/bin/buy_widget ~/public_api/
-   $ cp ~/bin/inventory.txt ~/public_api/
-   $ cp ~/bin/sales.log ~/public_api/ 2>/dev/null || touch ~/public_api/sales.log
-   $ touch ~/public_api/inventory.lock
+   cp ~/bin/buy_widget ~/public_api/
+   cp ~/bin/inventory.txt ~/public_api/
+   cp ~/bin/sales.log ~/public_api/ 2>/dev/null || touch ~/public_api/sales.log
+   touch ~/public_api/inventory.lock
    ```
 
 3. Configure permissions:
    ```bash
-   $ chmod o+x "$HOME"
-   $ chmod 755 ~/public_api
-   $ chmod o+rx ~/public_api/buy_widget
-   $ chmod o+rw ~/public_api/inventory.txt ~/public_api/sales.log ~/public_api/inventory.lock
+   chmod o+x "$HOME"
+   chmod 755 ~/public_api
+   chmod o+rx ~/public_api/buy_widget
+   chmod o+rw ~/public_api/inventory.txt ~/public_api/sales.log ~/public_api/inventory.lock
    ```
 
 4. Confirm:
    ```bash
-   $ ls -ld "$HOME" ~/public_api
-   $ ls -l ~/public_api
+   ls -ld "$HOME" ~/public_api
+   ls -l ~/public_api
    ```
 
 ### Red Team Attack
@@ -565,16 +565,16 @@ Check your own `~/public_api/sales.log`. Your partner should appear in the log, 
 Save evidence:
 
 ```bash
-$ {
-> echo "=== public api permissions ==="
-> ls -ld "$HOME" ~/public_api
-> ls -l ~/public_api
-> echo "=== inventory ==="
-> cat ~/public_api/inventory.txt
-> echo "=== red team sales evidence ==="
-> tail -10 ~/public_api/sales.log
-> } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task5_red_blue.txt
-$ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task5_red_blue.txt
+{
+    echo "=== public api permissions ==="
+    ls -ld "$HOME" ~/public_api
+    ls -l ~/public_api
+    echo "=== inventory ==="
+    cat ~/public_api/inventory.txt
+    echo "=== red team sales evidence ==="
+    tail -10 ~/public_api/sales.log
+} > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task5_red_blue.txt
+cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task5_red_blue.txt
 ```
 
 > **Required Screenshot 4:** Save as `images/level5_red_blue.png` and embed it in `README.md`.
@@ -611,30 +611,30 @@ chmod +t "$HOME/$folder"
 1. Run `create_dropzone` and create a folder such as `vendor_reports`.
 2. Create your protected file:
    ```bash
-   $ echo "Only I should delete this." > ~/vendor_reports/my_rules.txt
+   echo "Only I should delete this." > ~/vendor_reports/my_rules.txt
    ```
 
 3. Ask your partner to create:
    ```bash
-   $ echo "Partner report" > /home/<YourUsername>/vendor_reports/partner_report.txt
+   echo "Partner report" > /home/<YourUsername>/vendor_reports/partner_report.txt
    ```
 
 4. Ask your partner to try deleting your file:
    ```bash
-   $ rm /home/<YourUsername>/vendor_reports/my_rules.txt
+   rm /home/<YourUsername>/vendor_reports/my_rules.txt
    ```
 
 5. Save evidence:
    ```bash
-   $ {
-   > echo "=== drop zone permissions ==="
-   > ls -ld ~/vendor_reports
-   > echo "=== drop zone files ==="
-   > ls -l ~/vendor_reports
-   > echo "=== partner deletion result ==="
-   > echo "Paste or summarize the Permission denied result here."
-   > } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task6_dropzone.txt
-   $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task6_dropzone.txt
+   {
+       echo "=== drop zone permissions ==="
+       ls -ld ~/vendor_reports
+       echo "=== drop zone files ==="
+       ls -l ~/vendor_reports
+       echo "=== partner deletion result ==="
+       echo "Paste or summarize the Permission denied result here."
+   } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task6_dropzone.txt
+   cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task6_dropzone.txt
    ```
 
 > **Required Screenshot 5:** Save as `images/level6_dropzone.png` and embed it in `README.md`.
@@ -651,9 +651,9 @@ Create a script named `cleanup`.
 
 1. Create three dummy files in a test directory:
    ```bash
-   $ mkdir -p ~/forensic_cleanup
-   $ cd ~/forensic_cleanup
-   $ touch test.log data.csv error.tmp
+   mkdir -p ~/forensic_cleanup
+   cd ~/forensic_cleanup
+   touch test.log data.csv error.tmp
    ```
 
 2. Write `cleanup` so it:
@@ -666,14 +666,14 @@ Create a script named `cleanup`.
 
 3. Run it and verify:
    ```bash
-   $ cleanup
-   $ tree . 2>/dev/null || ls -R .
+   cleanup
+   tree . 2>/dev/null || ls -R .
    ```
 
 4. Save evidence:
    ```bash
-   $ { tree . 2>/dev/null || ls -R .; } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task7_cleanup.txt
-   $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task7_cleanup.txt
+   { tree . 2>/dev/null || ls -R .; } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task7_cleanup.txt
+   cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task7_cleanup.txt
    ```
 
 > **Required Screenshot 6:** Save as `images/level7_cleanup.png` and embed it in `README.md`.
@@ -685,20 +685,20 @@ Create a script named `cleanup`.
 Before submitting, copy your scripts into your lab folder:
 
 ```bash
-$ cd ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8
-$ mkdir -p scripts
-$ cp ~/bin/arg_viewer scripts/
-$ cp ~/bin/quantum_probe scripts/
-$ cp ~/bin/buy_widget scripts/
-$ cp ~/bin/bot_swarm scripts/
-$ cp ~/bin/create_dropzone scripts/
-$ cp ~/bin/cleanup scripts/
+cd ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8
+mkdir -p scripts
+cp ~/bin/arg_viewer scripts/
+cp ~/bin/quantum_probe scripts/
+cp ~/bin/buy_widget scripts/
+cp ~/bin/bot_swarm scripts/
+cp ~/bin/create_dropzone scripts/
+cp ~/bin/cleanup scripts/
 ```
 
 If your final Level 5 version of `buy_widget` lives in `~/public_api`, copy that final patched version instead:
 
 ```bash
-$ cp ~/public_api/buy_widget scripts/buy_widget
+cp ~/public_api/buy_widget scripts/buy_widget
 ```
 
 ---
@@ -768,10 +768,10 @@ os-se-<YourStudentID>/
 ### Git Push
 
 ```bash
-$ cd ~/os-se-<YourStudentID>
-$ git add .
-$ git commit -m "Lab 8: Secure Bash scripting and TOC-TOU mutex"
-$ git push origin main
+cd ~/os-se-<YourStudentID>
+git add .
+git commit -m "Lab 8: Secure Bash scripting and TOC-TOU mutex"
+git push origin main
 ```
 
 ---
