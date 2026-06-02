@@ -640,7 +640,6 @@ LAB_SPECS = {
         "total_points": 100,
         "files": [
             "README.md",
-            "report.md",
             "observations.txt",
             "task0_warmup.txt",
             "task1_validation.txt",

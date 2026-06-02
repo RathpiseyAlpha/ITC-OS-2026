@@ -10,7 +10,6 @@
 
 Make sure all of the following files are present in your `lab8/` folder:
 
-- [ ] `report.md`
 - [ ] `observations.txt`
 - [ ] `task0_warmup.txt`
 - [ ] `task1_validation.txt`

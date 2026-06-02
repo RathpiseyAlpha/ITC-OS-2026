@@ -272,7 +272,7 @@ Save evidence for both warm-up scripts:
    $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task0_warmup.txt
    ```
 
-> **Required Screenshot 1:** Save as `images/level0_warmup.png` and embed it in `report.md`.
+> **Required Screenshot 1:** Save as `images/level0_warmup.png` and embed it in `README.md`.
 
 ---
 
@@ -371,7 +371,7 @@ $ {
 $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
 ```
 
-> **Required Screenshot 2:** Save as `images/level2_audit.png` and embed it in `report.md`.
+> **Required Screenshot 2:** Save as `images/level2_audit.png` and embed it in `README.md`.
 
 ---
 
@@ -501,7 +501,7 @@ Then use those variables inside the lock:
    $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task4_mutex.txt
    ```
 
-> **Required Screenshot 3:** Save as `images/level4_mutex.png` and embed it in `report.md`.
+> **Required Screenshot 3:** Save as `images/level4_mutex.png` and embed it in `README.md`.
 
 ---
 
@@ -577,7 +577,7 @@ $ {
 $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task5_red_blue.txt
 ```
 
-> **Required Screenshot 4:** Save as `images/level5_red_blue.png` and embed it in `report.md`.
+> **Required Screenshot 4:** Save as `images/level5_red_blue.png` and embed it in `README.md`.
 
 ---
 
@@ -637,7 +637,7 @@ chmod +t "$HOME/$folder"
    $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task6_dropzone.txt
    ```
 
-> **Required Screenshot 5:** Save as `images/level6_dropzone.png` and embed it in `report.md`.
+> **Required Screenshot 5:** Save as `images/level6_dropzone.png` and embed it in `README.md`.
 
 ---
 
@@ -676,7 +676,7 @@ Create a script named `cleanup`.
    $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task7_cleanup.txt
    ```
 
-> **Required Screenshot 6:** Save as `images/level7_cleanup.png` and embed it in `report.md`.
+> **Required Screenshot 6:** Save as `images/level7_cleanup.png` and embed it in `README.md`.
 
 ---
 
@@ -738,32 +738,31 @@ Before submitting, verify you have all required screenshots:
 
 ```text
 os-se-<YourStudentID>/
-└── os-lab-<YourStudentID>/
-    └── lab8/
-        ├── README.md
-        ├── report.md
-        ├── observations.txt
-        ├── task0_warmup.txt
-        ├── task1_validation.txt
-        ├── task2_audit.txt
-        ├── task4_mutex.txt
-        ├── task5_red_blue.txt
-        ├── task6_dropzone.txt
-        ├── task7_cleanup.txt
-        ├── scripts/
-        │   ├── arg_viewer
-        │   ├── quantum_probe
-        │   ├── buy_widget
-        │   ├── bot_swarm
-        │   ├── create_dropzone
-        │   └── cleanup
-        └── images/
-            ├── level0_warmup.png
-            ├── level2_audit.png
-            ├── level4_mutex.png
-            ├── level5_red_blue.png
-            ├── level6_dropzone.png
-            └── level7_cleanup.png
+`-- os-lab-<YourStudentID>/
+    `-- lab8/
+        |-- README.md
+        |-- observations.txt
+        |-- task0_warmup.txt
+        |-- task1_validation.txt
+        |-- task2_audit.txt
+        |-- task4_mutex.txt
+        |-- task5_red_blue.txt
+        |-- task6_dropzone.txt
+        |-- task7_cleanup.txt
+        |-- scripts/
+        |   |-- arg_viewer
+        |   |-- quantum_probe
+        |   |-- buy_widget
+        |   |-- bot_swarm
+        |   |-- create_dropzone
+        |   `-- cleanup
+        `-- images/
+            |-- level0_warmup.png
+            |-- level2_audit.png
+            |-- level4_mutex.png
+            |-- level5_red_blue.png
+            |-- level6_dropzone.png
+            `-- level7_cleanup.png
 ```
 
 ### Git Push
@@ -788,7 +787,7 @@ $ git push origin main
 | **Level 5: Cross-user permission test** | 15 | Partner can execute the public API while inventory locking still works. |
 | **Level 6: Secure drop zone** | 10 | Sticky-bit drop zone allows uploads while preventing deletion of another user's file. |
 | **Level 7: Forensic cleanup** | 5 | `cleanup` sorts files safely by extension. |
-| **README, report, screenshots, and organization** | 10 | Submission is complete, screenshots are embedded, and answers show understanding. |
+| **README, screenshots, and organization** | 10 | Submission is complete, screenshots are embedded, and answers show understanding. |
 | **Total** | **100** | |
 
 ---
