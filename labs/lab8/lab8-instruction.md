@@ -10,13 +10,13 @@
 
 ---
 
-**Source reference:** This canonical lab instruction was adapted from the original brief in [`Bash Script 2_ The Quantum Widget Exploit.md`](Bash%20Script%202_%20The%20Quantum%20Widget%20Exploit.md) and the companion PDF in this folder.
+**Source reference:** This canonical lab instruction was adapted from the original Quantum Widget brief.
 
 ---
 
 > **IMPORTANT - READ EVERYTHING FIRST**
 >
-> Before you type a single command, read this document from top to bottom. This lab intentionally starts with a vulnerable Bash program, then asks you to exploit and patch it. If you skip the observation steps, you will miss the main OS lesson.
+> Before you type a single command, read this document from top to bottom. This lab starts with a basic Bash warm-up, then moves into a vulnerable Bash program that you will exploit and patch. If you skip the observation steps, you will miss the main OS lesson.
 >
 > **Document structure:**
 > 1. **Lab Objectives** - What you will learn
@@ -24,7 +24,7 @@
 > 3. **Task Overview** - Summary of all levels
 > 4. **Lab Setup** - Repository, server, and naming rules
 > 5. **Quick Reference** - Bash, permissions, and `flock`
-> 6. **Levels 1-7 (Required)** - Validation, logging, TOC-TOU exploit, mutex patch, permissions, drop zone, cleanup
+> 6. **Levels 0-7 (Required)** - Bash warm-up, validation, logging, TOC-TOU exploit, mutex patch, permissions, drop zone, cleanup
 > 7. **Deliverables & Submission** - Folder structure, README template, git push
 > 8. **Screenshot Checklist** - Every screenshot you need, in one place
 
@@ -34,13 +34,14 @@
 
 After completing this lab, students will be able to:
 
-1. Write secure Bash scripts using variables, conditionals, loops, functions, and strict input validation.
-2. Explain a Time-of-Check to Time-of-Use (TOC-TOU) vulnerability caused by concurrent OS processes.
-3. Demonstrate how process scheduling can produce inconsistent results in a shared file update.
-4. Patch a race condition using OS-level mutual exclusion with `flock`.
-5. Configure cross-user execution permissions without using `sudo`.
-6. Apply the principle of least privilege using a shared sticky-bit drop zone.
-7. Automate log cleanup by sorting files according to extension.
+1. Use Bash variables, positional parameters (`$1`, `$2`), exit status (`$?`), conditionals, and loops.
+2. Write secure Bash scripts using functions and strict input validation.
+3. Explain a Time-of-Check to Time-of-Use (TOC-TOU) vulnerability caused by concurrent OS processes.
+4. Demonstrate how process scheduling can produce inconsistent results in a shared file update.
+5. Patch a race condition using OS-level mutual exclusion with `flock`.
+6. Configure cross-user execution permissions without using `sudo`.
+7. Apply the principle of least privilege using a shared sticky-bit drop zone.
+8. Automate log cleanup by sorting files according to extension.
 
 > **Scenario:** You are a DevSecOps engineer at **QuantumTech**. The company is launching a limited-edition **Quantum Widget** with only **100 units** in stock. A botnet is trying to abuse concurrent purchases to drain the inventory. Your job is to build the backend script, observe the exploit, patch the critical section, and secure the shared environment.
 
@@ -50,6 +51,7 @@ After completing this lab, students will be able to:
 
 | Level | Title | Key Commands / Concepts | Screenshots Required |
 |:---:|-------|-------------------------|:-------------------:|
+| **0** | Bash Warm-Up Console | variables, `$1`, `$2`, `$?`, `if`, `for` | yes |
 | **1** | Input Validation | arguments, integer checks, `chmod +x` | optional evidence |
 | **2** | Audit Trails | functions, file I/O, `sales.log` | yes |
 | **3** | The Exploit | background jobs, `wait`, TOC-TOU | observations file |
@@ -103,7 +105,11 @@ Your submission files and screenshots must be saved in:
 |--------|---------|
 | `$#` | Number of command-line arguments |
 | `$1`, `$2` | First and second command-line arguments |
+| `$?` | Exit status of the most recent command (`0` means success) |
+| `name="Ada"` | Assign a variable; no spaces around `=` |
+| `echo "$name"` | Read a variable safely with quotes |
 | `[[ "$x" =~ regex ]]` | Bash regular-expression test |
+| `if condition; then ... fi` | Run code only when a condition is true |
 | `for i in {1..50}; do ... done` | Loop 50 times |
 | `command &` | Run command in the background |
 | `wait` | Wait for background jobs to finish |
@@ -125,6 +131,99 @@ Your submission files and screenshots must be saved in:
 | `flock -x 200` | Acquire an exclusive lock on file descriptor 200 |
 | `) 200> inventory.lock` | Attach file descriptor 200 to the lock file |
 | critical section | The code region where shared data must not be modified concurrently |
+
+---
+
+## Level 0 - Bash Warm-Up: Operator Console
+
+**Scenario:** *"Before touching the live Quantum Widget store, build a tiny operator console. It should prove you understand how Bash scripts receive input, store values, check command results, and repeat work."*
+
+1. Create your script workspace:
+   ```bash
+   $ mkdir -p ~/bin
+   $ cd ~/bin
+   ```
+
+2. Create a script named `quantum_probe`:
+   ```bash
+   $ nano quantum_probe
+   ```
+
+3. Your script must use:
+   - normal variables, such as `operator="$1"` and `cycles="$2"`
+   - special variables `$1` and `$2` for command-line input
+   - `$#` to check the number of arguments
+   - `$?` to inspect whether a command succeeded
+   - at least one `if` condition
+   - at least one loop
+
+4. Required behavior:
+   - accept exactly two arguments: operator name and number of diagnostic cycles
+   - print `Usage: quantum_probe <operator> <cycles>` when the argument count is wrong
+   - reject non-positive or non-integer cycle counts
+   - create a folder named `probe_logs`
+   - store the exit status of `mkdir -p probe_logs` in a variable and print it
+   - loop from `1` to the requested cycle count and print one status line per cycle
+   - exit with status `0` for success and nonzero for invalid input
+
+5. Example structure:
+   ```bash
+   #!/bin/bash
+
+   operator="$1"
+   cycles="$2"
+
+   if [ "$#" -ne 2 ]; then
+       echo "Usage: quantum_probe <operator> <cycles>"
+       exit 1
+   fi
+
+   if ! [[ "$cycles" =~ ^[1-9][0-9]*$ ]]; then
+       echo "Error: cycles must be a positive integer."
+       exit 2
+   fi
+
+   mkdir -p probe_logs
+   mkdir_status=$?
+   echo "mkdir exit status: $mkdir_status"
+
+   if [ "$mkdir_status" -ne 0 ]; then
+       echo "Could not prepare probe_logs."
+       exit 3
+   fi
+
+   echo "Operator: $operator"
+   echo "Cycles requested: $cycles"
+
+   for i in $(seq 1 "$cycles"); do
+       echo "Cycle $i: quantum widget console online"
+   done
+
+   exit 0
+   ```
+
+6. Make it executable:
+   ```bash
+   $ chmod +x quantum_probe
+   ```
+
+7. Save evidence:
+   ```bash
+   $ {
+   > cd ~/bin
+   > echo "=== successful probe ==="
+   > quantum_probe Alice 3
+   > echo "exit status after success: $?"
+   > echo "=== invalid probe ==="
+   > quantum_probe Bob not_a_number
+   > echo "exit status after invalid input: $?"
+   > echo "=== loop/log directory evidence ==="
+   > ls -ld ~/bin/probe_logs
+   > } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task0_warmup.txt
+   $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task0_warmup.txt
+   ```
+
+> **Required Screenshot 1:** Save as `images/level0_warmup.png` and embed it in `report.md`.
 
 ---
 
@@ -223,7 +322,7 @@ $ {
 $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task2_audit.txt
 ```
 
-> **Required Screenshot 1:** Save as `images/level2_audit.png` and embed it in `report.md`.
+> **Required Screenshot 2:** Save as `images/level2_audit.png` and embed it in `report.md`.
 
 ---
 
@@ -353,7 +452,7 @@ Then use those variables inside the lock:
    $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task4_mutex.txt
    ```
 
-> **Required Screenshot 2:** Save as `images/level4_mutex.png` and embed it in `report.md`.
+> **Required Screenshot 3:** Save as `images/level4_mutex.png` and embed it in `report.md`.
 
 ---
 
@@ -429,7 +528,7 @@ $ {
 $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task5_red_blue.txt
 ```
 
-> **Required Screenshot 3:** Save as `images/level5_red_blue.png` and embed it in `report.md`.
+> **Required Screenshot 4:** Save as `images/level5_red_blue.png` and embed it in `report.md`.
 
 ---
 
@@ -489,7 +588,7 @@ chmod +t "$HOME/$folder"
    $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task6_dropzone.txt
    ```
 
-> **Required Screenshot 4:** Save as `images/level6_dropzone.png` and embed it in `report.md`.
+> **Required Screenshot 5:** Save as `images/level6_dropzone.png` and embed it in `report.md`.
 
 ---
 
@@ -528,7 +627,7 @@ Create a script named `cleanup`.
    $ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8/task7_cleanup.txt
    ```
 
-> **Required Screenshot 5:** Save as `images/level7_cleanup.png` and embed it in `report.md`.
+> **Required Screenshot 6:** Save as `images/level7_cleanup.png` and embed it in `report.md`.
 
 ---
 
@@ -539,6 +638,7 @@ Before submitting, copy your scripts into your lab folder:
 ```bash
 $ cd ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8
 $ mkdir -p scripts
+$ cp ~/bin/quantum_probe scripts/
 $ cp ~/bin/buy_widget scripts/
 $ cp ~/bin/bot_swarm scripts/
 $ cp ~/bin/create_dropzone scripts/
@@ -573,11 +673,12 @@ Before submitting, verify you have all required screenshots:
 
 | # | File Name | Level | What It Shows |
 |:-:|-----------|:----:|---------------|
-| 1 | `level2_audit.png` | Level 2 | Input validation, successful sale, failed sale, inventory, and log |
-| 2 | `level4_mutex.png` | Level 4 | Patched swarm result with inventory exactly `0` and last 5 sales |
-| 3 | `level5_red_blue.png` | Level 5 | Partner execution evidence in `public_api/sales.log` |
-| 4 | `level6_dropzone.png` | Level 6 | Sticky-bit directory permissions and deletion-denied evidence |
-| 5 | `level7_cleanup.png` | Level 7 | Files sorted into extension folders |
+| 1 | `level0_warmup.png` | Level 0 | `quantum_probe` variables, `$1`, `$2`, `$?`, condition, and loop output |
+| 2 | `level2_audit.png` | Level 2 | Input validation, successful sale, failed sale, inventory, and log |
+| 3 | `level4_mutex.png` | Level 4 | Patched swarm result with inventory exactly `0` and last 5 sales |
+| 4 | `level5_red_blue.png` | Level 5 | Partner execution evidence in `public_api/sales.log` |
+| 5 | `level6_dropzone.png` | Level 6 | Sticky-bit directory permissions and deletion-denied evidence |
+| 6 | `level7_cleanup.png` | Level 7 | Files sorted into extension folders |
 
 ---
 
@@ -592,6 +693,7 @@ os-se-<YourStudentID>/
         ├── README.md
         ├── report.md
         ├── observations.txt
+        ├── task0_warmup.txt
         ├── task1_validation.txt
         ├── task2_audit.txt
         ├── task4_mutex.txt
@@ -599,11 +701,13 @@ os-se-<YourStudentID>/
         ├── task6_dropzone.txt
         ├── task7_cleanup.txt
         ├── scripts/
+        │   ├── quantum_probe
         │   ├── buy_widget
         │   ├── bot_swarm
         │   ├── create_dropzone
         │   └── cleanup
         └── images/
+            ├── level0_warmup.png
             ├── level2_audit.png
             ├── level4_mutex.png
             ├── level5_red_blue.png
@@ -626,12 +730,13 @@ $ git push origin main
 
 | Criteria | Points | Description |
 |----------|--------|-------------|
-| **Levels 1-2: Validation and audit logging** | 20 | `buy_widget` validates input, updates inventory correctly, and logs successful transactions with student ID. |
+| **Level 0: Bash warm-up console** | 10 | `quantum_probe` demonstrates variables, `$1`, `$2`, `$?`, conditionals, and loops. |
+| **Levels 1-2: Validation and audit logging** | 15 | `buy_widget` validates input, updates inventory correctly, and logs successful transactions with student ID. |
 | **Level 3: Race-condition experiment** | 15 | `bot_swarm` demonstrates concurrent execution and `observations.txt` explains the TOC-TOU behavior clearly. |
 | **Level 4: Mutex patch** | 20 | `flock` protects the critical section and the swarm reliably ends with inventory `0`. |
 | **Level 5: Cross-user permission test** | 15 | Partner can execute the public API while inventory locking still works. |
 | **Level 6: Secure drop zone** | 10 | Sticky-bit drop zone allows uploads while preventing deletion of another user's file. |
-| **Level 7: Forensic cleanup** | 10 | `cleanup` sorts files safely by extension. |
+| **Level 7: Forensic cleanup** | 5 | `cleanup` sorts files safely by extension. |
 | **README, report, screenshots, and organization** | 10 | Submission is complete, screenshots are embedded, and answers show understanding. |
 | **Total** | **100** | |
 
