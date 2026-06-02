@@ -51,7 +51,7 @@ After completing this lab, students will be able to:
 
 | Level | Title | Key Commands / Concepts | Screenshots Required |
 |:---:|-------|-------------------------|:-------------------:|
-| **0** | Bash Warm-Up Console | variables, `$1`, `$2`, `$?`, `if`, `for` | yes |
+| **0** | Bash Warm-Up Scripts | arguments, parameters, `$0`, `$1`, `$2`, `$#`, `$?`, `if`, `for` | yes |
 | **1** | Input Validation | arguments, integer checks, `chmod +x` | optional evidence |
 | **2** | Audit Trails | functions, file I/O, `sales.log` | yes |
 | **3** | The Exploit | background jobs, `wait`, TOC-TOU | observations file |
@@ -134,9 +134,9 @@ Your submission files and screenshots must be saved in:
 
 ---
 
-## Level 0 - Bash Warm-Up: Operator Console
+## Level 0 - Bash Warm-Up Scripts
 
-**Scenario:** *"Before touching the live Quantum Widget store, build a tiny operator console. It should prove you understand how Bash scripts receive input, store values, check command results, and repeat work."*
+**Scenario:** *"Before touching the live Quantum Widget store, prove you understand how a Bash script receives words from the command line. These warm-ups are intentionally simple so you can explain every line before moving on to the exploit."*
 
 1. Create your script workspace:
    ```bash
@@ -144,12 +144,57 @@ Your submission files and screenshots must be saved in:
    $ cd ~/bin
    ```
 
-2. Create a script named `quantum_probe`:
+### Part A - Argument Viewer
+
+Create a very short script named `arg_viewer`. This script should help you explain the difference between the command you run, the arguments you pass, and the special variables Bash fills in.
+
+```bash
+$ nano arg_viewer
+```
+
+Use this script:
+
+```bash
+#!/bin/bash
+
+echo "Script name (\$0): $0"
+echo "First argument (\$1): $1"
+echo "Second argument (\$2): $2"
+echo "Number of arguments (\$#): $#"
+
+test -n "$1"
+echo "Exit status of 'test -n \$1' (\$?): $?"
+```
+
+Make it executable:
+
+```bash
+$ chmod +x arg_viewer
+```
+
+Run it twice:
+
+```bash
+$ arg_viewer Alice 3
+$ arg_viewer
+```
+
+What to understand:
+
+- `arg_viewer Alice 3` is the command you typed.
+- `Alice` and `3` are arguments.
+- Inside the script, those arguments become parameters: `$1` is `Alice`, `$2` is `3`.
+- `$#` is the number of arguments.
+- `$?` is the exit status of the most recent command.
+
+### Part B - Operator Console
+
+Create a script named `quantum_probe`:
    ```bash
    $ nano quantum_probe
    ```
 
-3. Your script must use:
+Your script must use:
    - normal variables, such as `operator="$1"` and `cycles="$2"`
    - special variables `$1` and `$2` for command-line input
    - `$#` to check the number of arguments
@@ -157,7 +202,7 @@ Your submission files and screenshots must be saved in:
    - at least one `if` condition
    - at least one loop
 
-4. Required behavior:
+Required behavior:
    - accept exactly two arguments: operator name and number of diagnostic cycles
    - print `Usage: quantum_probe <operator> <cycles>` when the argument count is wrong
    - reject non-positive or non-integer cycle counts
@@ -166,7 +211,7 @@ Your submission files and screenshots must be saved in:
    - loop from `1` to the requested cycle count and print one status line per cycle
    - exit with status `0` for success and nonzero for invalid input
 
-5. Example structure:
+Example structure:
    ```bash
    #!/bin/bash
 
@@ -202,15 +247,19 @@ Your submission files and screenshots must be saved in:
    exit 0
    ```
 
-6. Make it executable:
+Make it executable:
    ```bash
    $ chmod +x quantum_probe
    ```
 
-7. Save evidence:
+Save evidence for both warm-up scripts:
    ```bash
    $ {
    > cd ~/bin
+   > echo "=== argument viewer with arguments ==="
+   > arg_viewer Alice 3
+   > echo "=== argument viewer with no arguments ==="
+   > arg_viewer
    > echo "=== successful probe ==="
    > quantum_probe Alice 3
    > echo "exit status after success: $?"
@@ -638,6 +687,7 @@ Before submitting, copy your scripts into your lab folder:
 ```bash
 $ cd ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab8
 $ mkdir -p scripts
+$ cp ~/bin/arg_viewer scripts/
 $ cp ~/bin/quantum_probe scripts/
 $ cp ~/bin/buy_widget scripts/
 $ cp ~/bin/bot_swarm scripts/
@@ -673,7 +723,7 @@ Before submitting, verify you have all required screenshots:
 
 | # | File Name | Level | What It Shows |
 |:-:|-----------|:----:|---------------|
-| 1 | `level0_warmup.png` | Level 0 | `quantum_probe` variables, `$1`, `$2`, `$?`, condition, and loop output |
+| 1 | `level0_warmup.png` | Level 0 | `arg_viewer` special variables and `quantum_probe` condition/loop output |
 | 2 | `level2_audit.png` | Level 2 | Input validation, successful sale, failed sale, inventory, and log |
 | 3 | `level4_mutex.png` | Level 4 | Patched swarm result with inventory exactly `0` and last 5 sales |
 | 4 | `level5_red_blue.png` | Level 5 | Partner execution evidence in `public_api/sales.log` |
@@ -701,6 +751,7 @@ os-se-<YourStudentID>/
         ├── task6_dropzone.txt
         ├── task7_cleanup.txt
         ├── scripts/
+        │   ├── arg_viewer
         │   ├── quantum_probe
         │   ├── buy_widget
         │   ├── bot_swarm
@@ -730,7 +781,7 @@ $ git push origin main
 
 | Criteria | Points | Description |
 |----------|--------|-------------|
-| **Level 0: Bash warm-up console** | 10 | `quantum_probe` demonstrates variables, `$1`, `$2`, `$?`, conditionals, and loops. |
+| **Level 0: Bash warm-up scripts** | 10 | `arg_viewer` explains special variables, and `quantum_probe` demonstrates variables, `$1`, `$2`, `$?`, conditionals, and loops. |
 | **Levels 1-2: Validation and audit logging** | 15 | `buy_widget` validates input, updates inventory correctly, and logs successful transactions with student ID. |
 | **Level 3: Race-condition experiment** | 15 | `bot_swarm` demonstrates concurrent execution and `observations.txt` explains the TOC-TOU behavior clearly. |
 | **Level 4: Mutex patch** | 20 | `flock` protects the critical section and the swarm reliably ends with inventory `0`. |

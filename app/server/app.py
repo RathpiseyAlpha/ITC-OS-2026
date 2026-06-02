@@ -649,6 +649,7 @@ LAB_SPECS = {
             "task5_red_blue.txt",
             "task6_dropzone.txt",
             "task7_cleanup.txt",
+            "scripts/arg_viewer",
             "scripts/quantum_probe",
             "scripts/buy_widget",
             "scripts/bot_swarm",

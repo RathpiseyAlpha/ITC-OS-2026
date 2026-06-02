@@ -19,6 +19,7 @@ Make sure all of the following files are present in your `lab8/` folder:
 - [ ] `task5_red_blue.txt`
 - [ ] `task6_dropzone.txt`
 - [ ] `task7_cleanup.txt`
+- [ ] `scripts/arg_viewer`
 - [ ] `scripts/quantum_probe`
 - [ ] `scripts/buy_widget`
 - [ ] `scripts/bot_swarm`
@@ -31,8 +32,8 @@ Make sure all of the following files are present in your `lab8/` folder:
 
 Insert your screenshots below.
 
-### Screenshot 1 - Level 0: Bash Warm-Up Console
-Show `quantum_probe` using variables, `$1`, `$2`, `$?`, a condition, and a loop.
+### Screenshot 1 - Level 0: Bash Warm-Up Scripts
+Show `arg_viewer` explaining `$0`, `$1`, `$2`, `$#`, and `$?`, then show `quantum_probe` using a condition and a loop.
 
 ![warmup](images/level0_warmup.png)
 
@@ -89,7 +90,7 @@ Summarize your five vulnerable `bot_swarm` runs from `observations.txt`:
 
 ## Answers to Lab Questions
 
-1. **What did `$1`, `$2`, and `$?` represent in your `quantum_probe` script?**
+1. **In `arg_viewer`, what did `$0`, `$1`, `$2`, `$#`, and `$?` mean when you ran the script?**
    > _Your answer here_
 
 2. **What does TOC-TOU mean, and where did it appear in the vulnerable `buy_widget` script?**
