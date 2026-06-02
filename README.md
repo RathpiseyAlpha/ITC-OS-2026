@@ -106,8 +106,11 @@ ITC-OS-2026/
     ├── lab6/                  # Lab 6 — Linux Security, Users, Groups & Permissions
     │   ├── lab6-instruction.md
     │   └── README.md
-    └── lab7/                  # Lab 7 — Bash Scripting, Permissions & Automation
-        ├── lab7-instruction.md
+    ├── lab7/                  # Lab 7 — Bash Scripting, Permissions & Automation
+    │   ├── lab7-instruction.md
+    │   └── README.md
+    └── lab8/                  # Lab 8 — Secure Bash Scripting, Race Conditions & File Locking
+        ├── lab8-instruction.md
         └── README.md
 ```
 
@@ -163,6 +166,7 @@ ITC-OS-2026/
 | 5 | Threads, Kernel Workers & Process Signals | ✅ Available | [Instructions](labs/lab5/lab5-instruction.md) |
 | 6 | Linux Security, Users, Groups & File Permissions | ✅ Available | [Instructions](labs/lab6/lab6-instruction.md) |
 | 7 | Bash Scripting, Permissions & Server Automation | ✅ Available | [Instructions](labs/lab7/lab7-instruction.md) |
+| 8 | Secure Bash Scripting, Race Conditions & File Locking | ✅ Available | [Instructions](labs/lab8/lab8-instruction.md) |
 
 ### Lab 1 Highlights
 

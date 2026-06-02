@@ -636,6 +636,30 @@ LAB_SPECS = {
         ],
         "dirs": ["images", "scripts"],
     },
+    "lab8": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "report.md",
+            "observations.txt",
+            "task1_validation.txt",
+            "task2_audit.txt",
+            "task4_mutex.txt",
+            "task5_red_blue.txt",
+            "task6_dropzone.txt",
+            "task7_cleanup.txt",
+            "scripts/buy_widget",
+            "scripts/bot_swarm",
+            "scripts/create_dropzone",
+            "scripts/cleanup",
+            "images/level2_audit.png",
+            "images/level4_mutex.png",
+            "images/level5_red_blue.png",
+            "images/level6_dropzone.png",
+            "images/level7_cleanup.png",
+        ],
+        "dirs": ["images", "scripts"],
+    },
 }
 
 # ── Class Activity Specs ───────────────────────────────────────
