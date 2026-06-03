@@ -81,7 +81,8 @@ ITC-OS-2026/
 │       ├── class-activity1.md #   System Calls with POSIX (Linux)
 │       ├── class-activity2.md #   Processes & IPC (Linux + Windows)
 │       ├── class-activity3.md #   Socket Communication & Multithreading
-│       └── class-activity4.md #   Shared File API: C++ Mutex & Java synchronized
+│       ├── class-activity4.md #   Shared File API: C++ Mutex & Java synchronized
+│       └── class-activity5.md #   Semaphores: Particle Pairs & HELLO Ordering
 │
 └── labs/
     ├── lab1/                  # Lab 1 — Exploring OS Basics
@@ -249,6 +250,7 @@ Hands-on programming activities that accompany the lecture topics.
 | 2 | [Processes & Inter-Process Communication](lectures/class-activity/class-activity2.md) | Processes & IPC (Linux + Windows) | Week 3–4 |
 | 3 | [Socket Communication & Multithreading](lectures/class-activity/class-activity3.md) | Sockets, pthreads, Java threading, thread observation | Week 3–4 |
 | 4 | [Shared File API](lectures/class-activity/class-activity4.md) | Client/server API, shared file, C++ mutex, Java synchronization | Week 7–8 |
+| 5 | [Semaphores: Particle Pairs & HELLO Ordering](lectures/class-activity/class-activity5.md) | Producer/consumer semaphores, ordering constraints, deadlock checks | Week 8–9 |
 
 → Browse them in [`lectures/class-activity/`](lectures/class-activity/)
 
@@ -282,7 +284,7 @@ $ git remote add origin https://github.com/<YourUsername>/OS-SE-<YourStudentID>.
 # 4. Start working on labs!
 
 # 5. When class activities are assigned, create the activity folder you need:
-$ mkdir -p os-class-activities-<YourStudentID>/activity4
+$ mkdir -p os-class-activities-<YourStudentID>/activity5
 ```
 
 ### 📂 Your Submission Repo Structure
@@ -316,6 +318,11 @@ os-se-<YourStudentID>/
     │   ├── cpp_after/
     │   ├── java_before/
     │   └── java_after/
+    ├── activity5/
+    │   ├── README.md
+    │   ├── screenshots/
+    │   ├── task1_particles/
+    │   └── task2_hello/
     └── ...
 ```
 
