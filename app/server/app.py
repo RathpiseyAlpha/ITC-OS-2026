@@ -814,6 +814,17 @@ ACTIVITY_SPECS["activity5"] = {
     "dirs": ["screenshots", "task1_particles", "task2_hello"],
 }
 
+# Activity 6 permits any programming language, so source filenames vary.
+ACTIVITY_SPECS["activity6"] = {
+    "total_points": 100,
+    "files": [
+        "README.md",
+        "screenshots/task1_deadlock.png",
+        "screenshots/task2_prevention.png",
+    ],
+    "dirs": ["screenshots", "task1_deadlock", "task2_prevention"],
+}
+
 _SCREENSHOT_KEYWORDS = {
     "screenshots/task4_system_info.png": [
         ["system", "info"], ["cpuinfo"], ["meminfo"], ["cpu"], ["mem"],
