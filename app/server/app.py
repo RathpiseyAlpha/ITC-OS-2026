@@ -663,6 +663,30 @@ LAB_SPECS = {
         ],
         "dirs": ["images", "scripts"],
     },
+    "lab9": {
+        "total_points": 100,
+        "files": [
+            "README.md",
+            "task1_vaults.txt",
+            "task2_sync_scripts.txt",
+            "task3_local_deadlock.txt",
+            "task4_cross_deadlock.txt",
+            "task5_ordering_patch.txt",
+            "task6_timeout_recovery.txt",
+            "task7_teardown.txt",
+            "scripts/sync_up",
+            "scripts/sync_down",
+            "scripts/sync_timeout",
+            "scripts/teardown",
+            "images/level1_vaults.png",
+            "images/level3_local_deadlock.png",
+            "images/level4_cross_deadlock.png",
+            "images/level5_ordering_patch.png",
+            "images/level6_timeout_recovery.png",
+            "images/level7_teardown.png",
+        ],
+        "dirs": ["images", "scripts"],
+    },
 }
 
 # ── Class Activity Specs ───────────────────────────────────────

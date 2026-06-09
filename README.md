@@ -111,8 +111,11 @@ ITC-OS-2026/
     ├── lab7/                  # Lab 7 — Bash Scripting, Permissions & Automation
     │   ├── lab7-instruction.md
     │   └── README.md
-    └── lab8/                  # Lab 8 — Secure Bash Scripting, Race Conditions & File Locking
-        ├── lab8-instruction.md
+    ├── lab8/                  # Lab 8 — Secure Bash Scripting, Race Conditions & File Locking
+    │   ├── lab8-instruction.md
+    │   └── README.md
+    └── lab9/                  # Lab 9 — Virtual Vault Deadlock & Recovery
+        ├── lab9-instruction.md
         └── README.md
 ```
 
@@ -148,7 +151,7 @@ ITC-OS-2026/
 | 6 | CPU Scheduling II | [ch6.pdf](lectures/files/ch6.pdf) | [Lab 3](labs/lab3/) |
 | 7 | Critical Sections | [ch7.pdf](lectures/files/ch7.pdf) | [Lab 4](labs/lab4/) |
 | 8 | Semaphores & Sync Problems | [ch8.pdf](lectures/files/ch8.pdf) | — |
-| 9 | Deadlocks | [ch9.pdf](lectures/files/ch9.pdf) | — |
+| 9 | Deadlocks | [ch9.pdf](lectures/files/ch9.pdf) | [Lab 9](labs/lab9/) |
 | 10 | Memory Management I | [ch10.pdf](lectures/files/ch10.pdf) | — |
 | 11 | Virtual Memory | *Coming Soon* | — |
 | 12 | File Systems | *Coming Soon* | [Lab 6](labs/lab6/) |
@@ -169,6 +172,7 @@ ITC-OS-2026/
 | 6 | Linux Security, Users, Groups & File Permissions | ✅ Available | [Instructions](labs/lab6/lab6-instruction.md) |
 | 7 | Bash Scripting, Permissions & Server Automation | ✅ Available | [Instructions](labs/lab7/lab7-instruction.md) |
 | 8 | Secure Bash Scripting, Race Conditions & File Locking | ✅ Available | [Instructions](labs/lab8/lab8-instruction.md) |
+| 9 | Virtual Vault Deadlock, Resource Ordering & Recovery | ✅ Available | [Instructions](labs/lab9/lab9-instruction.md) |
 
 ### Lab 1 Highlights
 
