@@ -18,12 +18,10 @@ Confirm these files and folders existed while you ran the lab:
 - [ ] `~/bin/teardown`
 - [ ] `~/bin/cross_sync_alpha` OR `~/bin/cross_sync_beta`
 - [ ] `~/os-lab-deadlock/README.md`
-- [ ] `~/os-lab-deadlock/alpha_loop.txt`
-- [ ] `~/os-lab-deadlock/beta_loop.txt`
-- [ ] `~/os-lab-deadlock/vault_alpha.img`
-- [ ] `~/os-lab-deadlock/vault_beta.img`
-- [ ] `~/os-lab-deadlock/mount_alpha` during active lab work
-- [ ] `~/os-lab-deadlock/mount_beta` during active lab work
+- [ ] `~/os-lab-deadlock/vault_alpha/README.txt`
+- [ ] `~/os-lab-deadlock/vault_alpha/vault.lock`
+- [ ] `~/os-lab-deadlock/vault_beta/README.txt`
+- [ ] `~/os-lab-deadlock/vault_beta/vault.lock`
 - [ ] `~/os-lab-deadlock/public_dr_alpha/vault.lock` OR `~/os-lab-deadlock/public_dr_beta/vault.lock`
 
 ---
@@ -51,10 +49,10 @@ Make sure all of the following files are present in your `lab9/` folder:
 
 Insert your screenshots below.
 
-### Screenshot 1 - Level 1: Virtual Vault Provisioning
-Show the loop devices, mounted vaults, and `mount_alpha` / `mount_beta` symlinks.
+### Screenshot 1 - Level 1: Vault Workspace Setup
+Show `vault_alpha`, `vault_beta`, and their `vault.lock` files.
 
-![vault provisioning](images/level1_vaults.png)
+![vault setup](images/level1_vaults.png)
 
 ---
 
@@ -86,10 +84,10 @@ Show the timeout error and nonzero exit status.
 
 ---
 
-### Screenshot 6 - Level 7: Safe Ejection
-Show the clean loop mount check after teardown.
+### Screenshot 6 - Level 7: Cleanup and Reset
+Show the process check and final working tree.
 
-![safe ejection](images/level7_teardown.png)
+![cleanup reset](images/level7_teardown.png)
 
 ---
 
@@ -105,10 +103,10 @@ Show the clean loop mount check after teardown.
 
 ## Answers to Lab Questions
 
-1. **Why does this lab use `udisksctl` instead of the normal `mount` command?**
+1. **What does each `vault.lock` file represent in this lab?**
    > _Your answer here_
 
-2. **What do `vault_alpha.img` and `vault_beta.img` simulate?**
+2. **Why does `flock` require every script to lock the same shared file to coordinate correctly?**
    > _Your answer here_
 
 3. **In the local deadlock, which resource did `sync_up` hold, and which resource did it wait for?**
@@ -126,11 +124,11 @@ Show the clean loop mount check after teardown.
 7. **Why is `flock -w` useful for recovery even though it does not prevent every deadlock?**
    > _Your answer here_
 
-8. **Why is safe teardown important when working with loopback devices?**
+8. **Why should you check for stuck processes before finishing a deadlock lab?**
    > _Your answer here_
 
 ---
 
 ## Reflection
 
-> _What did this lab teach you about file systems, mounted resources, process synchronization, and deadlock recovery?_
+> _What did this lab teach you about shared resources, process synchronization, deadlock prevention, and deadlock recovery?_

@@ -114,7 +114,7 @@ ITC-OS-2026/
     ├── lab8/                  # Lab 8 — Secure Bash Scripting, Race Conditions & File Locking
     │   ├── lab8-instruction.md
     │   └── README.md
-    └── lab9/                  # Lab 9 — Virtual Vault Deadlock & Recovery
+    └── lab9/                  # Lab 9 — Vault Deadlock & Recovery
         ├── lab9-instruction.md
         └── README.md
 ```
@@ -172,7 +172,7 @@ ITC-OS-2026/
 | 6 | Linux Security, Users, Groups & File Permissions | ✅ Available | [Instructions](labs/lab6/lab6-instruction.md) |
 | 7 | Bash Scripting, Permissions & Server Automation | ✅ Available | [Instructions](labs/lab7/lab7-instruction.md) |
 | 8 | Secure Bash Scripting, Race Conditions & File Locking | ✅ Available | [Instructions](labs/lab8/lab8-instruction.md) |
-| 9 | Virtual Vault Deadlock, Resource Ordering & Recovery | ✅ Available | [Instructions](labs/lab9/lab9-instruction.md) |
+| 9 | Vault Deadlock, Resource Ordering & Recovery | ✅ Available | [Instructions](labs/lab9/lab9-instruction.md) |
 
 ### Lab 1 Highlights
 

@@ -1,16 +1,16 @@
-# OS Lab 9 - Virtual Vault Deadlock, Resource Ordering & Recovery (Hands-on)
+# OS Lab 9 - Vault Deadlock, Resource Ordering & Recovery (Hands-on)
 
 | | |
 |---|---|
 | **Course** | Operating Systems |
 | **Lab Title** | The Quantum Vault Deadlock |
-| **Chapter** | File Systems, Process Synchronization, Deadlocks |
+| **Chapter** | Process Synchronization, Semaphores, Deadlocks |
 | **Duration** | 3 Hours |
 | **Lab Type** | Individual, with paired cross-site testing |
 
 ---
 
-**Source reference:** This canonical lab instruction was adapted from the original Quantum Vault Deadlock brief.
+**Source reference:** This canonical lab instruction was adapted from the original Quantum Vault Deadlock brief, with the file-system mounting portion removed so the lab can run fully without `sudo` or special mount permissions.
 
 ---
 
@@ -21,15 +21,15 @@
 > 1. Your **submission folder** inside `~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab9`
 > 2. Your **working folders** outside the repo: `~/bin` and `~/os-lab-deadlock`
 >
-> The working folders are required because the scripts must be executable from your shell and the virtual vault images must be mounted from your home directory. Before submitting, you must copy evidence and scripts back into your `lab9` folder.
+> The working folders are required because the scripts must be executable from your shell, and the deadlock resources must be visible to concurrent processes. Before submitting, copy evidence and scripts back into your `lab9` folder.
 >
 > **Document structure:**
 > 1. **Lab Objectives** - What you will learn
 > 2. **Mission Briefing** - Disaster recovery scenario
 > 3. **Task Overview** - Summary of all levels
 > 4. **Lab Setup** - Repository, working folders, and naming rules
-> 5. **Quick Reference** - `dd`, `mkfs`, `udisksctl`, `flock`, process inspection
-> 6. **Levels 1-7 (Required)** - Vault provisioning, local deadlock, cross-site deadlock, ordering, timeout recovery, teardown
+> 5. **Quick Reference** - `flock`, lock files, process inspection, permissions
+> 6. **Levels 1-7 (Required)** - Vault setup, local deadlock, cross-site deadlock, ordering, timeout recovery, cleanup
 > 7. **Deliverables & Submission** - Complete tree structure, README template, git push
 > 8. **Screenshot Checklist** - Every screenshot you need, in one place
 
@@ -39,16 +39,16 @@
 
 After completing this lab, students will be able to:
 
-1. Create virtual disk image files and format them as Linux file systems.
-2. Mount loopback devices as a normal user using `udisksctl`.
-3. Use `flock` to simulate exclusive resource access between concurrent Bash scripts.
-4. Demonstrate a local deadlock caused by circular wait.
-5. Demonstrate a partner-based cross-site deadlock using shared lock files.
-6. Explain how global resource ordering prevents deadlock.
-7. Use timeout-based lock acquisition to recover instead of waiting forever.
-8. Safely unmount and detach loopback devices during teardown.
+1. Represent shared OS resources using user-owned folders and lock files.
+2. Use `flock` to simulate exclusive access between concurrent Bash scripts.
+3. Demonstrate a local deadlock caused by circular wait.
+4. Demonstrate a partner-based cross-site deadlock using shared lock files.
+5. Explain how global resource ordering prevents deadlock.
+6. Use timeout-based lock acquisition to recover instead of waiting forever.
+7. Inspect stuck processes and collect evidence of a deadlock.
+8. Clean up lab artifacts and verify that no sync scripts remain stuck.
 
-> **Scenario:** You are a disaster recovery engineer at **QuantumTech**. Two virtual vault drives, **Vault Alpha** and **Vault Beta**, store replicated particle research data. The recovery scripts are supposed to synchronize the vaults, but during a failover drill the scripts freeze. Your job is to reproduce the deadlock, diagnose the circular wait, then patch the synchronization strategy.
+> **Scenario:** You are a disaster recovery engineer at **QuantumTech**. Two recovery vaults, **Vault Alpha** and **Vault Beta**, store replicated particle research data. The recovery scripts are supposed to synchronize the vaults, but during a failover drill the scripts freeze. Your job is to reproduce the deadlock, diagnose the circular wait, then patch the synchronization strategy.
 
 ---
 
@@ -56,13 +56,13 @@ After completing this lab, students will be able to:
 
 | Level | Title | Key Commands / Concepts | Screenshots Required |
 |:---:|-------|-------------------------|:-------------------:|
-| **1** | Virtual Vault Provisioning | `dd`, `mkfs.ext4`, `udisksctl`, symlinks | yes |
+| **1** | Vault Workspace Setup | `mkdir`, `touch`, lock files, permissions | yes |
 | **2** | Naive Sync Scripts | `flock`, file descriptors, resource order | evidence file |
 | **3** | Local Deadlock | two terminals, circular wait, `ps` | yes |
 | **4** | Site-to-Site Sync | partner lock files, permissions | yes |
 | **5** | Global Resource Ordering | Alpha-before-Beta rule | yes |
 | **6** | Timeout Recovery | `flock -w`, bounded waiting | yes |
-| **7** | Safe Ejection | unmount, loop-delete, cleanup | yes |
+| **7** | Cleanup and Reset | process check, cleanup script, final tree | yes |
 
 ---
 
@@ -92,7 +92,7 @@ Your executable scripts must live in:
 ~/bin/
 ```
 
-Your virtual vault images, mount shortcuts, and partner shared folders must live in:
+Your vault resource folders and partner shared folders must live in:
 
 ```bash
 ~/os-lab-deadlock/
@@ -108,7 +108,7 @@ Your submission files and screenshots must be saved in:
 
 1. Use the shared Linux server with your assigned student account.
 2. Do not use `sudo`.
-3. Use `udisksctl` instead of `mount` for loopback mounting.
+3. Do not use mount commands, loop devices, or file-system formatting commands.
 4. Script names must be lowercase, snake_case, and have no file extension.
 5. Work with at least one classmate for Levels 4 and 5.
 6. Copy your final scripts from `~/bin` into `lab9/scripts` before submitting.
@@ -118,27 +118,26 @@ Your submission files and screenshots must be saved in:
 
 ## Quick Reference
 
-### Virtual Disk and Mounting
+### Lock Files and Permissions
 
 | Command | Purpose |
 |---------|---------|
-| `dd if=/dev/zero of=file.img bs=1M count=10` | Create a 10 MB blank image file |
-| `mkfs.ext4 -F file.img` | Format an image as an ext4 file system |
-| `udisksctl loop-setup -f file.img` | Attach an image to a loop device |
-| `udisksctl mount -b /dev/loopX` | Mount a loop device as a normal user |
-| `findmnt -nr -o TARGET /dev/loopX` | Print the mount point for a mounted device |
-| `ln -sfn target shortcut` | Create or replace a symbolic link |
-| `udisksctl unmount -b /dev/loopX` | Unmount a device |
-| `udisksctl loop-delete -b /dev/loopX` | Detach a loop device |
+| `mkdir -p folder` | Create a folder if it does not already exist |
+| `touch file` | Create an empty file or update its timestamp |
+| `chmod +x script` | Make a script executable |
+| `chmod o+x "$HOME"` | Let a partner traverse your home directory |
+| `chmod o+x folder` | Let a partner traverse a folder |
+| `chmod o+rw file` | Let a partner open a shared lock file for reading/writing |
 
 ### Locks and Deadlock
 
 | Command / Concept | Purpose |
 |-------------------|---------|
-| `flock -x 200` | Take an exclusive lock on file descriptor 200 |
 | `exec 200> "$lockfile"` | Connect file descriptor 200 to a lock file |
+| `flock -x 200` | Take an exclusive lock on file descriptor 200 |
 | `flock -w 5 200` | Wait up to 5 seconds for a lock |
-| circular wait | Each process holds one resource and waits for the other |
+| critical section | Code that must run while a resource is locked |
+| circular wait | Each process holds one resource and waits for another |
 | global ordering | Every process locks resources in the same order |
 
 ### Process Inspection
@@ -146,15 +145,15 @@ Your submission files and screenshots must be saved in:
 | Command | Purpose |
 |---------|---------|
 | `ps aux | grep sync_` | Find running sync scripts |
+| `ps aux | grep cross_sync` | Find running partner sync scripts |
 | `jobs -l` | Show background jobs in the current shell |
 | `kill <PID>` | Stop a process by PID |
-| `df -h | grep loop` | Show mounted loopback file systems |
 
 ---
 
-## Level 1 - Virtual Vault Provisioning
+## Level 1 - Vault Workspace Setup
 
-**Scenario:** *"Before the recovery drill can run, you must provision two virtual vault drives without administrator access."*
+**Scenario:** *"Before the recovery drill can run, you must create two user-owned vault resources. Each vault has a lock file that represents exclusive access to that resource."*
 
 1. Move into the working folder:
 
@@ -162,61 +161,39 @@ Your submission files and screenshots must be saved in:
 cd ~/os-lab-deadlock
 ```
 
-2. Create two 10 MB virtual vault images:
+2. Create the two local vault folders:
 
 ```bash
-dd if=/dev/zero of=vault_alpha.img bs=1M count=10
-dd if=/dev/zero of=vault_beta.img bs=1M count=10
+mkdir -p vault_alpha vault_beta
 ```
 
-3. Format both images:
+3. Create one lock file inside each vault:
 
 ```bash
-mkfs.ext4 -F vault_alpha.img
-mkfs.ext4 -F vault_beta.img
+touch vault_alpha/vault.lock
+touch vault_beta/vault.lock
 ```
 
-4. Attach both images to loop devices and save the device names:
+4. Add a small marker file so you can tell the folders apart:
 
 ```bash
-alpha_loop=$(udisksctl loop-setup -f vault_alpha.img | awk '{print $NF}' | tr -d '.')
-beta_loop=$(udisksctl loop-setup -f vault_beta.img | awk '{print $NF}' | tr -d '.')
-echo "$alpha_loop" > alpha_loop.txt
-echo "$beta_loop" > beta_loop.txt
-cat alpha_loop.txt beta_loop.txt
+echo "Vault Alpha local resource for <YourStudentID>" > vault_alpha/README.txt
+echo "Vault Beta local resource for <YourStudentID>" > vault_beta/README.txt
 ```
 
-5. Mount both loop devices:
-
-```bash
-udisksctl mount -b "$alpha_loop"
-udisksctl mount -b "$beta_loop"
-```
-
-6. Create stable shortcuts named `mount_alpha` and `mount_beta`:
-
-```bash
-alpha_mount=$(findmnt -nr -o TARGET "$alpha_loop")
-beta_mount=$(findmnt -nr -o TARGET "$beta_loop")
-ln -sfn "$alpha_mount" mount_alpha
-ln -sfn "$beta_mount" mount_beta
-touch mount_alpha/lockfile
-touch mount_beta/lockfile
-```
-
-7. Save evidence:
+5. Save evidence:
 
 ```bash
 {
-    echo "=== loop devices ==="
-    cat ~/os-lab-deadlock/alpha_loop.txt
-    cat ~/os-lab-deadlock/beta_loop.txt
-    echo "=== vault files ==="
-    ls -lh ~/os-lab-deadlock/vault_alpha.img ~/os-lab-deadlock/vault_beta.img
-    echo "=== mount symlinks ==="
-    ls -l ~/os-lab-deadlock/mount_alpha ~/os-lab-deadlock/mount_beta
-    echo "=== mounted loop filesystems ==="
-    df -h | grep loop
+    echo "=== working folder ==="
+    pwd
+    echo "=== vault directories ==="
+    ls -ld ~/os-lab-deadlock/vault_alpha ~/os-lab-deadlock/vault_beta
+    echo "=== vault lock files ==="
+    ls -l ~/os-lab-deadlock/vault_alpha/vault.lock ~/os-lab-deadlock/vault_beta/vault.lock
+    echo "=== vault marker files ==="
+    cat ~/os-lab-deadlock/vault_alpha/README.txt
+    cat ~/os-lab-deadlock/vault_beta/README.txt
 } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab9/task1_vaults.txt
 cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab9/task1_vaults.txt
 ```
@@ -241,8 +218,8 @@ Use this script:
 #!/bin/bash
 
 base="$HOME/os-lab-deadlock"
-alpha_lock="$base/mount_alpha/lockfile"
-beta_lock="$base/mount_beta/lockfile"
+alpha_lock="$base/vault_alpha/vault.lock"
+beta_lock="$base/vault_beta/vault.lock"
 
 exec 200> "$alpha_lock"
 exec 201> "$beta_lock"
@@ -257,6 +234,7 @@ flock -x 201
 echo "sync_up: locked Vault Beta"
 
 echo "sync_up: synchronizing Alpha to Beta"
+echo "$(date): sync_up completed" >> "$base/vault_beta/sync.log"
 sleep 2
 echo "sync_up: complete"
 ```
@@ -273,8 +251,8 @@ Use this script:
 #!/bin/bash
 
 base="$HOME/os-lab-deadlock"
-alpha_lock="$base/mount_alpha/lockfile"
-beta_lock="$base/mount_beta/lockfile"
+alpha_lock="$base/vault_alpha/vault.lock"
+beta_lock="$base/vault_beta/vault.lock"
 
 exec 200> "$alpha_lock"
 exec 201> "$beta_lock"
@@ -289,6 +267,7 @@ flock -x 200
 echo "sync_down: locked Vault Alpha"
 
 echo "sync_down: synchronizing Beta to Alpha"
+echo "$(date): sync_down completed" >> "$base/vault_alpha/sync.log"
 sleep 2
 echo "sync_down: complete"
 ```
@@ -571,8 +550,8 @@ Use this script:
 #!/bin/bash
 
 base="$HOME/os-lab-deadlock"
-alpha_lock="$base/mount_alpha/lockfile"
-beta_lock="$base/mount_beta/lockfile"
+alpha_lock="$base/vault_alpha/vault.lock"
+beta_lock="$base/vault_beta/vault.lock"
 
 exec 200> "$alpha_lock"
 exec 201> "$beta_lock"
@@ -639,9 +618,9 @@ cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab9/task6_timeout_recovery.t
 
 ---
 
-## Level 7 - Safe Ejection
+## Level 7 - Cleanup and Reset
 
-**Scenario:** *"The drill is complete. The vault images must be safely unmounted and detached so the server is not left with stale loop devices."*
+**Scenario:** *"The drill is complete. Verify that no synchronization scripts are stuck, then clean temporary logs while keeping the lock files available for instructor review."*
 
 Create `teardown`:
 
@@ -656,27 +635,14 @@ Use this script:
 
 base="$HOME/os-lab-deadlock"
 
-alpha_loop="$(cat "$base/alpha_loop.txt" 2>/dev/null)"
-beta_loop="$(cat "$base/beta_loop.txt" 2>/dev/null)"
+echo "Checking for sync processes:"
+ps aux | grep -E '[s]ync_|[c]ross_sync' || echo "No sync processes found."
 
-if [ -n "$alpha_loop" ]; then
-    echo "Unmounting Alpha: $alpha_loop"
-    udisksctl unmount -b "$alpha_loop" 2>/dev/null
-    echo "Detaching Alpha: $alpha_loop"
-    udisksctl loop-delete -b "$alpha_loop" 2>/dev/null
-fi
+echo "Cleaning temporary sync logs:"
+rm -f "$base/vault_alpha/sync.log" "$base/vault_beta/sync.log"
 
-if [ -n "$beta_loop" ]; then
-    echo "Unmounting Beta: $beta_loop"
-    udisksctl unmount -b "$beta_loop" 2>/dev/null
-    echo "Detaching Beta: $beta_loop"
-    udisksctl loop-delete -b "$beta_loop" 2>/dev/null
-fi
-
-rm -f "$base/mount_alpha" "$base/mount_beta"
-
-echo "Remaining loop mounts:"
-df -h | grep loop || echo "No loop mounts found."
+echo "Final working tree:"
+find "$base" -maxdepth 3 -type f -o -type d | sort
 ```
 
 Make it executable and run it:
@@ -686,16 +652,18 @@ chmod +x ~/bin/teardown
 teardown
 ```
 
+If `teardown` shows a stuck `sync_` or `cross_sync` process, stop the script from the terminal where it is running, or use `kill <PID>` if your instructor tells you to.
+
 Save evidence:
 
 ```bash
 {
     echo "=== teardown script ==="
     ls -l ~/bin/teardown
-    echo "=== loop mount check ==="
-    df -h | grep loop || echo "No loop mounts found."
-    echo "=== remaining working folder ==="
-    ls -l ~/os-lab-deadlock
+    echo "=== process check ==="
+    ps aux | grep -E '[s]ync_|[c]ross_sync' || echo "No sync processes found."
+    echo "=== final working folder ==="
+    find ~/os-lab-deadlock -maxdepth 3 -type f -o -type d | sort
 } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab9/task7_teardown.txt
 cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab9/task7_teardown.txt
 ```
@@ -729,8 +697,8 @@ Student ID: <YourStudentID>
 Role: Player A or Player B
 Partner username: <PartnerUsername>
 
-This folder contains virtual vault image files, loop device records,
-mount shortcuts, and public disaster recovery lock files used by Lab 9.
+This folder contains local vault resource folders, lock files,
+and public disaster recovery lock files used by Lab 9.
 EOF
 ```
 
@@ -740,14 +708,14 @@ EOF
 
 Answer these in your `README.md`:
 
-1. Why does this lab use `udisksctl` instead of the normal `mount` command?
-2. What do `vault_alpha.img` and `vault_beta.img` simulate?
+1. What does each `vault.lock` file represent in this lab?
+2. Why does `flock` require every script to lock the same shared file to coordinate correctly?
 3. In the local deadlock, which resource did `sync_up` hold, and which resource did it wait for?
 4. In the local deadlock, which resource did `sync_down` hold, and which resource did it wait for?
 5. Which four deadlock conditions were present in Level 3?
 6. How does the global Alpha-before-Beta ordering rule break circular wait?
 7. Why is `flock -w` useful for recovery even though it does not prevent every deadlock?
-8. Why is safe teardown important when working with loopback devices?
+8. Why should you check for stuck processes before finishing a deadlock lab?
 
 ---
 
@@ -757,12 +725,12 @@ Before submitting, verify you have all required screenshots:
 
 | # | File Name | Level | What It Shows |
 |:-:|-----------|:----:|---------------|
-| 1 | `level1_vaults.png` | Level 1 | Loop devices, mounted vaults, and `mount_alpha` / `mount_beta` symlinks |
+| 1 | `level1_vaults.png` | Level 1 | `vault_alpha`, `vault_beta`, and their `vault.lock` files |
 | 2 | `level3_local_deadlock.png` | Level 3 | Frozen `sync_up` and `sync_down` terminals or process evidence |
 | 3 | `level4_cross_deadlock.png` | Level 4 | Partner cross-site scripts frozen in circular wait |
 | 4 | `level5_ordering_patch.png` | Level 5 | Ordered locking completes without deadlock |
 | 5 | `level6_timeout_recovery.png` | Level 6 | Timeout error and nonzero exit status |
-| 6 | `level7_teardown.png` | Level 7 | Clean loop mount check after teardown |
+| 6 | `level7_teardown.png` | Level 7 | Process check and final working tree |
 
 ---
 
@@ -782,17 +750,15 @@ These files and folders must exist while you are running the lab:
 |   `-- cross_sync_alpha OR cross_sync_beta
 `-- os-lab-deadlock/
     |-- README.md
-    |-- alpha_loop.txt
-    |-- beta_loop.txt
-    |-- vault_alpha.img
-    |-- vault_beta.img
-    |-- mount_alpha -> mounted Alpha vault path
-    |-- mount_beta -> mounted Beta vault path
+    |-- vault_alpha/
+    |   |-- README.txt
+    |   `-- vault.lock
+    |-- vault_beta/
+    |   |-- README.txt
+    |   `-- vault.lock
     `-- public_dr_alpha/ OR public_dr_beta/
         `-- vault.lock
 ```
-
-After Level 7, `mount_alpha` and `mount_beta` should be removed by `teardown`. The tree above documents what must exist during the active deadlock tasks.
 
 ### Required Submission Tree
 
@@ -828,7 +794,7 @@ os-se-<YourStudentID>/
 ```bash
 cd ~/os-se-<YourStudentID>
 git add .
-git commit -m "Lab 9: Virtual vault deadlock and recovery"
+git commit -m "Lab 9: Vault deadlock and recovery"
 git push origin main
 ```
 
@@ -838,13 +804,13 @@ git push origin main
 
 | Criteria | Points | Description |
 |----------|--------|-------------|
-| **Level 1: Virtual vault provisioning** | 15 | Creates, formats, mounts, links, and documents Alpha and Beta vault images without `sudo`. |
+| **Level 1: Vault workspace setup** | 15 | Creates and documents Alpha and Beta vault resource folders and lock files without `sudo`. |
 | **Level 2: Naive sync scripts** | 10 | `sync_up` and `sync_down` use `flock` and intentionally opposite lock orders. |
 | **Level 3: Local deadlock analysis** | 15 | Demonstrates and explains circular wait using local scripts. |
 | **Level 4: Cross-site partner deadlock** | 15 | Configures partner-visible lock files and demonstrates cross-user deadlock. |
 | **Level 5: Global ordering patch** | 15 | Applies Alpha-before-Beta ordering and proves both scripts complete. |
 | **Level 6: Timeout recovery** | 10 | Uses `flock -w` to avoid waiting forever and reports timeout behavior clearly. |
-| **Level 7: Safe teardown** | 10 | Unmounts, detaches loop devices, removes symlinks, and verifies a clean state. |
+| **Level 7: Cleanup and reset** | 10 | Verifies no stuck sync processes remain and documents the final working tree. |
 | **README, screenshots, and organization** | 10 | Submission tree is complete, screenshots are embedded, and answers show understanding. |
 | **Total** | **100** | |
 
@@ -852,8 +818,8 @@ git push origin main
 
 ## Tips
 
-- If `mount_alpha/lockfile` does not exist, confirm that the symlink points to a mounted vault.
-- If `udisksctl mount` fails, check whether the loop device name in `alpha_loop.txt` or `beta_loop.txt` is correct.
-- If your partner cannot access your `vault.lock`, check traversal permission on your home directory and `~/os-lab-deadlock`.
+- If a script says it cannot open a lock file, confirm the `vault_alpha` and `vault_beta` folders exist.
+- If a partner cannot access your `vault.lock`, check traversal permission on your home directory and `~/os-lab-deadlock`.
 - If both scripts still freeze after Level 5, recheck the lock order. Every cross-site script must lock Alpha before Beta.
-- Do not skip teardown. Stale loop devices make later testing confusing.
+- If a process remains stuck, stop it before taking the final Level 7 screenshot.
+- Do not use `sudo`. This version of Lab 9 is designed to run entirely with normal user permissions.
