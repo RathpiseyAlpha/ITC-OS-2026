@@ -147,9 +147,42 @@ Write your two computed values at the top of Task 2 and use this scenario for ev
 
 Tool: **deadlock-detection.html**. Here resources can have **multiple instances**, so a cycle is **necessary but not sufficient** for deadlock.
 
+### Warm-up — the built-in examples
+
 1. **Examples.** Open the **"Cycle, NO deadlock"** example and step through the reduction. In your own words: a cycle clearly exists — so **why is the system not deadlocked**? Name the process that finishes first and explain the role of the **spare instance**.
 2. **One small change.** Switch to **"Cycle, deadlock"**. Identify the **single difference** between the two scenarios and explain why that one change makes the system deadlock.
-3. **Build your own (different from the examples).** In **Build your own**, set at least one resource to have **2 or more instances** and construct a scenario that **has a cycle but is NOT deadlocked**. Screenshot it. Then make **one change** (e.g., add a request, or reduce an instance count) that turns it into a **deadlock**, and screenshot that. Explain what your change did in terms of the reduction algorithm (which process could no longer get `Request ≤ Work`).
+
+### Part A — Predict, then verify (given scenario)
+
+Here is a multi-instance system to analyze. `Allocation` = units currently held; `Request` = units each process is still waiting for. Use the tool's resource/process names (`R1, R2, R3` and `P1, P2, P3`).
+
+```text
+            Allocation            Request
+            R1  R2  R3            R1  R2  R3
+P1           1   0   0            0   1   0
+P2           0   1   1            1   0   0
+P3           1   0   1            0   0   0
+
+Instances (Total):   R1 = 2,   R2 = 1,   R3 = 2
+```
+
+1. **Available.** Compute `Available = Total − Σ Allocation`. Show the arithmetic.
+2. **Find the cycle.** There *is* a cycle here. Write it as a path (e.g., `P1 → R2 → P2 → … → P1`). Which process is in the cycle but can still finish, and why?
+3. **Reduce by hand.** Set `Work = Available` and run the reduction. Fill this table in the order you reduce processes — a process can finish when its `Request ≤ Work`, then it returns its allocation to `Work`:
+
+   | Step | Process chosen | Why Request ≤ Work? | Work after it releases |
+   |------|----------------|---------------------|------------------------|
+   | 1 | | | |
+   | 2 | | | |
+   | 3 | | | |
+
+   State your conclusion: **DEADLOCKED** or **NOT deadlocked** (give the finishing order).
+4. **Verify.** Enter the scenario in **Build your own** (add R3, set the **Instances** row to `2, 1, 2`, then fill Allocation and Request), step to **Detection**, and screenshot it. Did it match your hand trace?
+5. **One change → deadlock.** Now change **only P3's request** from `R1 R2 R3 = 0 0 0` to `0 1 0` (P3 now also waits for `R2`). Predict the new outcome **before** re-running, then verify and screenshot. Explain *in reduction terms* why this one change deadlocks the system — i.e., which process could previously start the reduction, and why none can now satisfy `Request ≤ Work`.
+
+### Part B — Build your own (different from Part A and the examples)
+
+In **Build your own**, set at least one resource to have **2 or more instances** and construct a scenario that **has a cycle but is NOT deadlocked**. Screenshot it. Then make **one change** (e.g., add a request, or reduce an instance count) that turns it into a **deadlock**, and screenshot that. Explain what your change did in terms of the reduction algorithm (which process could no longer get `Request ≤ Work`).
 
 ---
 
@@ -290,9 +323,10 @@ Submit a written report and your own screenshots — **no source code**.
 screenshots/task1_graph1.png          screenshots/task1_graph2.png
 screenshots/task1_build_deadlock.png  screenshots/task1_build_nocycle.png
 screenshots/task2_safety.png          screenshots/task2_request_grant.png
-screenshots/task2_request_deny.png    screenshots/task3_cycle_nodeadlock.png
-screenshots/task3_deadlock.png        screenshots/task4_case1.png
-screenshots/task4_case2.png           screenshots/task4_case3.png
+screenshots/task2_request_deny.png        screenshots/task3_given_nodeadlock.png
+screenshots/task3_given_deadlock.png      screenshots/task3_cycle_nodeadlock.png
+screenshots/task3_deadlock.png            screenshots/task4_case1.png
+screenshots/task4_case2.png               screenshots/task4_case3.png
 ```
 
 ### Submission folder structure
@@ -310,6 +344,8 @@ os-se-<YourStudentID>/
             ├── task2_safety.png
             ├── task2_request_grant.png
             ├── task2_request_deny.png
+            ├── task3_given_nodeadlock.png
+            ├── task3_given_deadlock.png
             ├── task3_cycle_nodeadlock.png
             ├── task3_deadlock.png
             ├── task4_case1.png
@@ -376,9 +412,26 @@ Matched the tool? [...]
 
 ## Task 3 — Cycle ≠ Deadlock
 
+**Warm-up (built-in examples)**
 1. Why the "Cycle, NO deadlock" example is not deadlocked: [...]
 2. The single change that causes deadlock: [...]
-3. My own scenario:
+
+**Part A — given scenario**
+- Available = Total − ΣAlloc = [...]
+- The cycle (as a path): [...]   Process in the cycle that can still finish + why: [...]
+
+| Step | Process | Why Request ≤ Work | Work after release |
+|------|---------|--------------------|--------------------|
+| 1 | | | |
+| 2 | | | |
+| 3 | | | |
+
+Conclusion: [DEADLOCKED / NOT deadlocked — finishing order = …]
+![Given scenario](screenshots/task3_given_nodeadlock.png)
+After changing P3's request to `0 1 0` — my prediction + why it deadlocks (reduction terms):
+![Given scenario, deadlock](screenshots/task3_given_deadlock.png)
+
+**Part B — my own scenario**
 ![Cycle, no deadlock](screenshots/task3_cycle_nodeadlock.png)
 My change that caused deadlock + why (reduction terms):
 ![Deadlock](screenshots/task3_deadlock.png)
