@@ -30,8 +30,8 @@ See [visualizations/README.md](../visualizations/README.md) for the GitHub Pages
 | Task | What you do | Evidence you submit |
 |------|-------------|---------------------|
 | **Task 1** | Analyze and **build** resource allocation graphs (single-instance) | Your predictions + tool screenshots |
-| **Task 2** | **Hand-trace** the Banker's safety algorithm and requests on *your* personalized data | Filled work tables + tool screenshots |
-| **Task 3** | Show that a **cycle is not always a deadlock** (multi-instance) | Two constructed scenarios + explanation |
+| **Task 2** | Show that a **cycle is not always a deadlock** (multi-instance RAG) | Given scenario + constructed scenario + explanation |
+| **Task 3** | **Hand-trace** the Banker's safety algorithm and requests on *your* personalized data | Filled work tables + tool screenshots |
 | **Task 4** | **Model semaphore programs** as graphs and use the tools to decide if each can deadlock | YES/NO per case + tool screenshots |
 | **Task 5** | Apply the concepts in writing | Short reasoned answers |
 
@@ -94,56 +94,7 @@ A scenario where *nobody* is waiting does not count for (ii) — at least one re
 
 ---
 
-## Task 2 — Hand-Tracing the Banker's Algorithm (personalized)
-
-Tool: **bankers-algorithm.html** (use **Custom data**). The tool's default custom scenario already matches the base below, so you only edit two cells.
-
-### Your personalized scenario
-
-Base scenario (3 processes, 3 resource types; **Instances/Total** A=10, B=5, C=7):
-
-```text
-        Allocation            Max (base)
-        A   B   C             A   B   C
-P0      0   1   0             7   5   3
-P1      2   0   0             3   2   2
-P2      3   0   2             9   0   2
-```
-
-Let **a** = the **last digit** of your student ID, and **b** = the **second-to-last digit**.
-
-Personalize the **Max** matrix (Allocation and Totals stay the same):
-
-```text
-Max[P0][A] = 7 + (a mod 3)
-Max[P2][C] = 2 + (b mod 4)
-```
-
-Write your two computed values at the top of Task 2 and use this scenario for everything below. (Changing only Max keeps Allocation ≤ Max and keeps Available unchanged, so your scenario is always valid — the tool will confirm.)
-
-### What to do — by hand first
-
-1. **Need matrix.** Compute `Need = Max − Allocation` for all three processes. Show the full matrix.
-2. **Available.** Compute `Available = Total − Σ Allocation`. Show the arithmetic.
-3. **Safety by hand.** Decide whether your state is **safe**. Fill in this trace table *by hand*, in the order you select processes — show the **Work** vector after each process finishes:
-
-   | Step | Process chosen | Why Need ≤ Work? | Work after it releases |
-   |------|----------------|------------------|------------------------|
-   | 1 | | | |
-   | 2 | | | |
-   | 3 | | | |
-
-   State your conclusion: **SAFE** (give the safe sequence) or **UNSAFE** (explain why no process can proceed at some point).
-4. **Verify safety.** Enter your scenario into the tool (Custom data → set the two Max cells → *Apply & Animate*, Safety check). Screenshot the final result. Note whether it matched your hand trace; if your safe sequence differs from the tool's, explain why **both can still be valid**.
-5. **Requests (your choice).** Propose **two** resource requests on your scenario:
-   - one you predict will be **granted**, and
-   - one you predict will be **denied**.
-
-   For each, show the reasoning by hand: check (1) `Request ≤ Need`, (2) `Request ≤ Available`, and (3) whether the tentative state is safe. State your verdict. Then verify each in the tool (**Resource request** mode) and screenshot it. Explain any request that was denied — *which* check failed, or *why* the tentative state was unsafe.
-
----
-
-## Task 3 — A Cycle Is Not Always a Deadlock (multi-instance)
+## Task 2 — A Cycle Is Not Always a Deadlock (multi-instance RAG)
 
 Tool: **deadlock-detection.html**. Here resources can have **multiple instances**, so a cycle is **necessary but not sufficient** for deadlock.
 
@@ -186,11 +137,60 @@ In **Build your own**, set at least one resource to have **2 or more instances**
 
 ---
 
+## Task 3 — Hand-Tracing the Banker's Algorithm (personalized)
+
+Tool: **bankers-algorithm.html** (use **Custom data**). The tool's default custom scenario already matches the base below, so you only edit two cells.
+
+### Your personalized scenario
+
+Base scenario (3 processes, 3 resource types; **Instances/Total** A=10, B=5, C=7):
+
+```text
+        Allocation            Max (base)
+        A   B   C             A   B   C
+P0      0   1   0             7   5   3
+P1      2   0   0             3   2   2
+P2      3   0   2             9   0   2
+```
+
+Let **a** = the **last digit** of your student ID, and **b** = the **second-to-last digit**.
+
+Personalize the **Max** matrix (Allocation and Totals stay the same):
+
+```text
+Max[P0][A] = 7 + (a mod 3)
+Max[P2][C] = 2 + (b mod 4)
+```
+
+Write your two computed values at the top of Task 3 and use this scenario for everything below. (Changing only Max keeps Allocation ≤ Max and keeps Available unchanged, so your scenario is always valid — the tool will confirm.)
+
+### What to do — by hand first
+
+1. **Need matrix.** Compute `Need = Max − Allocation` for all three processes. Show the full matrix.
+2. **Available.** Compute `Available = Total − Σ Allocation`. Show the arithmetic.
+3. **Safety by hand.** Decide whether your state is **safe**. Fill in this trace table *by hand*, in the order you select processes — show the **Work** vector after each process finishes:
+
+   | Step | Process chosen | Why Need ≤ Work? | Work after it releases |
+   |------|----------------|------------------|------------------------|
+   | 1 | | | |
+   | 2 | | | |
+   | 3 | | | |
+
+   State your conclusion: **SAFE** (give the safe sequence) or **UNSAFE** (explain why no process can proceed at some point).
+4. **Verify safety.** Enter your scenario into the tool (Custom data → set the two Max cells → *Apply & Animate*, Safety check). Screenshot the final result. Note whether it matched your hand trace; if your safe sequence differs from the tool's, explain why **both can still be valid**.
+5. **Requests (your choice).** Propose **two** resource requests on your scenario:
+   - one you predict will be **granted**, and
+   - one you predict will be **denied**.
+
+   For each, show the reasoning by hand: check (1) `Request ≤ Need`, (2) `Request ≤ Available`, and (3) whether the tentative state is safe. State your verdict. Then verify each in the tool (**Resource request** mode) and screenshot it. Explain any request that was denied — *which* check failed, or *why* the tentative state was unsafe.
+
+---
+
 ## Task 4 — Semaphores and Deadlock (model, then check with the tool)
 
 These three sets of processes coordinate with **counting semaphores** (`wait`/`signal`). For each set you must decide: **can it deadlock?** Then you will model the worst-case interleaving in a tool and verify your answer.
 
-> A semaphore deadlock is just a resource deadlock in disguise. Treat each **semaphore as a resource** whose **number of instances = its initial value**, and each **process as a process node**. Then it is exactly the graphs you built in Tasks 1 and 3.
+> A semaphore deadlock is just a resource deadlock in disguise. Treat each **semaphore as a resource** whose **number of instances = its initial value**, and each **process as a process node**. Then it is exactly the graphs you built in Tasks 1 and 2.
 
 ### Modeling recipe (use for every case)
 
@@ -202,7 +202,7 @@ These three sets of processes coordinate with **counting semaphores** (`wait`/`s
 ### Which tool
 
 - **Cases 1 and 2** — every semaphore starts at `1` (single-instance) → use **rag-deadlock.html** (Build your own).
-- **Case 3** — `s1` starts at `2`, so that resource has **two instances** → use **deadlock-detection.html** (multi-instance). This is the same "spare instance" idea from Task 3.
+- **Case 3** — `s1` starts at `2`, so that resource has **two instances** → use **deadlock-detection.html** (multi-instance). This is the same "spare instance" idea from Task 2.
 
 ### The three cases
 
@@ -322,10 +322,10 @@ Submit a written report and your own screenshots — **no source code**.
 ```text
 screenshots/task1_graph1.png          screenshots/task1_graph2.png
 screenshots/task1_build_deadlock.png  screenshots/task1_build_nocycle.png
-screenshots/task2_safety.png          screenshots/task2_request_grant.png
-screenshots/task2_request_deny.png        screenshots/task3_given_nodeadlock.png
-screenshots/task3_given_deadlock.png      screenshots/task3_cycle_nodeadlock.png
-screenshots/task3_deadlock.png            screenshots/task4_case1.png
+screenshots/task2_given_nodeadlock.png    screenshots/task2_given_deadlock.png
+screenshots/task2_cycle_nodeadlock.png    screenshots/task2_deadlock.png
+screenshots/task3_safety.png              screenshots/task3_request_grant.png
+screenshots/task3_request_deny.png        screenshots/task4_case1.png
 screenshots/task4_case2.png               screenshots/task4_case3.png
 ```
 
@@ -341,13 +341,13 @@ os-se-<YourStudentID>/
             ├── task1_graph2.png
             ├── task1_build_deadlock.png
             ├── task1_build_nocycle.png
-            ├── task2_safety.png
-            ├── task2_request_grant.png
-            ├── task2_request_deny.png
-            ├── task3_given_nodeadlock.png
-            ├── task3_given_deadlock.png
-            ├── task3_cycle_nodeadlock.png
-            ├── task3_deadlock.png
+            ├── task2_given_nodeadlock.png
+            ├── task2_given_deadlock.png
+            ├── task2_cycle_nodeadlock.png
+            ├── task2_deadlock.png
+            ├── task3_safety.png
+            ├── task3_request_grant.png
+            ├── task3_request_deny.png
             ├── task4_case1.png
             ├── task4_case2.png
             └── task4_case3.png
@@ -384,33 +384,7 @@ Matched the tool? [...]
 
 ---
 
-## Task 2 — Banker's Algorithm (my personalized scenario)
-
-- Max[P0][A] = 7 + (a mod 3) = [...]   Max[P2][C] = 2 + (b mod 4) = [...]
-- **Need matrix:** [...]
-- **Available:** Total − ΣAlloc = [...]
-
-**Safety trace (by hand):**
-
-| Step | Process | Why Need ≤ Work | Work after release |
-|------|---------|-----------------|--------------------|
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-
-Conclusion: [SAFE — safe sequence = … / UNSAFE — because …]
-![Safety check](screenshots/task2_safety.png)
-Matched the tool? [...]
-
-**Request I predicted GRANTED:** [process + vector], checks: [...]
-![Grant](screenshots/task2_request_grant.png)
-
-**Request I predicted DENIED:** [process + vector], which check failed / why unsafe: [...]
-![Deny](screenshots/task2_request_deny.png)
-
----
-
-## Task 3 — Cycle ≠ Deadlock
+## Task 2 — Cycle ≠ Deadlock
 
 **Warm-up (built-in examples)**
 1. Why the "Cycle, NO deadlock" example is not deadlocked: [...]
@@ -427,14 +401,40 @@ Matched the tool? [...]
 | 3 | | | |
 
 Conclusion: [DEADLOCKED / NOT deadlocked — finishing order = …]
-![Given scenario](screenshots/task3_given_nodeadlock.png)
+![Given scenario](screenshots/task2_given_nodeadlock.png)
 After changing P3's request to `0 1 0` — my prediction + why it deadlocks (reduction terms):
-![Given scenario, deadlock](screenshots/task3_given_deadlock.png)
+![Given scenario, deadlock](screenshots/task2_given_deadlock.png)
 
 **Part B — my own scenario**
-![Cycle, no deadlock](screenshots/task3_cycle_nodeadlock.png)
+![Cycle, no deadlock](screenshots/task2_cycle_nodeadlock.png)
 My change that caused deadlock + why (reduction terms):
-![Deadlock](screenshots/task3_deadlock.png)
+![Deadlock](screenshots/task2_deadlock.png)
+
+---
+
+## Task 3 — Banker's Algorithm (my personalized scenario)
+
+- Max[P0][A] = 7 + (a mod 3) = [...]   Max[P2][C] = 2 + (b mod 4) = [...]
+- **Need matrix:** [...]
+- **Available:** Total − ΣAlloc = [...]
+
+**Safety trace (by hand):**
+
+| Step | Process | Why Need ≤ Work | Work after release |
+|------|---------|-----------------|--------------------|
+| 1 | | | |
+| 2 | | | |
+| 3 | | | |
+
+Conclusion: [SAFE — safe sequence = … / UNSAFE — because …]
+![Safety check](screenshots/task3_safety.png)
+Matched the tool? [...]
+
+**Request I predicted GRANTED:** [process + vector], checks: [...]
+![Grant](screenshots/task3_request_grant.png)
+
+**Request I predicted DENIED:** [process + vector], which check failed / why unsafe: [...]
+![Deny](screenshots/task3_request_deny.png)
 
 ---
 
@@ -472,9 +472,9 @@ _What did this activity teach you about why a cycle does not always mean deadloc
 |----------|--------|-------------|
 | **Task 1 predictions + verification** | 15 | Correct cycle/deadlock reasoning *and* a prediction recorded before verifying, with honest comparison notes. |
 | **Task 1 constructed graphs** | 15 | Both built graphs meet the exact specification, with a correct one-line justification each. |
-| **Task 2 hand trace** | 20 | Correct Need/Available, a complete Work-vector trace, and a valid safe sequence (or correct unsafe argument) for *your* personalized data. |
-| **Task 2 requests** | 15 | One grant + one deny, each justified by the three checks, verified against the tool. |
-| **Task 3 multi-instance** | 15 | Clear explanation of cycle ≠ deadlock and a self-built scenario flipped from no-deadlock to deadlock with a correct explanation. |
+| **Task 2 multi-instance** | 15 | Correct reduction on the given scenario *and* a self-built scenario flipped from no-deadlock to deadlock, each with a clear cycle ≠ deadlock explanation. |
+| **Task 3 hand trace** | 20 | Correct Need/Available, a complete Work-vector trace, and a valid safe sequence (or correct unsafe argument) for *your* personalized data. |
+| **Task 3 requests** | 15 | One grant + one deny, each justified by the three checks, verified against the tool. |
 | **Task 4 semaphores** | 10 | Correct YES/NO for all three cases, each modeled in the right (single- vs multi-instance) tool with the deadlock interleaving or the ordering argument shown. |
 | **Task 5 applied concepts** | 10 | Reasoned, in-your-own-words answers using original examples. |
 | **Total** | **100** | |
@@ -489,5 +489,5 @@ _What did this activity teach you about why a cycle does not always mean deadloc
 - Use the tools' **Prev/Next** buttons to study one step at a time — especially the **Work** vector growing in Banker's and the reduction in the multi-instance tool.
 - A safe sequence is **not unique**. If yours differs from the tool's and both let every process finish, both are correct — say so.
 - "Unsafe" never means "already deadlocked." It means the OS cannot *prove* everyone can finish, so it refuses the request to be safe.
-- For Task 3, the easiest way to flip a no-deadlock scenario into a deadlock is to remove the spare instance or add a request that consumes the last free unit — watch what that does to `Available`.
+- For Task 2, the easiest way to flip a no-deadlock scenario into a deadlock is to remove the spare instance or add a request that consumes the last free unit — watch what that does to `Available`.
 - Keep your screenshots **yours**: they should show *your* personalized numbers and *your* constructed graphs, not the default examples.
