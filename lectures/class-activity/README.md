@@ -66,7 +66,7 @@ os-se-<YourStudentID>/
     │   ├── task1_deadlock/
     │   └── task2_prevention/
     ├── activity7/
-    │   ├── report.md              # ← Reasoning activity: written answers + traced tables
+    │   ├── README.md              # ← Reasoning activity: written answers + traced tables
     │   └── screenshots/           # ← Your own screenshots from the visualizations
     ├── activity8/
     │   ├── README.md

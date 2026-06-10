@@ -45,8 +45,8 @@ No environment to install. Create a folder for your evidence:
 
 ```text
 activity7/
-├── README.md          (or README.pdf — your written answers and traced tables)
-└── screenshots/       (your own screenshots from the tools)
+|-- README.md          (your written answers and traced tables; README.pdf also accepted)
+`-- screenshots/       (your own screenshots from the tools)
 ```
 
 Hand-written traced tables are acceptable if you photograph them clearly and embed the image.
@@ -299,22 +299,22 @@ screenshots/task4_case2.png           screenshots/task4_case3.png
 
 ```text
 os-se-<YourStudentID>/
-`-- os-class-activities-<YourStudentID>/
-    `-- activity7/
-        |-- README.md            (or README.pdf)
-        `-- screenshots/
-            |-- task1_graph1.png
-            |-- task1_graph2.png
-            |-- task1_build_deadlock.png
-            |-- task1_build_nocycle.png
-            |-- task2_safety.png
-            |-- task2_request_grant.png
-            |-- task2_request_deny.png
-            |-- task3_cycle_nodeadlock.png
-            |-- task3_deadlock.png
-            |-- task4_case1.png
-            |-- task4_case2.png
-            `-- task4_case3.png
+└── os-class-activities-<YourStudentID>/
+    └── activity7/
+        ├── README.md                  # ← your written answers + traced tables (README.pdf also accepted)
+        └── screenshots/               # your own screenshots from the tools
+            ├── task1_graph1.png
+            ├── task1_graph2.png
+            ├── task1_build_deadlock.png
+            ├── task1_build_nocycle.png
+            ├── task2_safety.png
+            ├── task2_request_grant.png
+            ├── task2_request_deny.png
+            ├── task3_cycle_nodeadlock.png
+            ├── task3_deadlock.png
+            ├── task4_case1.png
+            ├── task4_case2.png
+            └── task4_case3.png
 ```
 
 ### README Template
