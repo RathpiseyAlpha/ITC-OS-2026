@@ -113,8 +113,9 @@
         <button class="small" onclick="changeRes(-1)">−</button><span id="resCount">2</span><button class="small" onclick="changeRes(1)">+</button>
         &nbsp;&nbsp; Processes:
         <button class="small" onclick="changeProc(-1)">−</button><span id="procCount">3</span><button class="small" onclick="changeProc(1)">+</button>
+        &nbsp;&nbsp; <button class="small" onclick="clearAll()">✕ Clear all</button>
       </div>
-      <div class="hint">The <b>Instances</b> row is the number of units of each resource — increase/decrease it to add or remove instances.</div>
+      <div class="hint">Use the <b>+ / −</b> buttons to add or remove resource types, processes, and resource <b>instances</b> — no typing needed there. Fill the <b>Allocation</b> and <b>Request</b> cells, then <b>Apply</b>. <b>Clear all</b> resets to one process and one resource so you can build from scratch.</div>
       <div id="editorGrid"></div>
       <div class="emsg" id="emsg"></div>
       <button class="primary" onclick="applyCustom()">Apply &amp; Animate ▶</button>
@@ -377,15 +378,31 @@ document.addEventListener('keydown',e=>{ const t=(e.target.tagName||'').toLowerC
   if(e.key==='ArrowRight')next(); else if(e.key==='ArrowLeft')prev(); else if(e.key===' '){e.preventDefault();togglePlay();} });
 
 /* ================= custom editor ================= */
+const MAX_INST=6;
+// Resource/process labels are positional, so always regenerate them as
+// R1..Rk / P1..Pn after a structural change — this prevents duplicate names.
+function renameAll(d){ d.res=d.res.map((_,i)=>'R'+(i+1)); d.procs=d.procs.map((_,i)=>'P'+(i+1)); }
 function changeRes(delta){ syncEditor(); const R=customDATA.res.length;
-  if(delta>0 && R<4){ customDATA.res.push('R'+R); customDATA.total.push(1); customDATA.alloc.forEach(r=>r.push(0)); customDATA.request.forEach(r=>r.push(0)); }
+  if(delta>0 && R<4){ customDATA.res.push('R'+(R+1)); customDATA.total.push(1); customDATA.alloc.forEach(r=>r.push(0)); customDATA.request.forEach(r=>r.push(0)); }
   else if(delta<0 && R>1){ customDATA.res.pop(); customDATA.total.pop(); customDATA.alloc.forEach(r=>r.pop()); customDATA.request.forEach(r=>r.pop()); }
-  renderEditor();
+  renameAll(customDATA); renderEditor();
 }
 function changeProc(delta){ syncEditor(); const P=customDATA.procs.length, R=customDATA.res.length;
-  if(delta>0 && P<6){ customDATA.procs.push('P'+P); customDATA.alloc.push(Array(R).fill(0)); customDATA.request.push(Array(R).fill(0)); }
+  if(delta>0 && P<6){ customDATA.procs.push('P'+(P+1)); customDATA.alloc.push(Array(R).fill(0)); customDATA.request.push(Array(R).fill(0)); }
   else if(delta<0 && P>1){ customDATA.procs.pop(); customDATA.alloc.pop(); customDATA.request.pop(); }
+  renameAll(customDATA); renderEditor();
+}
+function changeInst(r,delta){ syncEditor();
+  customDATA.total[r]=Math.min(MAX_INST, Math.max(1, customDATA.total[r]+delta));
   renderEditor();
+}
+function clearAll(){
+  // Replace data first, then render — do NOT syncEditor (the DOM still holds the old grid).
+  customDATA={res:['R1'], total:[1], procs:['P1'], alloc:[[0]], request:[[0]]};
+  renderEditor();
+  DATA=clone(customDATA); run();              // also clear the graph/matrix on the canvas
+  const msg=document.getElementById('emsg'); msg.className='emsg ok';
+  msg.textContent='Cleared. Add resources, processes, and instances with the + buttons, then Apply.';
 }
 function renderEditor(){
   const d=customDATA;
@@ -401,7 +418,7 @@ function renderEditor(){
     row+='</tr>'; html+=row;
   });
   html+='<tr><td class="proc">Instances</td>'
-    +d.res.map((_,r)=>'<td><input id="tot-'+r+'" type="number" min="1" value="'+d.total[r]+'"></td>').join('')
+    +d.res.map((_,r)=>'<td style="white-space:nowrap"><button class="small" onclick="changeInst('+r+',-1)">−</button> <span id="tot-'+r+'">'+d.total[r]+'</span> <button class="small" onclick="changeInst('+r+',1)">+</button></td>').join('')
     +'<td colspan="'+d.res.length+'" style="color:var(--muted)">Available →</td></tr>';
   html+='<tr><td class="proc" style="background:#10202c"></td><td colspan="'+d.res.length+'"></td>'
     +d.res.map((_,r)=>{const av=d.total[r]-d.alloc.reduce((s,row)=>s+row[r],0);return '<td id="av-'+r+'" style="color:'+(av<0?'var(--bad)':'var(--ok)')+'">'+av+'</td>';}).join('')
@@ -414,11 +431,11 @@ function updateDerived(){ syncEditor(); const d=customDATA;
 }
 function clampInt(v,min){ v=parseInt(v,10); if(isNaN(v)||v<min) return min; return v; }
 function syncEditor(){ const d=customDATA;
+  // Only Allocation/Request are text inputs; Instances are button-driven (changeInst).
   d.procs.forEach((p,i)=>d.res.forEach((_,r)=>{
     const al=document.getElementById('al-'+i+'-'+r); const rq=document.getElementById('rq-'+i+'-'+r);
     if(al) d.alloc[i][r]=clampInt(al.value,0); if(rq) d.request[i][r]=clampInt(rq.value,0);
   }));
-  d.res.forEach((_,r)=>{ const t=document.getElementById('tot-'+r); if(t) d.total[r]=clampInt(t.value,1); });
 }
 function applyCustom(){
   syncEditor(); const d=customDATA; const msg=document.getElementById('emsg'); msg.className='emsg'; msg.textContent='';
