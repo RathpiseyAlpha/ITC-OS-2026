@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banker's Algorithm — Safety &amp; Resource Requests</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+    --row:#1b2735; --rowhi:#243b27; --rowtest:#3a3320; --border:#233042;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 600px;min-width:360px}
+  .side{flex:0 0 340px;min-width:300px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:0 0 10px}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+  th,td{padding:7px 9px;text-align:center;font-size:14px;border:1px solid var(--border)}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  td.proc{font-weight:700;color:#fff;background:#1f2d3d}
+  tr.matrixrow{background:var(--row);transition:background .35s}
+  tr.testing{background:var(--rowtest)}
+  tr.finished{background:var(--rowhi)}
+  tr.finished td.proc{background:#1d4d28}
+  .work{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .vec{display:inline-flex;gap:6px}
+  .cell{min-width:34px;padding:6px 8px;border-radius:6px;background:#243446;text-align:center;font-weight:600;transition:.3s}
+  .cell.bump{background:var(--ok);color:#06210f}
+  .reslabel{color:var(--muted);font-size:12px;margin-right:2px}
+  .seq{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:34px}
+  .chip{background:#1d4d28;border:1px solid #2c7a3f;color:#d6ffe0;padding:6px 12px;border-radius:18px;font-weight:600;animation:pop .3s ease}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .arrow{color:var(--muted)}
+  .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:140px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:15px;line-height:1.55}
+  .verdict{font-size:18px;font-weight:700;margin-top:10px}
+  .verdict.safe{color:var(--ok)} .verdict.unsafe{color:var(--bad)}
+  .verdict.grant{color:var(--ok)} .verdict.deny{color:var(--bad)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:#2e4459}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .modes{display:flex;gap:8px;margin-bottom:14px}
+  .modes button{flex:1}
+  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  code{background:#0c141d;padding:1px 5px;border-radius:4px;color:#cfe3ff}
+  .hl-need{outline:2px solid var(--warn);outline-offset:-2px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Banker's Algorithm — Safety Check &amp; Resource Requests</h1>
+  <div class="sub">Class Activity 7 · Task 2 — 5 processes, 3 resource types (A=10, B=5, C=7)</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="panel">
+      <h2>Process state</h2>
+      <table id="matrix">
+        <thead>
+          <tr>
+            <th rowspan="2">Proc</th>
+            <th colspan="3">Allocation</th>
+            <th colspan="3">Max</th>
+            <th colspan="3">Need = Max − Alloc</th>
+          </tr>
+          <tr id="resHeader"></tr>
+        </thead>
+        <tbody id="matrixBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Work vector (available resources, grows as processes finish)</h2>
+      <div class="work">
+        <span class="reslabel">A&nbsp;B&nbsp;C</span>
+        <div class="vec" id="workVec"></div>
+      </div>
+      <h2 style="margin-top:16px">Safe sequence</h2>
+      <div class="seq" id="seq"><span class="arrow">—</span></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="modes">
+      <button id="mSafety" class="active" onclick="setMode('safety')">Safety check</button>
+      <button id="mRequest" onclick="setMode('request')">Resource requests</button>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= Data (classic Silberschatz example) ================= */
+const RES = ['A','B','C'];
+const TOTAL = [10,5,7];
+const PROCS = ['P0','P1','P2','P3','P4'];
+const ALLOC0 = [[0,1,0],[2,0,0],[3,0,2],[2,1,1],[0,0,2]];
+const MAX     = [[7,5,3],[3,2,2],[9,0,2],[2,2,2],[4,3,3]];
+
+function vadd(a,b){return a.map((x,i)=>x+b[i]);}
+function vsub(a,b){return a.map((x,i)=>x-b[i]);}
+function vle(a,b){return a.every((x,i)=>x<=b[i]);}        // a <= b
+function need(alloc){return MAX.map((m,i)=>vsub(m,alloc[i]));}
+function sumCols(m){return m.reduce((acc,r)=>vadd(acc,r),[0,0,0]);}
+
+/* ================= Step-trace builder ================= */
+/* Builds an array of "frames". Each frame is a full snapshot the renderer draws:
+   { alloc, needM, work, finished:Set, seq:[], testing:idx|null,
+     stepLabel, text, verdict:{cls,txt}|null, bumpWork:bool } */
+
+function buildSafetyTrace(alloc, startWork, opts={}){
+  const needM = need(alloc);
+  const frames = [];
+  const finished = new Set();
+  const seq = [];
+  let work = startWork.slice();
+  const intro = opts.intro ||
+    'Compute <b>Need = Max − Allocation</b> for every process. Work starts at the available vector. ' +
+    'Repeatedly find a process whose <b>Need ≤ Work</b>; it can finish and return its resources.';
+
+  frames.push(snap('Setup', intro, {alloc,needM,work,finished,seq,testing:null}));
+
+  let progress = true;
+  while (finished.size < PROCS.length && progress){
+    progress = false;
+    for (let i=0;i<PROCS.length;i++){
+      if (finished.has(i)) continue;
+      const canRun = vle(needM[i], work);
+      // a "testing" frame, then resolve
+      frames.push(snap('Testing '+PROCS[i],
+        'Test <b>'+PROCS[i]+'</b>: Need ['+needM[i].join(', ')+'] ≤ Work ['+work.join(', ')+'] ? '
+        + (canRun?'<b style="color:var(--ok)">Yes ✓</b>':'<b style="color:var(--bad)">No ✗ — skip for now</b>'),
+        {alloc,needM,work,finished,seq,testing:i}));
+      if (canRun){
+        work = vadd(work, alloc[i]);
+        finished.add(i);
+        seq.push(PROCS[i]);
+        progress = true;
+        frames.push(snap(PROCS[i]+' finishes',
+          '<b>'+PROCS[i]+'</b> runs to completion and releases ['+alloc[i].join(', ')+']. '
+          + 'Work grows to <b>['+work.join(', ')+']</b>. Added to the safe sequence.',
+          {alloc,needM,work,finished,seq,testing:null,bumpWork:true}));
+        break; // restart scan from P0 (lowest-index rule)
+      }
+    }
+  }
+
+  const safe = finished.size === PROCS.length;
+  frames.push(snap(safe?'Safe':'Unsafe',
+    safe
+      ? 'Every process finished. The state is <b>SAFE</b> — this ordering is a valid safe sequence. '
+        + '<span style="color:var(--muted)">(Other valid sequences exist, e.g. P1 → P3 → P4 → P0 → P2.)</span>'
+      : 'No unfinished process has Need ≤ Work. The algorithm is stuck, so the state is <b>UNSAFE</b> — '
+        + 'the OS cannot prove everyone can finish.',
+    {alloc,needM,work,finished,seq,testing:null,
+     verdict: safe?{cls:'safe',txt:'✅ State is SAFE'}:{cls:'unsafe',txt:'⛔ State is UNSAFE'}}));
+
+  return {frames, safe, endAlloc:alloc, endWork:work};
+}
+
+function snap(stepLabel, text, s){
+  return {
+    stepLabel, text,
+    alloc: s.alloc.map(r=>r.slice()),
+    needM: s.needM.map(r=>r.slice()),
+    work: s.work.slice(),
+    finished: new Set(s.finished),
+    seq: s.seq.slice(),
+    testing: (s.testing===undefined?null:s.testing),
+    verdict: s.verdict || null,
+    bumpWork: !!s.bumpWork,
+  };
+}
+
+/* ----- Request mode trace ----- */
+function buildRequestTrace(){
+  const frames = [];
+  const avail0 = vsub(TOTAL, sumCols(ALLOC0));
+  let alloc = ALLOC0.map(r=>r.slice());
+  let avail = avail0.slice();
+  let needM = need(alloc);
+
+  function reqFrames(pIdx, req, expectGrant){
+    const P = PROCS[pIdx];
+    // 1. check req <= need
+    frames.push(snap('Request: '+P,
+      '<b>'+P+'</b> requests ['+req.join(', ')+'].<br>Check 1 — Request ≤ Need? '
+      + '['+req.join(', ')+'] ≤ ['+needM[pIdx].join(', ')+'] → '
+      + (vle(req,needM[pIdx])?'<b style="color:var(--ok)">Yes ✓</b>':'<b style="color:var(--bad)">No ✗ (exceeds max)</b>'),
+      {alloc,needM,work:avail,finished:new Set(),seq:[],testing:pIdx}));
+    // 2. check req <= avail
+    frames.push(snap('Request: '+P,
+      'Check 2 — Request ≤ Available? ['+req.join(', ')+'] ≤ ['+avail.join(', ')+'] → '
+      + (vle(req,avail)?'<b style="color:var(--ok)">Yes ✓</b>':'<b style="color:var(--bad)">No ✗ (must wait)</b>'),
+      {alloc,needM,work:avail,finished:new Set(),seq:[],testing:pIdx}));
+    // 3. tentative grant
+    const tAlloc = alloc.map(r=>r.slice()); tAlloc[pIdx]=vadd(tAlloc[pIdx],req);
+    const tAvail = vsub(avail,req);
+    const tNeed = need(tAlloc);
+    frames.push(snap('Tentative grant',
+      'Check 3 — <b>pretend</b> to grant it: Available → ['+tAvail.join(', ')+'], '
+      + P+' Allocation → ['+tAlloc[pIdx].join(', ')+'], Need → ['+tNeed[pIdx].join(', ')+'].<br>'
+      + 'Now run the <b>safety check</b> on this tentative state…',
+      {alloc:tAlloc,needM:tNeed,work:tAvail,finished:new Set(),seq:[],testing:null}));
+    // 4. safety sub-trace
+    const sub = buildSafetyTrace(tAlloc, tAvail, {intro:'Safety check on the tentative state after '+P+'’s request.'});
+    sub.frames.forEach(f=>frames.push(f));
+    // 5. decision
+    if (sub.safe){
+      alloc=tAlloc; avail=tAvail; needM=tNeed; // commit
+      frames.push(snap('Decision',
+        'The tentative state is safe, so the request is <b>granted</b> and committed. '
+        + 'New Available = ['+avail.join(', ')+'].',
+        {alloc,needM,work:avail,finished:new Set(),seq:[],testing:null,
+         verdict:{cls:'grant',txt:'✅ Request granted'}}));
+    } else {
+      frames.push(snap('Decision',
+        'The tentative state is <b>unsafe</b>, so the request is <b>denied</b> and rolled back. '
+        + 'Allocation, Need and Available return to their previous values.',
+        {alloc,needM,work:avail,finished:new Set(),seq:[],testing:null,
+         verdict:{cls:'deny',txt:'⛔ Request denied (would be unsafe)'}}));
+    }
+  }
+
+  reqFrames(1, [1,0,2], true);   // P1 requests (1,0,2) -> granted
+  reqFrames(0, [0,2,0], false);  // P0 requests (0,2,0) from resulting state -> denied (unsafe)
+  return {frames};
+}
+
+/* ================= State & rendering ================= */
+let mode='safety';
+let trace=null;
+let idx=0;
+let playing=false, playTimer=null;
+
+function rebuild(){
+  if (mode==='safety'){
+    const avail0 = vsub(TOTAL, sumCols(ALLOC0));
+    trace = buildSafetyTrace(ALLOC0, avail0);
+  } else {
+    trace = buildRequestTrace();
+  }
+  idx=0;
+}
+
+/* table scaffolding */
+function initHeader(){
+  const rh=document.getElementById('resHeader');
+  rh.innerHTML='';
+  for(let g=0;g<3;g++) RES.forEach(r=>{ const th=document.createElement('th'); th.textContent=r; rh.appendChild(th); });
+}
+
+function render(){
+  const f = trace.frames[idx];
+  const body=document.getElementById('matrixBody');
+  body.innerHTML='';
+  PROCS.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.className='matrixrow' + (f.finished.has(i)?' finished':'') + (f.testing===i?' testing':'');
+    tr.innerHTML =
+      '<td class="proc">'+p+'</td>' +
+      f.alloc[i].map(v=>'<td>'+v+'</td>').join('') +
+      MAX[i].map(v=>'<td>'+v+'</td>').join('') +
+      f.needM[i].map(v=>'<td class="'+(f.testing===i?'hl-need':'')+'">'+v+'</td>').join('');
+    body.appendChild(tr);
+  });
+
+  // work vector
+  const wv=document.getElementById('workVec');
+  wv.innerHTML='';
+  f.work.forEach(v=>{ const d=document.createElement('div'); d.className='cell'+(f.bumpWork?' bump':''); d.textContent=v; wv.appendChild(d); });
+
+  // sequence
+  const seqEl=document.getElementById('seq');
+  if(f.seq.length===0){ seqEl.innerHTML='<span class="arrow">—</span>'; }
+  else{
+    seqEl.innerHTML = f.seq.map((p,i)=> (i?'<span class="arrow">→</span>':'') + '<span class="chip">'+p+'</span>').join(' ');
+  }
+
+  // caption
+  document.getElementById('stepLabel').textContent =
+    (mode==='safety'?'Safety check':'Requests') + ' · ' + f.stepLabel + ' (' + (idx) + '/' + (trace.frames.length-1) + ')';
+  document.getElementById('captionText').innerHTML = f.text;
+  const v=document.getElementById('verdict');
+  if(f.verdict){ v.className='verdict '+f.verdict.cls; v.textContent=f.verdict.txt; }
+  else { v.className='verdict'; v.textContent=''; }
+
+  document.getElementById('prevBtn').disabled = (idx===0);
+  document.getElementById('nextBtn').disabled = (idx>=trace.frames.length-1);
+  document.getElementById('progress').textContent = 'Step '+idx+' / '+(trace.frames.length-1);
+}
+
+/* controls */
+function next(){ if(idx<trace.frames.length-1){ idx++; render(); } if(idx>=trace.frames.length-1) stopPlay(); }
+function prev(){ if(idx>0){ idx--; render(); stopPlay(); } }
+function reset(){ idx=0; stopPlay(); render(); }
+function setMode(m){
+  mode=m; document.getElementById('mSafety').classList.toggle('active',m==='safety');
+  document.getElementById('mRequest').classList.toggle('active',m==='request');
+  stopPlay(); rebuild(); render();
+}
+function togglePlay(){ playing?stopPlay():startPlay(); }
+function startPlay(){
+  playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{ if(idx>=trace.frames.length-1){stopPlay();return;} next(); }, 1300);
+}
+function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+initHeader();
+rebuild();
+render();
+</script>
+</body>
+</html>

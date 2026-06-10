@@ -19,6 +19,17 @@ By the end, you should be able to look at a resource state and say not just "is 
 
 ---
 
+## 🎬 Interactive Visualizations
+
+Step through the concepts before you code them:
+
+- **Resource Allocation Graph** (Task 1): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/rag-deadlock.html) · [source](../visualizations/rag-deadlock.html)
+- **Banker's Algorithm** (Task 2): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/bankers-algorithm.html) · [source](../visualizations/bankers-algorithm.html)
+
+See [visualizations/README.md](../visualizations/README.md) for GitHub Pages setup and offline use.
+
+---
+
 ## Task Overview
 
 | Task | What You Do | Screenshot Required |

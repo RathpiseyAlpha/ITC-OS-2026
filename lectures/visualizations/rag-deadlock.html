@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resource Allocation Graph &amp; Deadlock Detection</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --proc:#3b82f6; --res:#10b981; --request:#f59e0b; --assign:#22c55e;
+    --cycle:#ef4444; --line:#5b6b7d; --accent:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid #233042}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 560px;min-width:340px;background:var(--panel);border:1px solid #233042;border-radius:12px;padding:12px}
+  .side{flex:0 0 320px;min-width:280px}
+  svg{width:100%;height:auto;display:block}
+  .caption{background:var(--panel);border:1px solid #233042;border-radius:12px;padding:16px;min-height:120px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:15px;line-height:1.5}
+  .verdict{font-size:18px;font-weight:700;margin-top:10px}
+  .verdict.dead{color:var(--cycle)}
+  .verdict.safe{color:var(--assign)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:#2e4459}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .scenarios{display:flex;gap:8px;margin-bottom:14px}
+  .scenarios button{flex:1}
+  .scenarios button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .legend{background:var(--panel);border:1px solid #233042;border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .swatch{width:34px;height:0;border-top-width:3px;border-top-style:solid}
+  .dot{width:16px;height:16px;border-radius:50%}
+  .sq{width:16px;height:16px;border-radius:3px}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  /* svg element styling */
+  .edge{transition:opacity .4s ease}
+  .node-label{font-size:15px;font-weight:600;fill:#fff;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  .node-shadow{transition:filter .3s}
+</style>
+</head>
+<body>
+<header>
+  <h1>Resource Allocation Graph &amp; Deadlock Detection</h1>
+  <div class="sub">Class Activity 7 · Task 1 — single-instance resources, where a <b>cycle = deadlock</b></div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 800 480" aria-label="Resource allocation graph">
+      <defs>
+        <marker id="arrow-req" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4 L0,8 Z" fill="var(--request)"/>
+        </marker>
+        <marker id="arrow-assign" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4 L0,8 Z" fill="var(--assign)"/>
+        </marker>
+        <marker id="arrow-cycle" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+          <path d="M0,0 L9,4 L0,8 Z" fill="var(--cycle)"/>
+        </marker>
+      </defs>
+      <g id="edges"></g>
+      <g id="nodes"></g>
+    </svg>
+  </div>
+
+  <div class="side">
+    <div class="scenarios">
+      <button id="scA" class="active" onclick="loadScenario('A')">Deadlocked graph</button>
+      <button id="scB" onclick="loadScenario('B')">Safe graph</button>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText">Press <b>Next</b> to build the graph one edge at a time, or <b>Play</b> to auto-run.</div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="legend">
+      <div class="row"><span class="dot" style="background:var(--proc)"></span> Process node (P)</div>
+      <div class="row"><span class="sq" style="background:var(--res)"></span> Resource node (R) — single instance</div>
+      <div class="row"><span class="swatch" style="border-top-color:var(--assign)"></span> Assignment edge <b style="margin-left:4px">R → P</b> (held by)</div>
+      <div class="row"><span class="swatch" style="border-top-color:var(--request)"></span> Request edge <b style="margin-left:4px">P → R</b> (waiting for)</div>
+      <div class="row"><span class="swatch" style="border-top-color:var(--cycle)"></span> Cycle = deadlock</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Node layout (shared by both scenarios) ---------- */
+const NODES = {
+  P1: {x:230, y:120, type:'P'},
+  R2: {x:570, y:120, type:'R'},
+  P2: {x:570, y:360, type:'P'},
+  R1: {x:230, y:360, type:'R'},
+};
+const PR = 34;   // process radius
+const RS = 64;   // resource square side
+
+/* ---------- Scenarios ----------
+   Each edge: from, to, kind ('assign' R->P  or  'request' P->R), caption.
+   Detection is computed live from the edge list. */
+const SCENARIOS = {
+  A: {
+    title: 'Deadlocked graph',
+    edges: [
+      {from:'R1', to:'P1', kind:'assign',  cap:'<b>R1 → P1</b>: Resource R1 is currently <b>held by</b> P1 (assignment edge).'},
+      {from:'P1', to:'R2', kind:'request', cap:'<b>P1 → R2</b>: Process P1 <b>requests</b> R2 and waits (request edge).'},
+      {from:'R2', to:'P2', kind:'assign',  cap:'<b>R2 → P2</b>: Resource R2 is <b>held by</b> P2.'},
+      {from:'P2', to:'R1', kind:'request', cap:'<b>P2 → R1</b>: Process P2 <b>requests</b> R1 — but R1 is held by P1.'},
+    ],
+  },
+  B: {
+    title: 'Safe graph',
+    edges: [
+      {from:'R1', to:'P1', kind:'assign',  cap:'<b>R1 → P1</b>: R1 is <b>held by</b> P1.'},
+      {from:'R2', to:'P2', kind:'assign',  cap:'<b>R2 → P2</b>: R2 is <b>held by</b> P2.'},
+      {from:'P2', to:'R1', kind:'request', cap:'<b>P2 → R1</b>: P2 <b>requests</b> R1. P1 holds R1 but is waiting for nothing — so P1 can finish and release R1.'},
+    ],
+  },
+};
+
+let scenario = 'A';
+let step = 0;          // 0 = nothing shown; 1..E = edges revealed; E+1 = detection
+let playing = false;
+let playTimer = null;
+
+/* ---------- Geometry helpers ---------- */
+function nodeEdgePoint(name, towardX, towardY){
+  // returns point on the boundary of the node nearest to (towardX,towardY)
+  const n = NODES[name];
+  const dx = towardX - n.x, dy = towardY - n.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx/len, uy = dy/len;
+  if (n.type === 'P'){
+    return {x: n.x + ux*(PR+4), y: n.y + uy*(PR+4)};
+  } else {
+    // clamp to square boundary
+    const half = RS/2 + 4;
+    const scale = half / Math.max(Math.abs(ux), Math.abs(uy));
+    return {x: n.x + ux*scale, y: n.y + uy*scale};
+  }
+}
+
+/* ---------- Cycle detection (DFS over directed graph) ---------- */
+function findCycle(edges){
+  const adj = {};
+  edges.forEach(e => { (adj[e.from] = adj[e.from] || []).push(e.to); });
+  const WHITE=0, GREY=1, BLACK=2;
+  const color = {}; const parent = {};
+  Object.keys(NODES).forEach(n => color[n]=WHITE);
+  let cyc = null;
+
+  function dfs(u){
+    color[u]=GREY;
+    for (const v of (adj[u]||[])){
+      if (cyc) return;
+      if (color[v]===WHITE){ parent[v]=u; dfs(v); }
+      else if (color[v]===GREY){
+        // reconstruct cycle v ... u v
+        const path=[u]; let x=u;
+        while (x!==v){ x=parent[x]; path.push(x); }
+        path.reverse(); path.push(v);
+        cyc = path;
+        return;
+      }
+    }
+    color[u]=BLACK;
+  }
+  for (const n of Object.keys(NODES)){ if(color[n]===WHITE && !cyc) dfs(n); }
+  return cyc; // array of node names forming a cycle, or null
+}
+
+function cycleEdgeSet(cyc){
+  const s = new Set();
+  if(!cyc) return s;
+  for(let i=0;i<cyc.length-1;i++) s.add(cyc[i]+'->'+cyc[i+1]);
+  return s;
+}
+
+/* ---------- Rendering ---------- */
+const elNodes = document.getElementById('nodes');
+const elEdges = document.getElementById('edges');
+
+function drawNodes(){
+  elNodes.innerHTML = '';
+  for (const [name,n] of Object.entries(NODES)){
+    if (n.type==='P'){
+      const c = make('circle',{cx:n.x,cy:n.y,r:PR,fill:'var(--proc)',stroke:'#1e3a8a','stroke-width':2,class:'node-shadow'});
+      elNodes.appendChild(c);
+    } else {
+      const r = make('rect',{x:n.x-RS/2,y:n.y-RS/2,width:RS,height:RS,rx:8,fill:'var(--res)',stroke:'#065f46','stroke-width':2,class:'node-shadow'});
+      elNodes.appendChild(r);
+      // single instance dot
+      const d = make('circle',{cx:n.x,cy:n.y-14,r:5,fill:'#04261c'});
+      elNodes.appendChild(d);
+    }
+    const t = make('text',{x:n.x,y:n.y + (n.type==='R'?8:0),class:'node-label'});
+    t.textContent = name;
+    elNodes.appendChild(t);
+  }
+}
+
+function render(){
+  const sc = SCENARIOS[scenario];
+  const E = sc.edges.length;
+  const detectStep = E + 1;
+  const showDetect = step >= detectStep;
+  const cyc = showDetect ? findCycle(sc.edges) : null;
+  const cycSet = cycleEdgeSet(cyc);
+
+  // edges
+  elEdges.innerHTML = '';
+  const shown = Math.min(step, E);
+  for (let i=0;i<shown;i++){
+    const e = sc.edges[i];
+    const a = NODES[e.from], b = NODES[e.to];
+    const p1 = nodeEdgePoint(e.from, b.x, b.y);
+    const p2 = nodeEdgePoint(e.to, a.x, a.y);
+    const key = e.from+'->'+e.to;
+    const inCycle = cycSet.has(key);
+    const color = inCycle ? 'var(--cycle)' : (e.kind==='assign' ? 'var(--assign)' : 'var(--request)');
+    const marker = inCycle ? 'url(#arrow-cycle)' : (e.kind==='assign' ? 'url(#arrow-assign)' : 'url(#arrow-req)');
+    const line = make('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:color,'stroke-width':inCycle?4:2.5,'marker-end':marker,class:'edge'});
+    elEdges.appendChild(line);
+  }
+
+  // captions
+  const stepLabel = document.getElementById('stepLabel');
+  const captionText = document.getElementById('captionText');
+  const verdict = document.getElementById('verdict');
+  verdict.className = 'verdict';
+  verdict.textContent = '';
+
+  if (step === 0){
+    stepLabel.textContent = sc.title + ' · Step 0';
+    captionText.innerHTML = 'Empty graph. Press <b>Next</b> to add edges one at a time.';
+  } else if (step <= E){
+    stepLabel.textContent = sc.title + ' · Step ' + step + ' of ' + (E+1);
+    captionText.innerHTML = sc.edges[step-1].cap;
+  } else {
+    stepLabel.textContent = sc.title + ' · Detection';
+    if (cyc){
+      captionText.innerHTML = 'Running cycle detection (DFS)… a <b>cycle</b> is found:<br><b>' + cyc.join(' → ') + '</b><br>With single-instance resources, a cycle means the four processes wait on each other forever.';
+      verdict.className = 'verdict dead';
+      verdict.textContent = '⛔ Deadlock detected';
+    } else {
+      captionText.innerHTML = 'Running cycle detection (DFS)… <b>no cycle</b> exists. Every waiting process is downstream of a process that can finish and release its resource.';
+      verdict.className = 'verdict safe';
+      verdict.textContent = '✅ No deadlock';
+    }
+  }
+
+  // controls
+  document.getElementById('prevBtn').disabled = (step===0);
+  document.getElementById('nextBtn').disabled = (step>=detectStep);
+  document.getElementById('progress').textContent = 'Step ' + step + ' / ' + detectStep;
+}
+
+/* ---------- SVG element factory ---------- */
+function make(tag, attrs){
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+/* ---------- Controls ---------- */
+function next(){
+  const E = SCENARIOS[scenario].edges.length;
+  if (step < E+1){ step++; render(); }
+  if (step >= E+1) stopPlay();
+}
+function prev(){ if(step>0){ step--; render(); stopPlay(); } }
+function reset(){ step=0; stopPlay(); render(); }
+function loadScenario(s){
+  scenario=s; step=0; stopPlay();
+  document.getElementById('scA').classList.toggle('active', s==='A');
+  document.getElementById('scB').classList.toggle('active', s==='B');
+  render();
+}
+function togglePlay(){ playing ? stopPlay() : startPlay(); }
+function startPlay(){
+  playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{
+    const E=SCENARIOS[scenario].edges.length;
+    if(step>=E+1){ stopPlay(); return; }
+    next();
+  }, 1400);
+}
+function stopPlay(){
+  playing=false; document.getElementById('playBtn').textContent='▶ Play';
+  if(playTimer){ clearInterval(playTimer); playTimer=null; }
+}
+
+/* keyboard */
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+drawNodes();
+render();
+</script>
+</body>
+</html>
