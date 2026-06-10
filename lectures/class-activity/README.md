@@ -19,7 +19,7 @@ This folder contains hands-on programming activities that accompany the lecture 
 | 4 | [Class Activity 4](class-activity4.md) | Week 7–8 — Critical Sections & Synchronization | Shared File API, C++ Mutex & Java Synchronization |
 | 5 | [Class Activity 5](class-activity5.md) | Week 8–9 — Semaphores & Deadlocks | Particle Buffer Semaphores and HELLO Ordering |
 | 6 | [Class Activity 6](class-activity6.md) | Week 9 — Deadlocks | Bank Transaction Deadlock Simulation |
-| 7 | [Class Activity 7](class-activity7.md) | Week 9 — Deadlocks | Resource Allocation Graph & Banker's Algorithm |
+| 7 | [Class Activity 7](class-activity7.md) | Week 9 — Deadlocks | Reasoning about deadlock — RAG & Banker's (no-code, uses visualizations) |
 | 8 | [Class Activity 8](class-activity8.md) | Week 10–11 — Memory Management & Virtual Memory | Paging Address Translation & Page Replacement |
 
 _More activities will be added as the course progresses._
@@ -66,10 +66,8 @@ os-se-<YourStudentID>/
     │   ├── task1_deadlock/
     │   └── task2_prevention/
     ├── activity7/
-    │   ├── README.md
-    │   ├── screenshots/
-    │   ├── task1_rag/
-    │   └── task2_bankers/
+    │   ├── report.md              # ← Reasoning activity: written answers + traced tables
+    │   └── screenshots/           # ← Your own screenshots from the visualizations
     ├── activity8/
     │   ├── README.md
     │   ├── screenshots/

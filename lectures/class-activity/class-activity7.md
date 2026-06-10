@@ -1,458 +1,272 @@
-# Class Activity 7 - Resource Allocation Graph & Banker's Algorithm
+# Class Activity 7 - Reasoning About Deadlock: RAG &amp; Banker's Algorithm
 
 > **Related Lectures**: Week 9 - Deadlocks  
-> **Topics**: Resource allocation graph (RAG), request vs assignment edges, cycle detection, deadlock detection, safe vs unsafe state, deadlock avoidance, Banker's Algorithm, safe sequence  
-> **Language**: Any programming language  
-> **Environment**: Linux, WSL, macOS, or Windows with any language runtime
+> **Topics**: Resource allocation graph (RAG), request vs assignment edges, cycle detection, single- vs multi-instance resources, safe/unsafe state, Banker's Algorithm, safe sequence, deadlock avoidance vs detection  
+> **Format**: **Reasoning activity — no programming.** You analyze, predict, hand-trace, construct, and explain. You use the interactive visualizations to *check* your work, not to do it for you.  
+> **Tools**: The three deadlock visualizations (links below). Any browser.
 
 ---
 
-## Objective
+## Why this activity has no coding
 
-Activity 6 made a deadlock *happen* with two threads and account locks. This activity steps up a level: instead of producing a deadlock, you will **reason about** resource states the way the OS does — first by **detecting** deadlock from a graph, then by **avoiding** it before it can occur.
+You could ask an AI to write a deadlock detector or a Banker's Algorithm implementation in ten seconds — so a coding task would prove nothing about *your* understanding. This activity instead asks you to **reason**: predict what will happen, trace the algorithms by hand, build scenarios that meet specific conditions, and explain *why*. Marks are awarded for **your shown reasoning and your own screenshots**, not for correct final numbers alone (the tools already give those). Pasting an AI answer without your own traced work and your own constructed scenarios will score poorly and is easy to spot.
 
-Task 1 builds a **Resource Allocation Graph (RAG)**. Processes and resources are nodes; a **request edge** points from a process to a resource it wants, and an **assignment edge** points from a resource to the process holding it. When every resource has a single instance, a **cycle in the graph means deadlock**. Your program will read a graph and report whether the system is deadlocked.
-
-Task 2 builds the **Banker's Algorithm**. Like a cautious banker approving loans only when everyone can still be repaid, the OS grants a resource request only if the resulting state is **safe** — meaning at least one ordering of processes (a **safe sequence**) can finish. Your program will run the safety algorithm and decide whether a pending request can be granted.
-
-By the end, you should be able to look at a resource state and say not just "is it deadlocked now?" but "could granting this request *lead* to deadlock?"
+> Be prepared to **explain any step of your submission out loud** if asked.
 
 ---
 
-## 🎬 Interactive Visualizations
+## 🎬 Interactive Visualizations (your checking tools)
 
-Step through the concepts before you code them:
+- **Resource Allocation Graph** (single-instance): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/rag-deadlock.html) · [source](../visualizations/rag-deadlock.html)
+- **Banker's Algorithm**: [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/bankers-algorithm.html) · [source](../visualizations/bankers-algorithm.html)
+- **Multi-Instance Deadlock Detection**: [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/deadlock-detection.html) · [source](../visualizations/deadlock-detection.html)
 
-- **Resource Allocation Graph** (Task 1): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/rag-deadlock.html) · [source](../visualizations/rag-deadlock.html)
-- **Banker's Algorithm** (Task 2): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/bankers-algorithm.html) · [source](../visualizations/bankers-algorithm.html)
-
-See [visualizations/README.md](../visualizations/README.md) for GitHub Pages setup and offline use.
+See [visualizations/README.md](../visualizations/README.md) for the GitHub Pages links and offline use.
 
 ---
 
 ## Task Overview
 
-| Task | What You Do | Screenshot Required |
-|------|-------------|--------------------|
-| **Task 1** | Build a Resource Allocation Graph deadlock detector (cycle detection) | Deadlocked graph + safe graph results |
-| **Task 2** | Build the Banker's Algorithm (safety check + request decision) | Safe sequence + a granted and a denied request |
-| **Task 3** | Explain detection vs avoidance using the lecture concepts | README answers |
+| Task | What you do | Evidence you submit |
+|------|-------------|---------------------|
+| **Task 1** | Analyze and **build** resource allocation graphs (single-instance) | Your predictions + tool screenshots |
+| **Task 2** | **Hand-trace** the Banker's safety algorithm and requests on *your* personalized data | Filled work tables + tool screenshots |
+| **Task 3** | Show that a **cycle is not always a deadlock** (multi-instance) | Two constructed scenarios + explanation |
+| **Task 4** | Apply the concepts in writing | Short reasoned answers |
 
-You may use any programming language, but your README must clearly say which language you used and how to run each program.
+**Golden rule for every task: predict first, then verify.** Write your prediction *before* you press Play. If the tool disagrees with you, do **not** silently fix your answer — keep your prediction and add a short note explaining where your reasoning went wrong. That note is worth marks.
 
 ---
 
 ## Setup
 
-Create your activity folder:
-
-```bash
-mkdir -p activity7/{task1_rag,task2_bankers,screenshots}
-cd activity7
-```
-
-Recommended filenames:
+No environment to install. Create a folder for your evidence:
 
 ```text
-task1_rag/rag_detector.<extension>
-task2_bankers/bankers.<extension>
-README.md
-screenshots/task1_deadlocked.png
-screenshots/task1_safe.png
-screenshots/task2_safe_sequence.png
-screenshots/task2_requests.png
+activity7/
+├── report.md          (or report.pdf — your written answers and traced tables)
+└── screenshots/       (your own screenshots from the tools)
 ```
 
-Examples:
-
-```text
-rag_detector.py
-RagDetector.java
-bankers.cpp
-Bankers.java
-```
+Hand-written traced tables are acceptable if you photograph them clearly and embed the image.
 
 ---
 
-## Task 1: Resource Allocation Graph (Deadlock Detection)
+## Task 1 — Reasoning About Resource Allocation Graphs (single-instance)
 
-### Goal
+Tool: **rag-deadlock.html** (use **Build your own** mode). All resources here are single-instance, so the rule is **a cycle = deadlock**.
 
-Write a program that reads a resource allocation graph and reports whether the system is **deadlocked**, by detecting a **cycle**.
+### Part A — Predict, then verify
 
-### Graph Model
+Two graphs are given as edge lists. Remember: `R → P` = *assignment* (held by), `P → R` = *request* (waiting for).
 
-Use **single-instance resources** for this task (one unit per resource), so the rule is simple:
-
+**Graph 1**
 ```text
-A cycle in the graph  ==  deadlock
+R0 → P0      P0 → R1
+R1 → P1      P1 → R2
+R2 → P2      P2 → R0
 ```
 
-Nodes:
-
-- Processes: `P1, P2, P3, ...`
-- Resources: `R1, R2, R3, ...`
-
-Edges:
-
-| Edge | Direction | Meaning |
-|------|-----------|---------|
-| **Assignment edge** | `R -> P` | resource `R` is currently held by process `P` |
-| **Request edge** | `P -> R` | process `P` is waiting for resource `R` |
-
-### Required Behavior
-
-Your program must:
-
-- represent the graph (an edge list or adjacency list is fine)
-- run on **two graphs**: one that is **deadlocked** (has a cycle) and one that is **safe** (no cycle)
-- detect whether a cycle exists
-- if deadlocked, print the cycle (the processes/resources involved)
-- if not, print that no deadlock exists
-
-### Required Test Graphs
-
-**Graph A — Deadlocked (circular wait):**
-
+**Graph 2**
 ```text
-R1 -> P1     (R1 held by P1)
-P1 -> R2     (P1 waits for R2)
-R2 -> P2     (R2 held by P2)
-P2 -> R1     (P2 waits for R1)
+R0 → P0      P0 → R1
+R1 → P1      P1 → R2
+R2 → P2
 ```
 
-This forms the cycle `P1 -> R2 -> P2 -> R1 -> P1`.
+For **each** graph, in your report:
 
-**Graph B — Safe (no cycle):**
+1. **Predict (before the tool):** Is there a cycle? Is the system deadlocked? If deadlocked, write the cycle as a path (e.g., `P0 → R1 → P1 → … → P0`). If not, explain which process can finish first and why the others then unblock.
+2. **Verify:** Rebuild the graph in the tool (add the processes, resources, and edges), step to the **Detection** step, and screenshot the result.
+3. **Compare:** Did the tool match your prediction? If not, explain the gap in your reasoning.
 
-```text
-R1 -> P1     (R1 held by P1)
-P2 -> R1     (P2 waits for R1)
-R2 -> P2     (R2 held by P2)
-```
+> Tip: the tool auto-names nodes `P0, P1, …` and `R0, R1, …` — use the same names as the edge lists above.
 
-`P2` waits for `R1`, but `P1` is not waiting for anything, so `P1` will finish and release `R1`. No cycle.
+### Part B — Construct to a specification
 
-You may add your own graphs, but you must keep at least one deadlocked and one safe case.
+Using **Build your own**, create each of the following, then screenshot it at the Detection step and write one sentence explaining why it satisfies the requirement:
 
-### Required Output Format
+- **(i)** A **deadlocked** graph with **exactly 3 processes and 3 resources** whose cycle passes through **all three** processes.
+- **(ii)** A graph with **at least 4 process/resource nodes** that has **no cycle** (no deadlock), in which **at least one** process is waiting for a resource.
 
-For the deadlocked graph, print exactly:
-
-```text
-Deadlock detected
-```
-
-Then print the cycle, for example:
-
-```text
-Cycle: P1 -> R2 -> P2 -> R1 -> P1
-```
-
-For the safe graph, print exactly:
-
-```text
-No deadlock detected
-```
-
-### Pseudocode
-
-```text
-build directed graph from edges (processes and resources are both nodes)
-
-detect_cycle(graph):
-    use DFS with a "visiting" / "visited" coloring
-    if you revisit a node currently on the DFS stack -> cycle found
-
-if detect_cycle(graph):
-    print "Deadlock detected"
-    print the cycle
-else:
-    print "No deadlock detected"
-```
-
-### Screenshots
-
-Take two screenshots:
-
-```text
-screenshots/task1_deadlocked.png
-screenshots/task1_safe.png
-```
-
-- The deadlocked screenshot must show `Deadlock detected` and the cycle.
-- The safe screenshot must show `No deadlock detected`.
+A scenario where *nobody* is waiting does not count for (ii) — at least one request edge must exist, yet the system must still be deadlock-free.
 
 ---
 
-## Task 2: Banker's Algorithm (Deadlock Avoidance)
+## Task 2 — Hand-Tracing the Banker's Algorithm (personalized)
 
-### Goal
+Tool: **bankers-algorithm.html** (use **Custom data**). The tool's default custom scenario already matches the base below, so you only edit two cells.
 
-Write a program that implements the **Banker's Algorithm**: given the current allocation state, determine whether the state is **safe** and find a **safe sequence**; then decide whether a specific resource **request** can be granted.
+### Your personalized scenario
 
-### Required Data
-
-Use this classic configuration (5 processes, 3 resource types). It is a standard textbook state and is easy to verify:
+Base scenario (3 processes, 3 resource types; **Instances/Total** A=10, B=5, C=7):
 
 ```text
-Total resources:  A=10  B=5  C=7
-
-           Allocation        Max
-Process    A   B   C       A   B   C
-  P0       0   1   0       7   5   3
-  P1       2   0   0       3   2   2
-  P2       3   0   2       9   0   2
-  P3       2   1   1       2   2   2
-  P4       0   0   2       4   3   3
+        Allocation            Max (base)
+        A   B   C             A   B   C
+P0      0   1   0             7   5   3
+P1      2   0   0             3   2   2
+P2      3   0   2             9   0   2
 ```
 
-Your program must compute:
+Let **a** = the **last digit** of your student ID, and **b** = the **second-to-last digit**.
+
+Personalize the **Max** matrix (Allocation and Totals stay the same):
 
 ```text
-Need = Max - Allocation
-
-Available = Total - sum(Allocation per resource)
+Max[P0][A] = 7 + (a mod 3)
+Max[P2][C] = 2 + (b mod 4)
 ```
 
-You may use your own data, but it must have multiple resource types and at least one valid safe sequence.
+Write your two computed values at the top of Task 2 and use this scenario for everything below. (Changing only Max keeps Allocation ≤ Max and keeps Available unchanged, so your scenario is always valid — the tool will confirm.)
 
-### Required Behavior — Part A: Safety Check
+### What to do — by hand first
 
-Run the safety algorithm on the initial state:
+1. **Need matrix.** Compute `Need = Max − Allocation` for all three processes. Show the full matrix.
+2. **Available.** Compute `Available = Total − Σ Allocation`. Show the arithmetic.
+3. **Safety by hand.** Decide whether your state is **safe**. Fill in this trace table *by hand*, in the order you select processes — show the **Work** vector after each process finishes:
 
-- compute `Need` and `Available`
-- find a **safe sequence** (an order in which all processes can finish)
-- print whether the state is **safe** or **unsafe**
-- if safe, print the safe sequence
+   | Step | Process chosen | Why Need ≤ Work? | Work after it releases |
+   |------|----------------|------------------|------------------------|
+   | 1 | | | |
+   | 2 | | | |
+   | 3 | | | |
 
-For the data above, `Available` starts at `A=3 B=3 C=2` and one valid safe sequence is:
+   State your conclusion: **SAFE** (give the safe sequence) or **UNSAFE** (explain why no process can proceed at some point).
+4. **Verify safety.** Enter your scenario into the tool (Custom data → set the two Max cells → *Apply & Animate*, Safety check). Screenshot the final result. Note whether it matched your hand trace; if your safe sequence differs from the tool's, explain why **both can still be valid**.
+5. **Requests (your choice).** Propose **two** resource requests on your scenario:
+   - one you predict will be **granted**, and
+   - one you predict will be **denied**.
 
-```text
-P1 -> P3 -> P4 -> P0 -> P2
-```
-
-(Other valid sequences may exist; any correct one is acceptable.)
-
-### Required Behavior — Part B: Resource Request
-
-Implement the **resource-request algorithm**. Given a request from a process:
-
-1. If `Request > Need`, reject it (process exceeded its declared maximum).
-2. If `Request > Available`, the process must wait (resources unavailable).
-3. Otherwise, **pretend** to grant it (update Allocation, Need, Available) and run the safety check.
-   - If the resulting state is **safe**, grant the request.
-   - If it is **unsafe**, deny the request and roll back.
-
-Test **two requests in order** and show both outcomes. The requests are sequential: evaluate Request 1 first, actually apply it if granted, then evaluate Request 2 on the **resulting** state:
-
-```text
-Request 1:  P1 requests (1, 0, 2)   -> should be GRANTED (resulting state is safe)
-Request 2:  P0 requests (0, 2, 0)   -> should be DENIED  (resulting state is unsafe)
-```
-
-> Important: Request 2 is only unsafe **because Request 1 was granted first**. If you evaluate `P0 (0,2,0)` against the original state, it is actually safe. Apply the requests in order to reproduce the GRANTED-then-DENIED result.
-
-### Required Output Format
-
-For the safety check, print exactly one of:
-
-```text
-State is SAFE. Safe sequence: P1 -> P3 -> P4 -> P0 -> P2
-```
-
-```text
-State is UNSAFE. No safe sequence exists.
-```
-
-For a request, print exactly one of:
-
-```text
-Request granted
-```
-
-```text
-Request denied: would lead to an unsafe state
-```
-
-(or the appropriate `Request denied: exceeds maximum` / `Request denied: resources unavailable` message).
-
-### Pseudocode
-
-```text
-safety_check(Available, Allocation, Need):
-    Work = copy(Available)
-    Finish[i] = false for all processes
-
-    repeat:
-        find a process i where Finish[i] == false AND Need[i] <= Work
-        if found:
-            Work = Work + Allocation[i]
-            Finish[i] = true
-            append i to safe_sequence
-        else:
-            break
-
-    if all Finish are true:
-        return SAFE, safe_sequence
-    else:
-        return UNSAFE
-
-request(i, Req):
-    if Req > Need[i]:  reject (exceeds maximum)
-    if Req > Available: process must wait
-    # tentative grant
-    Available -= Req
-    Allocation[i] += Req
-    Need[i] -= Req
-    if safety_check(...) == SAFE:
-        grant
-    else:
-        roll back the tentative grant
-        deny
-```
-
-### Screenshots
-
-Take two screenshots:
-
-```text
-screenshots/task2_safe_sequence.png
-screenshots/task2_requests.png
-```
-
-- The safe-sequence screenshot must show the Need matrix (or Available) and the `State is SAFE. Safe sequence: ...` line.
-- The requests screenshot must show **both** the granted request and the denied request.
+   For each, show the reasoning by hand: check (1) `Request ≤ Need`, (2) `Request ≤ Available`, and (3) whether the tentative state is safe. State your verdict. Then verify each in the tool (**Resource request** mode) and screenshot it. Explain any request that was denied — *which* check failed, or *why* the tentative state was unsafe.
 
 ---
 
-## Optional Extension: Make It Unsafe
+## Task 3 — A Cycle Is Not Always a Deadlock (multi-instance)
 
-After both tasks work, you may add one of the following:
+Tool: **deadlock-detection.html**. Here resources can have **multiple instances**, so a cycle is **necessary but not sufficient** for deadlock.
 
-1. **Force an unsafe state** in Task 2 by changing `Available` to `A=1 B=1 C=0` and re-running the safety check. Show that no safe sequence exists and the output is `State is UNSAFE`.
-
-2. **Multi-instance detection** in Task 1: extend the detector to resources with multiple instances, where a cycle is *necessary but not sufficient* for deadlock. Show a graph with a cycle that is **not** deadlocked.
-
-Optional screenshot:
-
-```text
-screenshots/task3_unsafe_or_multi.png
-```
+1. **Examples.** Open the **"Cycle, NO deadlock"** example and step through the reduction. In your own words: a cycle clearly exists — so **why is the system not deadlocked**? Name the process that finishes first and explain the role of the **spare instance**.
+2. **One small change.** Switch to **"Cycle, deadlock"**. Identify the **single difference** between the two scenarios and explain why that one change makes the system deadlock.
+3. **Build your own (different from the examples).** In **Build your own**, set at least one resource to have **2 or more instances** and construct a scenario that **has a cycle but is NOT deadlocked**. Screenshot it. Then make **one change** (e.g., add a request, or reduce an instance count) that turns it into a **deadlock**, and screenshot that. Explain what your change did in terms of the reduction algorithm (which process could no longer get `Request ≤ Work`).
 
 ---
 
-## Questions
+## Task 4 — Apply the Concepts (short written answers)
 
-Answer these in your `README.md`:
+Answer in your own words. Where a scenario is asked for, **do not reuse the textbook 4-way-intersection example** — invent your own (e.g., from printers, database locks, a kitchen, road traffic).
 
-1. In Task 1, what is the difference between a **request edge** and an **assignment edge**?
-2. In Task 1, why does a cycle guarantee deadlock when every resource has a **single instance**, but not when resources have **multiple instances**?
-3. Which of the **four deadlock conditions** does a cycle in the RAG represent?
-4. In Task 2, what does it mean for a state to be **safe**? Does an **unsafe** state always mean deadlock?
-5. In Task 2, how does the safety algorithm choose the next process for the safe sequence?
-6. Why does the Banker's Algorithm need each process's **maximum** demand declared **in advance**?
-7. What is the key difference between deadlock **detection** (Task 1) and deadlock **avoidance** (Task 2)?
+1. State the **four necessary conditions** for deadlock, and map each one to a single concrete situation you invent. Which **one** condition would be easiest to remove in your situation, and what would that cost?
+2. In a **single-instance** RAG, a cycle proves deadlock. In a **multi-instance** system it does not. Explain the difference in one or two sentences.
+3. What is the difference between an **unsafe state** and a **deadlocked state**? Give a one-line example of a state that is unsafe but not (yet) deadlocked.
+4. Compare deadlock **avoidance** (Banker's) with deadlock **detection + recovery**. Name one cost of each, and one kind of system where you would choose each.
+5. Why does the Banker's Algorithm require each process to declare its **maximum** demand in advance? What real-world problem does that requirement cause?
 
 ---
 
 ## Deliverables & Submission
 
-### Required Screenshots
+Submit a written report and your own screenshots — **no source code**.
+
+### Required screenshots (your own, from the tools)
 
 ```text
-screenshots/task1_deadlocked.png
-screenshots/task1_safe.png
-screenshots/task2_safe_sequence.png
-screenshots/task2_requests.png
+screenshots/task1_graph1.png          screenshots/task1_graph2.png
+screenshots/task1_build_deadlock.png  screenshots/task1_build_nocycle.png
+screenshots/task2_safety.png          screenshots/task2_request_grant.png
+screenshots/task2_request_deny.png    screenshots/task3_cycle_nodeadlock.png
+screenshots/task3_deadlock.png
 ```
 
-### Required Source Files
-
-Submit your source files. Use names that match your language.
-
-Examples:
-
-```text
-task1_rag/rag_detector.py
-task2_bankers/bankers.py
-```
-
-or:
-
-```text
-task1_rag/RagDetector.java
-task2_bankers/Bankers.java
-```
-
-### Submission Folder Structure
+### Submission folder structure
 
 ```text
 os-se-<YourStudentID>/
 `-- os-class-activities-<YourStudentID>/
     `-- activity7/
-        |-- README.md
-        |-- task1_rag/
-        |   `-- rag_detector.<extension>
-        |-- task2_bankers/
-        |   `-- bankers.<extension>
+        |-- report.md            (or report.pdf)
         `-- screenshots/
-            |-- task1_deadlocked.png
-            |-- task1_safe.png
-            |-- task2_safe_sequence.png
-            `-- task2_requests.png
+            |-- task1_graph1.png
+            |-- task1_graph2.png
+            |-- task1_build_deadlock.png
+            |-- task1_build_nocycle.png
+            |-- task2_safety.png
+            |-- task2_request_grant.png
+            |-- task2_request_deny.png
+            |-- task3_cycle_nodeadlock.png
+            `-- task3_deadlock.png
 ```
 
-### README Template
+### Report template
 
 ````markdown
-# Class Activity 7 - Resource Allocation Graph & Banker's Algorithm
+# Class Activity 7 - Reasoning About Deadlock
 
 - **Student Name:** [Your Name]
 - **Student ID:** [Your ID]
-- **Programming Language Used:** [Python / C / C++ / Java / Other]
+- **My personalization:** a = [last digit], b = [second-to-last digit]
 
 ---
 
-## Task 1: Resource Allocation Graph (Detection)
+## Task 1 — Resource Allocation Graphs
 
-![Deadlocked graph](screenshots/task1_deadlocked.png)
-![Safe graph](screenshots/task1_safe.png)
+### Part A
+**Graph 1 — my prediction:** [cycle? deadlock? the cycle path / why not]
+![Graph 1](screenshots/task1_graph1.png)
+Matched the tool? [yes/no — if no, what I got wrong]
 
-- Edges of the deadlocked graph:
-- Cycle detected:
-- Edges of the safe graph:
-- Why the safe graph has no cycle:
+**Graph 2 — my prediction:** [...]
+![Graph 2](screenshots/task1_graph2.png)
+Matched the tool? [...]
 
----
+### Part B
+**(i) Deadlocked 3×3 graph** — edges I used + why it deadlocks:
+![Built deadlock](screenshots/task1_build_deadlock.png)
 
-## Task 2: Banker's Algorithm (Avoidance)
-
-![Safe sequence](screenshots/task2_safe_sequence.png)
-![Requests](screenshots/task2_requests.png)
-
-- Available at start:
-- Safe sequence found:
-- Request 1 (process + amount) and outcome:
-- Request 2 (process + amount) and outcome:
+**(ii) No-cycle graph (≥4 nodes, ≥1 request)** — why it is deadlock-free:
+![Built no-cycle](screenshots/task1_build_nocycle.png)
 
 ---
 
-## Questions
+## Task 2 — Banker's Algorithm (my personalized scenario)
 
-1. What is the difference between a request edge and an assignment edge?
-2. Why does a cycle guarantee deadlock with single-instance resources but not with multiple instances?
-3. Which of the four deadlock conditions does a cycle in the RAG represent?
-4. What does it mean for a state to be safe? Does unsafe always mean deadlock?
-5. How does the safety algorithm choose the next process for the safe sequence?
-6. Why must each process's maximum demand be declared in advance?
-7. What is the key difference between deadlock detection and deadlock avoidance?
+- Max[P0][A] = 7 + (a mod 3) = [...]   Max[P2][C] = 2 + (b mod 4) = [...]
+- **Need matrix:** [...]
+- **Available:** Total − ΣAlloc = [...]
+
+**Safety trace (by hand):**
+
+| Step | Process | Why Need ≤ Work | Work after release |
+|------|---------|-----------------|--------------------|
+| 1 | | | |
+| 2 | | | |
+| 3 | | | |
+
+Conclusion: [SAFE — safe sequence = … / UNSAFE — because …]
+![Safety check](screenshots/task2_safety.png)
+Matched the tool? [...]
+
+**Request I predicted GRANTED:** [process + vector], checks: [...]
+![Grant](screenshots/task2_request_grant.png)
+
+**Request I predicted DENIED:** [process + vector], which check failed / why unsafe: [...]
+![Deny](screenshots/task2_request_deny.png)
 
 ---
 
-## Reflection
+## Task 3 — Cycle ≠ Deadlock
 
-_What did this activity teach you about how an OS can reason about deadlock before it happens, instead of only reacting after threads are already stuck?_
+1. Why the "Cycle, NO deadlock" example is not deadlocked: [...]
+2. The single change that causes deadlock: [...]
+3. My own scenario:
+![Cycle, no deadlock](screenshots/task3_cycle_nodeadlock.png)
+My change that caused deadlock + why (reduction terms):
+![Deadlock](screenshots/task3_deadlock.png)
+
+---
+
+## Task 4 — Applied Concepts
+1. [...]  2. [...]  3. [...]  4. [...]  5. [...]
 ````
 
 ---
@@ -461,22 +275,23 @@ _What did this activity teach you about how an OS can reason about deadlock befo
 
 | Criteria | Points | Description |
 |----------|--------|-------------|
-| **Task 1 graph + cycle detection** | 25 | Correctly models request/assignment edges and detects a cycle. |
-| **Task 1 both cases** | 10 | Reports `Deadlock detected` (with cycle) and `No deadlock detected` for the two graphs. |
-| **Task 2 safety check** | 25 | Correctly computes Need/Available and finds a valid safe sequence. |
-| **Task 2 request decisions** | 20 | Correctly grants a safe request and denies an unsafe one with the right messages. |
-| **Task 2 correctness of state** | 5 | Tentative grants are rolled back when a request is denied. |
-| **README and screenshots** | 15 | Screenshots embedded, source files submitted, and questions answered clearly. |
+| **Task 1 predictions + verification** | 20 | Correct cycle/deadlock reasoning *and* a prediction recorded before verifying, with honest comparison notes. |
+| **Task 1 constructed graphs** | 15 | Both built graphs meet the exact specification, with a correct one-line justification each. |
+| **Task 2 hand trace** | 25 | Correct Need/Available, a complete Work-vector trace, and a valid safe sequence (or correct unsafe argument) for *your* personalized data. |
+| **Task 2 requests** | 15 | One grant + one deny, each justified by the three checks, verified against the tool. |
+| **Task 3 multi-instance** | 15 | Clear explanation of cycle ≠ deadlock and a self-built scenario flipped from no-deadlock to deadlock with a correct explanation. |
+| **Task 4 applied concepts** | 10 | Reasoned, in-your-own-words answers using original examples. |
 | **Total** | **100** | |
+
+> Up to **20 points** may be deducted across the activity for answers that show only final values with **no reasoning or no predictions** — the point of this activity is your thinking, not the tool's output.
 
 ---
 
 ## Tips
 
-- In Task 1, treat processes and resources as **the same kind of node** in one directed graph; the cycle detector does not care which is which.
-- A single-instance cycle means deadlock. If you do the multi-instance extension, remember a cycle is then only a *warning*, not a proof.
-- In Task 2, the most common bug is forgetting to add a finished process's `Allocation` back into `Work` — that release is what lets the next process proceed.
-- Always compute `Need = Max - Allocation` first; almost every safety check works off `Need`, not `Max`.
-- When a request is denied for being unsafe, you **must roll back** the tentative changes to Allocation, Need, and Available, or the rest of your run will be wrong.
-- A state being *unsafe* does not mean it is *deadlocked* — it means the OS cannot prove all processes can finish, so it refuses the request to stay on the safe side.
-- This activity builds on Activity 6: there you *caused* a deadlock; here you *detect* and *avoid* one.
+- **Predict before you click.** The whole grade rests on your reasoning; the tool is the answer key, not the worker.
+- Use the tools' **Prev/Next** buttons to study one step at a time — especially the **Work** vector growing in Banker's and the reduction in the multi-instance tool.
+- A safe sequence is **not unique**. If yours differs from the tool's and both let every process finish, both are correct — say so.
+- "Unsafe" never means "already deadlocked." It means the OS cannot *prove* everyone can finish, so it refuses the request to be safe.
+- For Task 3, the easiest way to flip a no-deadlock scenario into a deadlock is to remove the spare instance or add a request that consumes the last free unit — watch what that does to `Available`.
+- Keep your screenshots **yours**: they should show *your* personalized numbers and *your* constructed graphs, not the default examples.
