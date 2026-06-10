@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multi-Instance Deadlock Detection</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --proc:#3b82f6; --res:#10b981; --request:#f59e0b; --assign:#22c55e;
+    --cycle:#ef4444; --accent:#60a5fa; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+    --row:#1b2735; --rowhi:#243b27; --rowtest:#3a3320; --rowdead:#3a1f1f; --border:#233042;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 560px;min-width:340px}
+  .side{flex:0 0 360px;min-width:320px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:0 0 10px}
+  svg{width:100%;height:auto;display:block}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+  th,td{padding:6px 8px;text-align:center;font-size:14px;border:1px solid var(--border)}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  td.proc{font-weight:700;color:#fff;background:#1f2d3d}
+  tr.matrixrow{background:var(--row);transition:background .35s}
+  tr.testing{background:var(--rowtest)}
+  tr.finished{background:var(--rowhi)}
+  tr.finished td.proc{background:#1d4d28}
+  tr.dead{background:var(--rowdead)}
+  tr.dead td.proc{background:#5b1d1d}
+  .work{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .vec{display:inline-flex;gap:6px}
+  .cell{min-width:34px;padding:6px 8px;border-radius:6px;background:#243446;text-align:center;font-weight:600;transition:.3s}
+  .cell.bump{background:var(--ok);color:#06210f}
+  .reslabel{color:var(--muted);font-size:12px;margin-right:2px}
+  .seq{display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:30px}
+  .chip{background:#1d4d28;border:1px solid #2c7a3f;color:#d6ffe0;padding:5px 11px;border-radius:18px;font-weight:600;animation:pop .3s ease}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .arrow{color:var(--muted)}
+  .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:130px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:15px;line-height:1.55}
+  .verdict{font-size:18px;font-weight:700;margin-top:10px}
+  .verdict.safe{color:var(--ok)} .verdict.dead{color:var(--bad)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:#2e4459}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .modes{display:flex;gap:8px;margin-bottom:12px}
+  .modes button{flex:1}
+  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .scenarios{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .scenarios button{flex:1;min-width:130px}
+  .scenarios button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.7}
+  .legend b.r{color:var(--request)} .legend b.a{color:var(--assign)} .legend b.c{color:var(--cycle)}
+  /* editor */
+  .editor input{width:46px;background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:6px;padding:5px;text-align:center;font-size:13px}
+  .editor select{background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:6px;padding:6px;font-size:13px}
+  .editor .erow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .editor .small{padding:5px 10px;font-size:13px}
+  .editor table th,.editor table td{padding:4px}
+  .emsg{font-size:13px;min-height:18px;margin:6px 0;color:var(--bad)}
+  .emsg.ok{color:var(--ok)}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+  .node-label{font-size:14px;font-weight:600;fill:#fff;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>Multi-Instance Deadlock Detection</h1>
+  <div class="sub">Class Activity 7 · Task 1 extension — with multiple instances, a <b>cycle is necessary but NOT sufficient</b> for deadlock</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <div class="panel">
+      <h2>Resource allocation graph (filled dot = allocated instance, hollow = free)</h2>
+      <svg id="svg" viewBox="0 0 800 360" aria-label="Multi-instance resource allocation graph">
+        <defs>
+          <marker id="arrow-req" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4 L0,8 Z" fill="var(--request)"/></marker>
+          <marker id="arrow-assign" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4 L0,8 Z" fill="var(--assign)"/></marker>
+          <marker id="arrow-cycle" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4 L0,8 Z" fill="var(--cycle)"/></marker>
+        </defs>
+        <g id="edges"></g><g id="nodes"></g>
+      </svg>
+      <div class="legend" id="graphLegend"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Allocation &amp; Request</h2>
+      <table id="matrix"><thead><tr id="groupHeader"></tr><tr id="resHeader"></tr></thead><tbody id="matrixBody"></tbody></table>
+    </div>
+
+    <div class="panel">
+      <h2>Work vector (starts at Available, grows as processes finish)</h2>
+      <div class="work"><span class="reslabel" id="workResLabel"></span><div class="vec" id="workVec"></div></div>
+      <h2 style="margin-top:14px">Reduction order (finished processes)</h2>
+      <div class="seq" id="seq"><span class="arrow">—</span></div>
+    </div>
+
+    <!-- editor -->
+    <div class="panel editor" id="editorPanel" style="display:none">
+      <h2>Edit your scenario</h2>
+      <div class="erow">
+        Resource types:
+        <button class="small" onclick="changeRes(-1)">−</button><span id="resCount">2</span><button class="small" onclick="changeRes(1)">+</button>
+        &nbsp;&nbsp; Processes:
+        <button class="small" onclick="changeProc(-1)">−</button><span id="procCount">3</span><button class="small" onclick="changeProc(1)">+</button>
+      </div>
+      <div class="hint">The <b>Instances</b> row is the number of units of each resource — increase/decrease it to add or remove instances.</div>
+      <div id="editorGrid"></div>
+      <div class="emsg" id="emsg"></div>
+      <button class="primary" onclick="applyCustom()">Apply &amp; Animate ▶</button>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="modes">
+      <button id="mEx" class="active" onclick="setMode('example')">Examples</button>
+      <button id="mCustom" onclick="setMode('custom')">Build your own</button>
+    </div>
+
+    <div class="scenarios" id="scenarioBar">
+      <button id="scN" class="active" onclick="loadScenario('N')">Cycle, NO deadlock</button>
+      <button id="scD" onclick="loadScenario('D')">Cycle, deadlock</button>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= helpers ================= */
+const vadd=(a,b)=>a.map((x,i)=>x+b[i]);
+const vsub=(a,b)=>a.map((x,i)=>x-b[i]);
+const vle =(a,b)=>a.every((x,i)=>x<=b[i]);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const sumCols=(m,k)=>m.reduce((acc,r)=>vadd(acc,r),Array(k).fill(0));
+const availOf=d=>vsub(d.total, sumCols(d.alloc, d.total.length));
+
+/* ================= data ================= */
+const SCENARIOS = {
+  N: { title:'Cycle, NO deadlock',
+       data:{res:['R1','R2'], total:[1,2], procs:['P1','P2','P3'],
+             alloc:[[0,1],[1,0],[0,1]], request:[[1,0],[0,1],[0,0]]} },
+  D: { title:'Cycle, deadlock',
+       data:{res:['R1','R2'], total:[1,2], procs:['P1','P2','P3'],
+             alloc:[[0,1],[1,0],[0,1]], request:[[1,0],[0,1],[1,0]]} },
+};
+function defaultCustom(){ return clone(SCENARIOS.N.data); }
+
+/* ================= detection trace ================= */
+function snap(stepLabel, text, s){
+  return { stepLabel, text,
+    work:s.work.slice(), finished:new Set(s.finished), dead:new Set(s.dead||[]),
+    seq:s.seq.slice(), testing:(s.testing===undefined?null:s.testing),
+    verdict:s.verdict||null, bumpWork:!!s.bumpWork };
+}
+function buildDetectionTrace(d){
+  const k=d.total.length, P=d.procs.length;
+  const avail=availOf(d);
+  let work=avail.slice();
+  const finished=new Set();
+  d.alloc.forEach((a,i)=>{ if(a.every(x=>x===0)) finished.add(i); });
+  const seq=[]; const frames=[];
+
+  let intro='<b>Available = Total − Σ Allocation = ['+avail.join(', ')+'].</b> '
+    +'Set Work = Available. A process can finish when its <b>Request ≤ Work</b>; then it returns its allocation to Work.';
+  if(finished.size>0) intro+=' (Processes holding nothing are marked finished immediately.)';
+  frames.push(snap('Setup', intro, {work,finished,seq,testing:null}));
+
+  let prog=true;
+  while(prog){
+    prog=false;
+    for(let i=0;i<P;i++){
+      if(finished.has(i)) continue;
+      const canRun=vle(d.request[i], work);
+      frames.push(snap('Testing '+d.procs[i],
+        'Test <b>'+d.procs[i]+'</b>: Request ['+d.request[i].join(', ')+'] ≤ Work ['+work.join(', ')+'] ? '
+        +(canRun?'<b style="color:var(--ok)">Yes ✓</b>':'<b style="color:var(--bad)">No ✗ — skip</b>'),
+        {work,finished,seq,testing:i}));
+      if(canRun){
+        work=vadd(work, d.alloc[i]); finished.add(i); seq.push(d.procs[i]); prog=true;
+        frames.push(snap(d.procs[i]+' finishes',
+          '<b>'+d.procs[i]+'</b> can complete; it releases ['+d.alloc[i].join(', ')+'] back to Work, which grows to <b>['+work.join(', ')+']</b>.',
+          {work,finished,seq,testing:null,bumpWork:true}));
+        break;
+      }
+    }
+  }
+  const dead=[]; for(let i=0;i<P;i++) if(!finished.has(i)) dead.push(i);
+  const isDead = dead.length>0;
+  frames.push(snap(isDead?'Deadlock':'No deadlock',
+    isDead
+      ? 'No remaining process has Request ≤ Work. Processes <b>'+dead.map(i=>d.procs[i]).join(', ')+'</b> can never proceed — they are <b>deadlocked</b>. Note a cycle existed, and here it really is a deadlock.'
+      : 'Every process finished, so the system is <b>NOT deadlocked</b> — even though the graph contains a cycle. The spare resource instance let one process proceed and break the wait.',
+    {work,finished,seq,testing:null,dead,
+     verdict:isDead?{cls:'dead',txt:'⛔ Deadlock detected'}:{cls:'safe',txt:'✅ No deadlock (cycle ≠ deadlock)'}}));
+  return {frames, isDead};
+}
+
+/* ================= graph (single edge per alloc/request, for cycle view) ================= */
+function buildGraphEdges(d){
+  const edges=[];
+  d.procs.forEach((p,i)=>d.res.forEach((r,ri)=>{
+    if(d.alloc[i][ri]>0) edges.push({from:'R'+ri, to:'P'+i, kind:'assign', n:d.alloc[i][ri]});
+    if(d.request[i][ri]>0) edges.push({from:'P'+i, to:'R'+ri, kind:'request', n:d.request[i][ri]});
+  }));
+  return edges;
+}
+function findCycle(d, edges){
+  const adj={}; edges.forEach(e=>{(adj[e.from]=adj[e.from]||[]).push(e.to);});
+  const ids=[...d.procs.map((_,i)=>'P'+i), ...d.res.map((_,i)=>'R'+i)];
+  const color={}, parent={}; ids.forEach(n=>color[n]=0); let cyc=null;
+  function dfs(u){ color[u]=1;
+    for(const v of (adj[u]||[])){ if(cyc) return;
+      if(color[v]===0){parent[v]=u;dfs(v);}
+      else if(color[v]===1){ const path=[u]; let x=u; while(x!==v){x=parent[x];path.push(x);} path.reverse(); path.push(v); cyc=path; return; }
+    } color[u]=2;
+  }
+  for(const n of ids){ if(color[n]===0 && !cyc) dfs(n); }
+  return cyc;
+}
+
+/* ================= layout & geometry ================= */
+let nodePos={};            // id -> {x,y,type,instances?,filled?}
+const PR=30;
+function layout(d){
+  nodePos={};
+  const ids=[...d.procs.map((_,i)=>'P'+i), ...d.res.map((_,i)=>'R'+i)];
+  const cx=400, cy=170, R=Math.min(140, 70+ids.length*12);
+  ids.forEach((id,i)=>{
+    const ang=-Math.PI/2 + i*2*Math.PI/ids.length;
+    nodePos[id]={x:cx+R*Math.cos(ang), y:cy+R*Math.sin(ang), type:id[0]};
+  });
+}
+function resWidth(inst){ return Math.max(56, 18*inst+14); }
+function nodeEdgePoint(id, tx, ty, d){
+  const n=nodePos[id]; const dx=tx-n.x, dy=ty-n.y, len=Math.hypot(dx,dy)||1; const ux=dx/len, uy=dy/len;
+  if(n.type==='P') return {x:n.x+ux*(PR+4), y:n.y+uy*(PR+4)};
+  const ri=+id.slice(1); const halfW=resWidth(d.total[ri])/2+4, halfH=29;
+  const sx=halfW/Math.max(Math.abs(ux),1e-6), sy=halfH/Math.max(Math.abs(uy),1e-6);
+  const s=Math.min(sx,sy); return {x:n.x+ux*s, y:n.y+uy*s};
+}
+
+/* ================= state ================= */
+let mode='example', scenario='N';
+let DATA=clone(SCENARIOS.N.data), customDATA=defaultCustom();
+let trace=null, idx=0, playing=false, playTimer=null;
+
+function run(){ trace=buildDetectionTrace(DATA); idx=0; stopPlay(); drawGraph(); render(); }
+
+/* ================= rendering: graph ================= */
+const elNodes=document.getElementById('nodes'), elEdges=document.getElementById('edges');
+function mk(tag,a){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function drawGraph(){
+  const d=DATA; layout(d);
+  const edges=buildGraphEdges(d);
+  const cyc=findCycle(d,edges);
+  const cycSet=new Set(); if(cyc) for(let i=0;i<cyc.length-1;i++) cycSet.add(cyc[i]+'->'+cyc[i+1]);
+
+  // edges
+  elEdges.innerHTML='';
+  edges.forEach(e=>{
+    const a=nodePos[e.from], b=nodePos[e.to];
+    const p1=nodeEdgePoint(e.from,b.x,b.y,d), p2=nodeEdgePoint(e.to,a.x,a.y,d);
+    const inC=cycSet.has(e.from+'->'+e.to);
+    const col=inC?'var(--cycle)':(e.kind==='assign'?'var(--assign)':'var(--request)');
+    const mark=inC?'url(#arrow-cycle)':(e.kind==='assign'?'url(#arrow-assign)':'url(#arrow-req)');
+    elEdges.appendChild(mk('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:col,'stroke-width':inC?4:2.5,'marker-end':mark}));
+    if(e.n>1){ const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2; const t=mk('text',{x:mx,y:my-4,'font-size':11,fill:col,'text-anchor':'middle'}); t.textContent='×'+e.n; elEdges.appendChild(t); }
+  });
+
+  // nodes
+  elNodes.innerHTML='';
+  d.procs.forEach((p,i)=>{
+    const n=nodePos['P'+i];
+    elNodes.appendChild(mk('circle',{cx:n.x,cy:n.y,r:PR,fill:'var(--proc)',stroke:'#1e3a8a','stroke-width':2}));
+    const t=mk('text',{x:n.x,y:n.y,class:'node-label'}); t.textContent=p; elNodes.appendChild(t);
+  });
+  const allocPerRes=sumCols(d.alloc,d.total.length);
+  d.res.forEach((r,ri)=>{
+    const n=nodePos['R'+ri]; const w=resWidth(d.total[ri]);
+    elNodes.appendChild(mk('rect',{x:n.x-w/2,y:n.y-26,width:w,height:52,rx:8,fill:'var(--res)',stroke:'#065f46','stroke-width':2}));
+    const t=mk('text',{x:n.x,y:n.y-13,class:'node-label','font-size':12}); t.textContent=r; elNodes.appendChild(t);
+    // instance dots
+    const inst=d.total[ri], used=allocPerRes[ri];
+    const startX=n.x-(inst-1)*8;
+    for(let k=0;k<inst;k++){
+      elNodes.appendChild(mk('circle',{cx:startX+k*16,cy:n.y+9,r:5,fill:k<used?'#04261c':'none',stroke:'#04261c','stroke-width':2}));
+    }
+  });
+
+  // legend
+  document.getElementById('graphLegend').innerHTML =
+    '<b class="a">green</b> assignment R→P (held by) · <b class="r">orange</b> request P→R (waiting) · '
+    + (cyc? '<b class="c">red</b> cycle: '+cyc.join(' → ') : 'no cycle in this graph');
+}
+
+/* ================= rendering: matrices ================= */
+function renderHeaders(){
+  const d=DATA;
+  document.getElementById('groupHeader').innerHTML =
+    '<th rowspan="2">Proc</th><th colspan="'+d.res.length+'">Allocation</th><th colspan="'+d.res.length+'">Request</th>';
+  const rh=document.getElementById('resHeader'); rh.innerHTML='';
+  for(let g=0;g<2;g++) d.res.forEach(r=>{const th=document.createElement('th');th.textContent=r;rh.appendChild(th);});
+  document.getElementById('workResLabel').textContent=d.res.join('  ');
+}
+function render(){
+  renderHeaders();
+  const d=DATA, f=trace.frames[idx];
+  const body=document.getElementById('matrixBody'); body.innerHTML='';
+  d.procs.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.className='matrixrow'+(f.finished.has(i)?' finished':'')+(f.testing===i?' testing':'')+(f.dead.has(i)?' dead':'');
+    tr.innerHTML='<td class="proc">'+p+'</td>'
+      + d.alloc[i].map(v=>'<td>'+v+'</td>').join('')
+      + d.request[i].map(v=>'<td>'+v+'</td>').join('');
+    body.appendChild(tr);
+  });
+  const wv=document.getElementById('workVec'); wv.innerHTML='';
+  f.work.forEach(v=>{const c=document.createElement('div');c.className='cell'+(f.bumpWork?' bump':'');c.textContent=v;wv.appendChild(c);});
+  const seqEl=document.getElementById('seq');
+  seqEl.innerHTML=(f.seq.length===0)?'<span class="arrow">—</span>'
+    :f.seq.map((p,i)=>(i?'<span class="arrow">→</span>':'')+'<span class="chip">'+p+'</span>').join(' ');
+
+  const title=(mode==='example')?SCENARIOS[scenario].title:'Your scenario';
+  document.getElementById('stepLabel').textContent=title+' · '+f.stepLabel+' ('+idx+'/'+(trace.frames.length-1)+')';
+  document.getElementById('captionText').innerHTML=f.text;
+  const v=document.getElementById('verdict');
+  if(f.verdict){v.className='verdict '+f.verdict.cls;v.textContent=f.verdict.txt;} else {v.className='verdict';v.textContent='';}
+  document.getElementById('prevBtn').disabled=(idx===0);
+  document.getElementById('nextBtn').disabled=(idx>=trace.frames.length-1);
+  document.getElementById('progress').textContent='Step '+idx+' / '+(trace.frames.length-1);
+}
+
+/* ================= controls ================= */
+function next(){ if(idx<trace.frames.length-1){idx++;render();} if(idx>=trace.frames.length-1) stopPlay(); }
+function prev(){ if(idx>0){idx--;render();stopPlay();} }
+function reset(){ idx=0; stopPlay(); render(); }
+function loadScenario(s){ scenario=s; DATA=clone(SCENARIOS[s].data);
+  document.getElementById('scN').classList.toggle('active',s==='N');
+  document.getElementById('scD').classList.toggle('active',s==='D');
+  run();
+}
+function setMode(m){ mode=m;
+  document.getElementById('mEx').classList.toggle('active',m==='example');
+  document.getElementById('mCustom').classList.toggle('active',m==='custom');
+  document.getElementById('scenarioBar').style.display=(m==='example')?'flex':'none';
+  document.getElementById('editorPanel').style.display=(m==='custom')?'block':'none';
+  if(m==='example'){ loadScenario(scenario); } else { renderEditor(); applyCustom(); }
+}
+function togglePlay(){ playing?stopPlay():startPlay(); }
+function startPlay(){ playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{ if(idx>=trace.frames.length-1){stopPlay();return;} next(); },1300); }
+function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
+document.addEventListener('keydown',e=>{ const t=(e.target.tagName||'').toLowerCase(); if(t==='input'||t==='select')return;
+  if(e.key==='ArrowRight')next(); else if(e.key==='ArrowLeft')prev(); else if(e.key===' '){e.preventDefault();togglePlay();} });
+
+/* ================= custom editor ================= */
+function changeRes(delta){ syncEditor(); const R=customDATA.res.length;
+  if(delta>0 && R<4){ customDATA.res.push('R'+R); customDATA.total.push(1); customDATA.alloc.forEach(r=>r.push(0)); customDATA.request.forEach(r=>r.push(0)); }
+  else if(delta<0 && R>1){ customDATA.res.pop(); customDATA.total.pop(); customDATA.alloc.forEach(r=>r.pop()); customDATA.request.forEach(r=>r.pop()); }
+  renderEditor();
+}
+function changeProc(delta){ syncEditor(); const P=customDATA.procs.length, R=customDATA.res.length;
+  if(delta>0 && P<6){ customDATA.procs.push('P'+P); customDATA.alloc.push(Array(R).fill(0)); customDATA.request.push(Array(R).fill(0)); }
+  else if(delta<0 && P>1){ customDATA.procs.pop(); customDATA.alloc.pop(); customDATA.request.pop(); }
+  renderEditor();
+}
+function renderEditor(){
+  const d=customDATA;
+  document.getElementById('resCount').textContent=d.res.length;
+  document.getElementById('procCount').textContent=d.procs.length;
+  const resTh=d.res.map(r=>'<th>'+r+'</th>').join('');
+  let html='<table><thead><tr><th>Proc</th><th colspan="'+d.res.length+'">Allocation</th><th colspan="'+d.res.length+'">Request</th></tr>'
+    +'<tr><th></th>'+resTh+resTh+'</tr></thead><tbody>';
+  d.procs.forEach((p,i)=>{
+    let row='<tr><td class="proc">'+p+'</td>';
+    row+=d.res.map((_,r)=>'<td><input id="al-'+i+'-'+r+'" type="number" min="0" value="'+d.alloc[i][r]+'"></td>').join('');
+    row+=d.res.map((_,r)=>'<td><input id="rq-'+i+'-'+r+'" type="number" min="0" value="'+d.request[i][r]+'"></td>').join('');
+    row+='</tr>'; html+=row;
+  });
+  html+='<tr><td class="proc">Instances</td>'
+    +d.res.map((_,r)=>'<td><input id="tot-'+r+'" type="number" min="1" value="'+d.total[r]+'"></td>').join('')
+    +'<td colspan="'+d.res.length+'" style="color:var(--muted)">Available →</td></tr>';
+  html+='<tr><td class="proc" style="background:#10202c"></td><td colspan="'+d.res.length+'"></td>'
+    +d.res.map((_,r)=>{const av=d.total[r]-d.alloc.reduce((s,row)=>s+row[r],0);return '<td id="av-'+r+'" style="color:'+(av<0?'var(--bad)':'var(--ok)')+'">'+av+'</td>';}).join('')
+    +'</tr></tbody></table>';
+  document.getElementById('editorGrid').innerHTML=html;
+  document.querySelectorAll('#editorGrid input').forEach(inp=>inp.addEventListener('input',updateDerived));
+}
+function updateDerived(){ syncEditor(); const d=customDATA;
+  d.res.forEach((_,r)=>{ const av=d.total[r]-d.alloc.reduce((s,row)=>s+row[r],0); const c=document.getElementById('av-'+r); if(c){c.textContent=av;c.style.color=av<0?'var(--bad)':'var(--ok)';} });
+}
+function clampInt(v,min){ v=parseInt(v,10); if(isNaN(v)||v<min) return min; return v; }
+function syncEditor(){ const d=customDATA;
+  d.procs.forEach((p,i)=>d.res.forEach((_,r)=>{
+    const al=document.getElementById('al-'+i+'-'+r); const rq=document.getElementById('rq-'+i+'-'+r);
+    if(al) d.alloc[i][r]=clampInt(al.value,0); if(rq) d.request[i][r]=clampInt(rq.value,0);
+  }));
+  d.res.forEach((_,r)=>{ const t=document.getElementById('tot-'+r); if(t) d.total[r]=clampInt(t.value,1); });
+}
+function applyCustom(){
+  syncEditor(); const d=customDATA; const msg=document.getElementById('emsg'); msg.className='emsg'; msg.textContent='';
+  const av=availOf(d);
+  if(av.some(x=>x<0)){ msg.textContent='Σ Allocation exceeds Instances for some resource — Available would be negative.'; renderEditor(); return; }
+  for(let i=0;i<d.procs.length;i++) for(let r=0;r<d.res.length;r++){
+    if(d.alloc[i][r]+d.request[i][r] > d.total[r]){ msg.textContent='For '+d.procs[i]+'/'+d.res[r]+', Allocation + Request exceeds total Instances.'; renderEditor(); return; }
+  }
+  msg.className='emsg ok'; msg.textContent='Applied. Running detection…';
+  DATA=clone(d); renderEditor(); run();
+}
+
+/* ================= init ================= */
+loadScenario('N');
+</script>
+</body>
+</html>

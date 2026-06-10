@@ -4,8 +4,9 @@ Step-through, animated explanations of OS concepts. Each file is **self-containe
 
 | Visualization | Topic | Activity |
 |---------------|-------|----------|
-| [rag-deadlock.html](rag-deadlock.html) | Resource Allocation Graph & cycle-based deadlock detection | Activity 7 · Task 1 |
+| [rag-deadlock.html](rag-deadlock.html) | Resource Allocation Graph & cycle-based deadlock detection (single-instance) | Activity 7 · Task 1 |
 | [bankers-algorithm.html](bankers-algorithm.html) | Banker's Algorithm: safety check + resource requests | Activity 7 · Task 2 |
+| [deadlock-detection.html](deadlock-detection.html) | Multi-instance deadlock detection (reduction algorithm) — shows a cycle that is *not* a deadlock | Activity 7 · Task 1 extension |
 
 Each one has two modes:
 
@@ -24,6 +25,7 @@ These links render the pages immediately through `htmlpreview.github.io`:
 
 - **RAG / Deadlock** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/rag-deadlock.html
 - **Banker's Algorithm** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/bankers-algorithm.html
+- **Multi-Instance Deadlock Detection** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/deadlock-detection.html
 
 ## Option 2 — Clean URLs: GitHub Pages (recommended)
 
@@ -41,6 +43,7 @@ Enable once, then the pages are served from your own domain.
 - Menu → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/
 - RAG / Deadlock → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/rag-deadlock.html
 - Banker's Algorithm → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/bankers-algorithm.html
+- Multi-Instance Deadlock Detection → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/deadlock-detection.html
 
 ## Option 3 — Local
 
