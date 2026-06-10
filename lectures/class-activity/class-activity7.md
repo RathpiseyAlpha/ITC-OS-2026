@@ -44,7 +44,7 @@ No environment to install. Create a folder for your evidence:
 
 ```text
 activity7/
-├── report.md          (or report.pdf — your written answers and traced tables)
+├── README.md          (or README.pdf — your written answers and traced tables)
 └── screenshots/       (your own screenshots from the tools)
 ```
 
@@ -184,7 +184,7 @@ screenshots/task3_deadlock.png
 os-se-<YourStudentID>/
 `-- os-class-activities-<YourStudentID>/
     `-- activity7/
-        |-- report.md            (or report.pdf)
+        |-- README.md            (or README.pdf)
         `-- screenshots/
             |-- task1_graph1.png
             |-- task1_graph2.png
@@ -197,7 +197,7 @@ os-se-<YourStudentID>/
             `-- task3_deadlock.png
 ```
 
-### Report template
+### README Template
 
 ````markdown
 # Class Activity 7 - Reasoning About Deadlock
@@ -267,6 +267,12 @@ My change that caused deadlock + why (reduction terms):
 
 ## Task 4 — Applied Concepts
 1. [...]  2. [...]  3. [...]  4. [...]  5. [...]
+
+---
+
+## Reflection
+
+_What did this activity teach you about why a cycle does not always mean deadlock, and about the trade-off between deadlock avoidance (Banker's) and detection + recovery in real systems such as databases or operating systems?_
 ````
 
 ---
