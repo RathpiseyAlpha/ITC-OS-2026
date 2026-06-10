@@ -32,7 +32,8 @@ See [visualizations/README.md](../visualizations/README.md) for the GitHub Pages
 | **Task 1** | Analyze and **build** resource allocation graphs (single-instance) | Your predictions + tool screenshots |
 | **Task 2** | **Hand-trace** the Banker's safety algorithm and requests on *your* personalized data | Filled work tables + tool screenshots |
 | **Task 3** | Show that a **cycle is not always a deadlock** (multi-instance) | Two constructed scenarios + explanation |
-| **Task 4** | Apply the concepts in writing | Short reasoned answers |
+| **Task 4** | **Model semaphore programs** as graphs and use the tools to decide if each can deadlock | YES/NO per case + tool screenshots |
+| **Task 5** | Apply the concepts in writing | Short reasoned answers |
 
 **Golden rule for every task: predict first, then verify.** Write your prediction *before* you press Play. If the tool disagrees with you, do **not** silently fix your answer — keep your prediction and add a short note explaining where your reasoning went wrong. That note is worth marks.
 
@@ -152,7 +153,122 @@ Tool: **deadlock-detection.html**. Here resources can have **multiple instances*
 
 ---
 
-## Task 4 — Apply the Concepts (short written answers)
+## Task 4 — Semaphores and Deadlock (model, then check with the tool)
+
+These three sets of processes coordinate with **counting semaphores** (`wait`/`signal`). For each set you must decide: **can it deadlock?** Then you will model the worst-case interleaving in a tool and verify your answer.
+
+> A semaphore deadlock is just a resource deadlock in disguise. Treat each **semaphore as a resource** whose **number of instances = its initial value**, and each **process as a process node**. Then it is exactly the graphs you built in Tasks 1 and 3.
+
+### Modeling recipe (use for every case)
+
+- A process that has run `wait(s)` but not yet the matching `signal(s)` **holds** one unit of `s` → assignment edge **`s → P`**.
+- A process blocked at `wait(s)` is **requesting** `s` → request edge **`P → s`**.
+- Build the **most dangerous snapshot**: let each process advance *in program order*, acquiring every semaphore it can, until it is blocked on the next `wait`. Then run **Detection**.
+- "Can it deadlock?" means **does any reachable state contain an unbreakable cycle?** The tool only tells you whether the *snapshot you built* is deadlocked — so the reasoning (finding the bad interleaving) is yours; the tool confirms it.
+
+### Which tool
+
+- **Cases 1 and 2** — every semaphore starts at `1` (single-instance) → use **rag-deadlock.html** (Build your own).
+- **Case 3** — `s1` starts at `2`, so that resource has **two instances** → use **deadlock-detection.html** (multi-instance). This is the same "spare instance" idea from Task 3.
+
+### The three cases
+
+**Case 1** — `s1 = 1, s2 = 1, s3 = 1`
+```text
+P1:            P2:            P3:
+wait(s1)       wait(s2)       wait(s1)
+wait(s2)       wait(s3)       wait(s2)
+print("1")     print("2")     wait(s3)
+signal(s2)     signal(s3)     print("3")
+signal(s1)     signal(s2)     signal(s3)
+                              signal(s2)
+                              signal(s1)
+```
+
+**Case 2** — `s1 = 1, s2 = 1, s3 = 1` (only P3 changed — it now takes `s2 → s3 → s1`)
+```text
+P1:            P2:            P3:
+wait(s1)       wait(s2)       wait(s2)
+wait(s2)       wait(s3)       wait(s3)
+print("1")     print("2")     wait(s1)
+signal(s2)     signal(s3)     print("3")
+signal(s1)     signal(s2)     signal(s1)
+                              signal(s3)
+                              signal(s2)
+```
+
+**Case 3** — same code as Case 2, but `s1 = 2, s2 = 1, s3 = 1`
+
+For **each** case, in your report:
+
+1. **Predict (before the tool):** Answer **YES** (can deadlock) or **NO** (cannot). If YES, give the interleaving and write the wait-for cycle (e.g., `P1 → s2 → P3 → s1 → P1`). If NO, explain *why* no cycle can form (hint: compare the **order** in which each process acquires its semaphores).
+2. **Model & verify:** Build your most-dangerous snapshot in the correct tool (single- vs multi-instance), step to **Detection**, and screenshot the result.
+3. **Confirm:** Does the tool agree a deadlock is reachable? For Case 3, explain in one sentence *what the extra instance of `s1` does* (which `wait` no longer blocks).
+
+> Tip: when every process acquires its semaphores in the **same numeric order** (`s1` before `s2` before `s3`), a circular wait is impossible. Watch which case breaks that rule.
+
+### Optional — run it yourself (confirmation only, not graded as code)
+
+Want to *watch* the deadlock happen instead of only reasoning about it? Save the script below as `semaphore_deadlock.py` and run it with `python semaphore_deadlock.py`. It runs all three cases, deliberately inserting a tiny sleep after each `wait` to widen the race window, and uses a **2-second watchdog**: if the threads have not all finished, the case is reported as a deadlock. This only *confirms* your prediction — your marks still come from your reasoning and your tool screenshots, not from this output.
+
+```python
+import threading
+import time
+
+# Each process is a list of operations:
+#   ('w', s) = wait(s)    ('s', s) = signal(s)    ('p', d) = print digit d
+def run_case(title, inits, programs, timeout=2.0):
+    sems = {name: threading.Semaphore(v) for name, v in inits.items()}
+    finished = set()
+
+    def worker(name, ops):
+        for kind, arg in ops:
+            if kind == 'w':
+                sems[arg].acquire()
+                time.sleep(0.02)        # widen the window so races actually occur
+            elif kind == 's':
+                sems[arg].release()
+            elif kind == 'p':
+                pass                    # this is where the process would print(arg)
+        finished.add(name)
+
+    threads = [threading.Thread(target=worker, args=(n, ops), name=n, daemon=True)
+               for n, ops in programs.items()]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout)
+
+    if len(finished) == len(programs):
+        print(f"{title}: NO deadlock — all finished {sorted(finished)}")
+    else:
+        stuck = sorted(t.name for t in threads if t.is_alive())
+        print(f"{title}: DEADLOCK — stuck: {stuck}; finished: {sorted(finished)}")
+
+# P3 differs between the cases; P1 and P2 are the same throughout.
+P1 = [('w','s1'),('w','s2'),('p','1'),('s','s2'),('s','s1')]
+P2 = [('w','s2'),('w','s3'),('p','2'),('s','s3'),('s','s2')]
+P3_case1 = [('w','s1'),('w','s2'),('w','s3'),('p','3'),('s','s3'),('s','s2'),('s','s1')]
+P3_case2 = [('w','s2'),('w','s3'),('w','s1'),('p','3'),('s','s1'),('s','s3'),('s','s2')]
+
+run_case("Case 1 (s1=s2=s3=1)",
+         {'s1':1,'s2':1,'s3':1},
+         {'P1':P1, 'P2':P2, 'P3':P3_case1})
+
+run_case("Case 2 (s1=s2=s3=1)",
+         {'s1':1,'s2':1,'s3':1},
+         {'P1':P1, 'P2':P2, 'P3':P3_case2})
+
+run_case("Case 3 (s1=2)",
+         {'s1':2,'s2':1,'s3':1},
+         {'P1':P1, 'P2':P2, 'P3':P3_case2})
+```
+
+Because deadlock is a *race*, run the script a few times. One case should reliably hang (the watchdog reports `DEADLOCK`), while the other two always finish — and that pattern should match the YES/NO answers you derived by hand. If a case you predicted as deadlocking happens to slip through and finish, run it again; the bug is still there, the schedule just got lucky.
+
+---
+
+## Task 5 — Apply the Concepts (short written answers)
 
 Answer in your own words. Where a scenario is asked for, **do not reuse the textbook 4-way-intersection example** — invent your own (e.g., from printers, database locks, a kitchen, road traffic).
 
@@ -175,7 +291,8 @@ screenshots/task1_graph1.png          screenshots/task1_graph2.png
 screenshots/task1_build_deadlock.png  screenshots/task1_build_nocycle.png
 screenshots/task2_safety.png          screenshots/task2_request_grant.png
 screenshots/task2_request_deny.png    screenshots/task3_cycle_nodeadlock.png
-screenshots/task3_deadlock.png
+screenshots/task3_deadlock.png        screenshots/task4_case1.png
+screenshots/task4_case2.png           screenshots/task4_case3.png
 ```
 
 ### Submission folder structure
@@ -194,7 +311,10 @@ os-se-<YourStudentID>/
             |-- task2_request_grant.png
             |-- task2_request_deny.png
             |-- task3_cycle_nodeadlock.png
-            `-- task3_deadlock.png
+            |-- task3_deadlock.png
+            |-- task4_case1.png
+            |-- task4_case2.png
+            `-- task4_case3.png
 ```
 
 ### README Template
@@ -265,7 +385,23 @@ My change that caused deadlock + why (reduction terms):
 
 ---
 
-## Task 4 — Applied Concepts
+## Task 4 — Semaphores and Deadlock
+
+**Case 1 (s1=s2=s3=1) — my answer:** [YES / NO] — interleaving + wait-for cycle, or why no cycle can form:
+![Case 1](screenshots/task4_case1.png)
+Tool confirmed? [...]
+
+**Case 2 (s1=s2=s3=1) — my answer:** [YES / NO] — [...]
+![Case 2](screenshots/task4_case2.png)
+Tool confirmed? [...]
+
+**Case 3 (s1=2) — my answer:** [YES / NO] — what the extra instance of s1 does:
+![Case 3](screenshots/task4_case3.png)
+Tool confirmed? [...]
+
+---
+
+## Task 5 — Applied Concepts
 1. [...]  2. [...]  3. [...]  4. [...]  5. [...]
 
 ---
@@ -281,12 +417,13 @@ _What did this activity teach you about why a cycle does not always mean deadloc
 
 | Criteria | Points | Description |
 |----------|--------|-------------|
-| **Task 1 predictions + verification** | 20 | Correct cycle/deadlock reasoning *and* a prediction recorded before verifying, with honest comparison notes. |
+| **Task 1 predictions + verification** | 15 | Correct cycle/deadlock reasoning *and* a prediction recorded before verifying, with honest comparison notes. |
 | **Task 1 constructed graphs** | 15 | Both built graphs meet the exact specification, with a correct one-line justification each. |
-| **Task 2 hand trace** | 25 | Correct Need/Available, a complete Work-vector trace, and a valid safe sequence (or correct unsafe argument) for *your* personalized data. |
+| **Task 2 hand trace** | 20 | Correct Need/Available, a complete Work-vector trace, and a valid safe sequence (or correct unsafe argument) for *your* personalized data. |
 | **Task 2 requests** | 15 | One grant + one deny, each justified by the three checks, verified against the tool. |
 | **Task 3 multi-instance** | 15 | Clear explanation of cycle ≠ deadlock and a self-built scenario flipped from no-deadlock to deadlock with a correct explanation. |
-| **Task 4 applied concepts** | 10 | Reasoned, in-your-own-words answers using original examples. |
+| **Task 4 semaphores** | 10 | Correct YES/NO for all three cases, each modeled in the right (single- vs multi-instance) tool with the deadlock interleaving or the ordering argument shown. |
+| **Task 5 applied concepts** | 10 | Reasoned, in-your-own-words answers using original examples. |
 | **Total** | **100** | |
 
 > Up to **20 points** may be deducted across the activity for answers that show only final values with **no reasoning or no predictions** — the point of this activity is your thinking, not the tool's output.
