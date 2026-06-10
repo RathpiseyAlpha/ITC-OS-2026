@@ -7,6 +7,13 @@ Step-through, animated explanations of OS concepts. Each file is **self-containe
 | [rag-deadlock.html](rag-deadlock.html) | Resource Allocation Graph & cycle-based deadlock detection | Activity 7 · Task 1 |
 | [bankers-algorithm.html](bankers-algorithm.html) | Banker's Algorithm: safety check + resource requests | Activity 7 · Task 2 |
 
+Each one has two modes:
+
+- **Examples / Safety check** — the guided, pre-built scenarios from Activity 7.
+- **Build your own / Custom data** — a sandbox where students define their own scenario:
+  - *RAG*: add processes, resources, and request/assignment edges, then run cycle detection on their own graph.
+  - *Banker's*: choose the number of resource types and processes, edit the Allocation / Max / Total matrices (Available is computed live), and test their own resource request for grant/deny.
+
 > ⚠️ **GitHub does not run `.html` files** — clicking the links above on github.com shows the *source code*, not the animation. Use one of the live options below.
 
 ---

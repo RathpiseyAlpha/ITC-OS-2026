@@ -17,7 +17,7 @@
   .sub{color:var(--muted);font-size:13px;margin-top:4px}
   .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
   .stage{flex:1 1 560px;min-width:340px;background:var(--panel);border:1px solid #233042;border-radius:12px;padding:12px}
-  .side{flex:0 0 320px;min-width:280px}
+  .side{flex:0 0 340px;min-width:300px}
   svg{width:100%;height:auto;display:block}
   .caption{background:var(--panel);border:1px solid #233042;border-radius:12px;padding:16px;min-height:120px;margin-bottom:14px}
   .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
@@ -30,6 +30,9 @@
   button:hover:not(:disabled){background:#2e4459}
   button:disabled{opacity:.4;cursor:not-allowed}
   button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .modes{display:flex;gap:8px;margin-bottom:14px}
+  .modes button{flex:1}
+  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
   .scenarios{display:flex;gap:8px;margin-bottom:14px}
   .scenarios button{flex:1}
   .scenarios button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
@@ -39,10 +42,23 @@
   .dot{width:16px;height:16px;border-radius:50%}
   .sq{width:16px;height:16px;border-radius:3px}
   .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  /* builder */
+  .builder{background:var(--panel);border:1px solid #233042;border-radius:12px;padding:14px;margin-bottom:14px}
+  .builder h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+  .brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  select{background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:7px;padding:8px;font-size:14px}
+  .small{padding:6px 10px;font-size:13px}
+  .edgelist{font-size:13px;max-height:150px;overflow:auto;border-top:1px solid #233042;padding-top:8px}
+  .edgeitem{display:flex;align-items:center;justify-content:space-between;padding:4px 0}
+  .ekind{font-size:11px;padding:1px 6px;border-radius:10px;margin-left:6px}
+  .ekind.assign{background:#14361f;color:#7ee2a0}
+  .ekind.request{background:#3a2a10;color:#f6c873}
+  .x{background:transparent;border:none;color:var(--cycle);cursor:pointer;font-size:16px;padding:0 6px}
+  .msg{font-size:12px;color:var(--request);min-height:16px;margin-top:4px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
   /* svg element styling */
   .edge{transition:opacity .4s ease}
   .node-label{font-size:15px;font-weight:600;fill:#fff;text-anchor:middle;dominant-baseline:central;pointer-events:none}
-  .node-shadow{transition:filter .3s}
 </style>
 </head>
 <body>
@@ -71,9 +87,34 @@
   </div>
 
   <div class="side">
-    <div class="scenarios">
+    <div class="modes">
+      <button id="mEx" class="active" onclick="setMode('example')">Examples</button>
+      <button id="mCustom" onclick="setMode('custom')">Build your own</button>
+    </div>
+
+    <!-- Example chooser -->
+    <div class="scenarios" id="scenarioBar">
       <button id="scA" class="active" onclick="loadScenario('A')">Deadlocked graph</button>
       <button id="scB" onclick="loadScenario('B')">Safe graph</button>
+    </div>
+
+    <!-- Custom builder -->
+    <div class="builder" id="builder" style="display:none">
+      <h3>Build a graph</h3>
+      <div class="brow">
+        <button class="small" onclick="addProcess()">+ Process</button>
+        <button class="small" onclick="addResource()">+ Resource</button>
+        <button class="small" onclick="clearGraph()">Clear</button>
+      </div>
+      <div class="brow">
+        <select id="fromSel"></select>
+        <span style="color:var(--muted)">→</span>
+        <select id="toSel"></select>
+        <button class="small primary" onclick="addEdge()">Add edge</button>
+      </div>
+      <div class="hint">Edge type is inferred: <b>R → P</b> = assignment (held by), <b>P → R</b> = request (waiting for). Resources are single-instance.</div>
+      <div class="msg" id="builderMsg"></div>
+      <div class="edgelist" id="edgeList"></div>
     </div>
 
     <div class="caption">
@@ -101,22 +142,15 @@
 </div>
 
 <script>
-/* ---------- Node layout (shared by both scenarios) ---------- */
-const NODES = {
-  P1: {x:230, y:120, type:'P'},
-  R2: {x:570, y:120, type:'R'},
-  P2: {x:570, y:360, type:'P'},
-  R1: {x:230, y:360, type:'R'},
-};
-const PR = 34;   // process radius
-const RS = 64;   // resource square side
+const PR = 32;   // process radius
+const RS = 60;   // resource square side
 
-/* ---------- Scenarios ----------
-   Each edge: from, to, kind ('assign' R->P  or  'request' P->R), caption.
-   Detection is computed live from the edge list. */
+/* ---------- Example scenarios (fixed layout) ---------- */
 const SCENARIOS = {
   A: {
     title: 'Deadlocked graph',
+    pos: {P1:{x:230,y:120}, R2:{x:570,y:120}, P2:{x:570,y:360}, R1:{x:230,y:360}},
+    types:{P1:'P',R2:'R',P2:'P',R1:'R'},
     edges: [
       {from:'R1', to:'P1', kind:'assign',  cap:'<b>R1 → P1</b>: Resource R1 is currently <b>held by</b> P1 (assignment edge).'},
       {from:'P1', to:'R2', kind:'request', cap:'<b>P1 → R2</b>: Process P1 <b>requests</b> R2 and waits (request edge).'},
@@ -126,6 +160,8 @@ const SCENARIOS = {
   },
   B: {
     title: 'Safe graph',
+    pos: {P1:{x:230,y:120}, R2:{x:570,y:120}, P2:{x:570,y:360}, R1:{x:230,y:360}},
+    types:{P1:'P',R2:'R',P2:'P',R1:'R'},
     edges: [
       {from:'R1', to:'P1', kind:'assign',  cap:'<b>R1 → P1</b>: R1 is <b>held by</b> P1.'},
       {from:'R2', to:'P2', kind:'assign',  cap:'<b>R2 → P2</b>: R2 is <b>held by</b> P2.'},
@@ -134,57 +170,140 @@ const SCENARIOS = {
   },
 };
 
+/* ---------- Live state ---------- */
+let mode = 'example';      // 'example' | 'custom'
 let scenario = 'A';
-let step = 0;          // 0 = nothing shown; 1..E = edges revealed; E+1 = detection
-let playing = false;
-let playTimer = null;
+let nodes = {};            // id -> {type, x, y}
+let edges = [];            // {from, to, kind, cap}
+let step = 0;
+let playing = false, playTimer = null;
 
-/* ---------- Geometry helpers ---------- */
+/* counters for custom node naming */
+let pCount = 0, rCount = 0;
+
+/* ---------- Build node/edge state from a scenario or custom ---------- */
+function loadScenario(s){
+  scenario = s; mode='example';
+  const sc = SCENARIOS[s];
+  nodes = {};
+  for (const id of Object.keys(sc.types)){
+    nodes[id] = {type:sc.types[id], x:sc.pos[id].x, y:sc.pos[id].y};
+  }
+  edges = sc.edges.map(e=>({...e}));
+  step = 0; stopPlay();
+  document.getElementById('scA').classList.toggle('active', s==='A');
+  document.getElementById('scB').classList.toggle('active', s==='B');
+  drawNodes(); render();
+}
+
+/* ---------- Custom builder ---------- */
+function addProcess(){
+  const id = 'P'+pCount++;
+  nodes[id] = {type:'P', x:0, y:0};
+  layoutCircle(); step=0; stopPlay();
+  refreshSelects(); drawNodes(); renderEdgeList(); render();
+}
+function addResource(){
+  const id = 'R'+rCount++;
+  nodes[id] = {type:'R', x:0, y:0};
+  layoutCircle(); step=0; stopPlay();
+  refreshSelects(); drawNodes(); renderEdgeList(); render();
+}
+function clearGraph(){
+  nodes={}; edges=[]; pCount=0; rCount=0; step=0; stopPlay();
+  refreshSelects(); drawNodes(); renderEdgeList(); render();
+}
+function addEdge(){
+  const from = document.getElementById('fromSel').value;
+  const to   = document.getElementById('toSel').value;
+  const msg  = document.getElementById('builderMsg');
+  msg.textContent='';
+  if(!from || !to){ msg.textContent='Add at least one process and one resource first.'; return; }
+  if(from===to){ msg.textContent='An edge cannot start and end at the same node.'; return; }
+  const ft = nodes[from].type, tt = nodes[to].type;
+  let kind;
+  if(ft==='R' && tt==='P') kind='assign';
+  else if(ft==='P' && tt==='R') kind='request';
+  else { msg.textContent='Edges must connect a process and a resource (P→R or R→P).'; return; }
+  if(edges.some(e=>e.from===from && e.to===to)){ msg.textContent='That edge already exists.'; return; }
+  // single-instance: a resource can be held by at most one process
+  if(kind==='assign' && edges.some(e=>e.kind==='assign' && e.from===from)){
+    msg.textContent=from+' is single-instance and is already assigned to a process. Remove that edge first.'; return;
+  }
+  const cap = kind==='assign'
+    ? '<b>'+from+' → '+to+'</b>: resource '+from+' is <b>held by</b> '+to+' (assignment edge).'
+    : '<b>'+from+' → '+to+'</b>: process '+from+' <b>requests</b> '+to+' (request edge).';
+  edges.push({from,to,kind,cap});
+  step=0; stopPlay(); renderEdgeList(); render();
+}
+function removeEdge(i){ edges.splice(i,1); step=0; stopPlay(); renderEdgeList(); render(); }
+
+function refreshSelects(){
+  const ids = Object.keys(nodes);
+  for(const selId of ['fromSel','toSel']){
+    const sel = document.getElementById(selId);
+    const prev = sel.value;
+    sel.innerHTML = ids.map(id=>'<option value="'+id+'">'+id+'</option>').join('');
+    if(ids.includes(prev)) sel.value = prev;
+  }
+}
+function renderEdgeList(){
+  const el = document.getElementById('edgeList');
+  if(edges.length===0){ el.innerHTML='<div style="color:var(--muted)">No edges yet.</div>'; return; }
+  el.innerHTML = edges.map((e,i)=>
+    '<div class="edgeitem"><span>'+e.from+' → '+e.to+
+    '<span class="ekind '+e.kind+'">'+(e.kind==='assign'?'held by':'requests')+'</span></span>'+
+    '<button class="x" title="remove" onclick="removeEdge('+i+')">×</button></div>'
+  ).join('');
+}
+
+/* ---------- Circular auto-layout for custom graphs ---------- */
+function layoutCircle(){
+  const ids = Object.keys(nodes);
+  const cx=400, cy=240, R=Math.min(190, 80 + ids.length*14);
+  ids.forEach((id,i)=>{
+    const ang = -Math.PI/2 + i*2*Math.PI/Math.max(ids.length,1);
+    nodes[id].x = cx + R*Math.cos(ang);
+    nodes[id].y = cy + R*Math.sin(ang);
+  });
+}
+
+/* ---------- Geometry ---------- */
 function nodeEdgePoint(name, towardX, towardY){
-  // returns point on the boundary of the node nearest to (towardX,towardY)
-  const n = NODES[name];
+  const n = nodes[name];
   const dx = towardX - n.x, dy = towardY - n.y;
   const len = Math.hypot(dx, dy) || 1;
   const ux = dx/len, uy = dy/len;
-  if (n.type === 'P'){
-    return {x: n.x + ux*(PR+4), y: n.y + uy*(PR+4)};
-  } else {
-    // clamp to square boundary
-    const half = RS/2 + 4;
-    const scale = half / Math.max(Math.abs(ux), Math.abs(uy));
-    return {x: n.x + ux*scale, y: n.y + uy*scale};
-  }
+  if (n.type === 'P') return {x: n.x + ux*(PR+4), y: n.y + uy*(PR+4)};
+  const half = RS/2 + 4;
+  const scale = half / Math.max(Math.abs(ux), Math.abs(uy));
+  return {x: n.x + ux*scale, y: n.y + uy*scale};
 }
 
-/* ---------- Cycle detection (DFS over directed graph) ---------- */
-function findCycle(edges){
+/* ---------- Cycle detection (DFS) ---------- */
+function findCycle(edgeArr){
   const adj = {};
-  edges.forEach(e => { (adj[e.from] = adj[e.from] || []).push(e.to); });
+  edgeArr.forEach(e => { (adj[e.from] = adj[e.from] || []).push(e.to); });
   const WHITE=0, GREY=1, BLACK=2;
-  const color = {}; const parent = {};
-  Object.keys(NODES).forEach(n => color[n]=WHITE);
+  const color = {}, parent = {};
+  Object.keys(nodes).forEach(n => color[n]=WHITE);
   let cyc = null;
-
   function dfs(u){
     color[u]=GREY;
     for (const v of (adj[u]||[])){
       if (cyc) return;
       if (color[v]===WHITE){ parent[v]=u; dfs(v); }
       else if (color[v]===GREY){
-        // reconstruct cycle v ... u v
         const path=[u]; let x=u;
         while (x!==v){ x=parent[x]; path.push(x); }
-        path.reverse(); path.push(v);
-        cyc = path;
-        return;
+        path.reverse(); path.push(v); cyc=path; return;
       }
     }
     color[u]=BLACK;
   }
-  for (const n of Object.keys(NODES)){ if(color[n]===WHITE && !cyc) dfs(n); }
-  return cyc; // array of node names forming a cycle, or null
+  for (const n of Object.keys(nodes)){ if(color[n]===WHITE && !cyc) dfs(n); }
+  return cyc;
 }
-
 function cycleEdgeSet(cyc){
   const s = new Set();
   if(!cyc) return s;
@@ -198,80 +317,73 @@ const elEdges = document.getElementById('edges');
 
 function drawNodes(){
   elNodes.innerHTML = '';
-  for (const [name,n] of Object.entries(NODES)){
+  for (const [name,n] of Object.entries(nodes)){
     if (n.type==='P'){
-      const c = make('circle',{cx:n.x,cy:n.y,r:PR,fill:'var(--proc)',stroke:'#1e3a8a','stroke-width':2,class:'node-shadow'});
-      elNodes.appendChild(c);
+      elNodes.appendChild(make('circle',{cx:n.x,cy:n.y,r:PR,fill:'var(--proc)',stroke:'#1e3a8a','stroke-width':2}));
     } else {
-      const r = make('rect',{x:n.x-RS/2,y:n.y-RS/2,width:RS,height:RS,rx:8,fill:'var(--res)',stroke:'#065f46','stroke-width':2,class:'node-shadow'});
-      elNodes.appendChild(r);
-      // single instance dot
-      const d = make('circle',{cx:n.x,cy:n.y-14,r:5,fill:'#04261c'});
-      elNodes.appendChild(d);
+      elNodes.appendChild(make('rect',{x:n.x-RS/2,y:n.y-RS/2,width:RS,height:RS,rx:8,fill:'var(--res)',stroke:'#065f46','stroke-width':2}));
+      elNodes.appendChild(make('circle',{cx:n.x,cy:n.y-13,r:5,fill:'#04261c'}));
     }
     const t = make('text',{x:n.x,y:n.y + (n.type==='R'?8:0),class:'node-label'});
-    t.textContent = name;
-    elNodes.appendChild(t);
+    t.textContent = name; elNodes.appendChild(t);
   }
 }
 
 function render(){
-  const sc = SCENARIOS[scenario];
-  const E = sc.edges.length;
+  const E = edges.length;
   const detectStep = E + 1;
-  const showDetect = step >= detectStep;
-  const cyc = showDetect ? findCycle(sc.edges) : null;
+  const showDetect = step >= detectStep && E>0;
+  const cyc = showDetect ? findCycle(edges) : null;
   const cycSet = cycleEdgeSet(cyc);
 
-  // edges
   elEdges.innerHTML = '';
   const shown = Math.min(step, E);
   for (let i=0;i<shown;i++){
-    const e = sc.edges[i];
-    const a = NODES[e.from], b = NODES[e.to];
+    const e = edges[i];
+    const a = nodes[e.from], b = nodes[e.to];
+    if(!a||!b) continue;
     const p1 = nodeEdgePoint(e.from, b.x, b.y);
     const p2 = nodeEdgePoint(e.to, a.x, a.y);
-    const key = e.from+'->'+e.to;
-    const inCycle = cycSet.has(key);
+    const inCycle = cycSet.has(e.from+'->'+e.to);
     const color = inCycle ? 'var(--cycle)' : (e.kind==='assign' ? 'var(--assign)' : 'var(--request)');
     const marker = inCycle ? 'url(#arrow-cycle)' : (e.kind==='assign' ? 'url(#arrow-assign)' : 'url(#arrow-req)');
-    const line = make('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:color,'stroke-width':inCycle?4:2.5,'marker-end':marker,class:'edge'});
-    elEdges.appendChild(line);
+    elEdges.appendChild(make('line',{x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,stroke:color,'stroke-width':inCycle?4:2.5,'marker-end':marker,class:'edge'}));
   }
 
-  // captions
+  const title = (mode==='example') ? SCENARIOS[scenario].title : 'Your graph';
   const stepLabel = document.getElementById('stepLabel');
   const captionText = document.getElementById('captionText');
   const verdict = document.getElementById('verdict');
-  verdict.className = 'verdict';
-  verdict.textContent = '';
+  verdict.className='verdict'; verdict.textContent='';
 
-  if (step === 0){
-    stepLabel.textContent = sc.title + ' · Step 0';
-    captionText.innerHTML = 'Empty graph. Press <b>Next</b> to add edges one at a time.';
+  if (E===0){
+    stepLabel.textContent = title + ' · Step 0';
+    captionText.innerHTML = (mode==='custom')
+      ? 'Add processes, resources, and edges using the builder above, then press <b>Next</b> / <b>Play</b>.'
+      : 'Empty graph.';
+  } else if (step === 0){
+    stepLabel.textContent = title + ' · Step 0';
+    captionText.innerHTML = 'Press <b>Next</b> to add edges one at a time, or <b>Play</b> to auto-run.';
   } else if (step <= E){
-    stepLabel.textContent = sc.title + ' · Step ' + step + ' of ' + (E+1);
-    captionText.innerHTML = sc.edges[step-1].cap;
+    stepLabel.textContent = title + ' · Step ' + step + ' of ' + (E+1);
+    captionText.innerHTML = edges[step-1].cap;
   } else {
-    stepLabel.textContent = sc.title + ' · Detection';
+    stepLabel.textContent = title + ' · Detection';
     if (cyc){
-      captionText.innerHTML = 'Running cycle detection (DFS)… a <b>cycle</b> is found:<br><b>' + cyc.join(' → ') + '</b><br>With single-instance resources, a cycle means the four processes wait on each other forever.';
-      verdict.className = 'verdict dead';
-      verdict.textContent = '⛔ Deadlock detected';
+      captionText.innerHTML = 'Running cycle detection (DFS)… a <b>cycle</b> is found:<br><b>' + cyc.join(' → ') + '</b><br>With single-instance resources, a cycle means these processes wait on each other forever.';
+      verdict.className='verdict dead'; verdict.textContent='⛔ Deadlock detected';
     } else {
-      captionText.innerHTML = 'Running cycle detection (DFS)… <b>no cycle</b> exists. Every waiting process is downstream of a process that can finish and release its resource.';
-      verdict.className = 'verdict safe';
-      verdict.textContent = '✅ No deadlock';
+      captionText.innerHTML = 'Running cycle detection (DFS)… <b>no cycle</b> exists. Every waiting process is downstream of one that can finish and release its resource.';
+      verdict.className='verdict safe'; verdict.textContent='✅ No deadlock';
     }
   }
 
-  // controls
   document.getElementById('prevBtn').disabled = (step===0);
-  document.getElementById('nextBtn').disabled = (step>=detectStep);
-  document.getElementById('progress').textContent = 'Step ' + step + ' / ' + detectStep;
+  document.getElementById('nextBtn').disabled = (E===0 || step>=detectStep);
+  document.getElementById('playBtn').disabled = (E===0);
+  document.getElementById('progress').textContent = 'Step ' + step + ' / ' + Math.max(detectStep,0);
 }
 
-/* ---------- SVG element factory ---------- */
 function make(tag, attrs){
   const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
   for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
@@ -279,43 +391,42 @@ function make(tag, attrs){
 }
 
 /* ---------- Controls ---------- */
-function next(){
-  const E = SCENARIOS[scenario].edges.length;
-  if (step < E+1){ step++; render(); }
-  if (step >= E+1) stopPlay();
-}
+function next(){ const E=edges.length; if(E>0 && step<E+1){ step++; render(); } if(step>=E+1) stopPlay(); }
 function prev(){ if(step>0){ step--; render(); stopPlay(); } }
 function reset(){ step=0; stopPlay(); render(); }
-function loadScenario(s){
-  scenario=s; step=0; stopPlay();
-  document.getElementById('scA').classList.toggle('active', s==='A');
-  document.getElementById('scB').classList.toggle('active', s==='B');
-  render();
+function setMode(m){
+  mode=m; stopPlay();
+  document.getElementById('mEx').classList.toggle('active', m==='example');
+  document.getElementById('mCustom').classList.toggle('active', m==='custom');
+  document.getElementById('scenarioBar').style.display = (m==='example')?'flex':'none';
+  document.getElementById('builder').style.display = (m==='custom')?'block':'none';
+  if(m==='example'){ loadScenario(scenario); }
+  else {
+    // start from a small editable template (P0, P1, R0, R1) with no edges
+    nodes={}; edges=[]; pCount=0; rCount=0;
+    addProcess(); addProcess(); addResource(); addResource();
+    refreshSelects(); renderEdgeList();
+    step=0; render();
+  }
 }
-function togglePlay(){ playing ? stopPlay() : startPlay(); }
+function togglePlay(){ playing?stopPlay():startPlay(); }
 function startPlay(){
+  if(edges.length===0) return;
   playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
-  playTimer=setInterval(()=>{
-    const E=SCENARIOS[scenario].edges.length;
-    if(step>=E+1){ stopPlay(); return; }
-    next();
-  }, 1400);
+  playTimer=setInterval(()=>{ const E=edges.length; if(step>=E+1){stopPlay();return;} next(); }, 1400);
 }
-function stopPlay(){
-  playing=false; document.getElementById('playBtn').textContent='▶ Play';
-  if(playTimer){ clearInterval(playTimer); playTimer=null; }
-}
+function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
 
-/* keyboard */
 document.addEventListener('keydown', e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='select'||tag==='input') return;
   if(e.key==='ArrowRight') next();
   else if(e.key==='ArrowLeft') prev();
   else if(e.key===' '){ e.preventDefault(); togglePlay(); }
 });
 
 /* init */
-drawNodes();
-render();
+loadScenario('A');
 </script>
 </body>
 </html>
