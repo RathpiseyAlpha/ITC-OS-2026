@@ -2153,22 +2153,45 @@
         window.location.hash = 'view/' + filePath;
     };
 
+    window.refreshTree = async function () {
+        var listEl = document.getElementById('file-list');
+        if (listEl) listEl.innerHTML = '<li><span class="fmeta">// refreshing file tree…</span></li>';
+        try { await GitHubAPI.refresh(); } catch (e) { /* getTree falls back internally */ }
+        handleHash();
+    };
+
     async function renderExplorer(path) {
         var tree = await GitHubAPI.getTree();
         var node = tree[path];
 
-        if (!node) {
-            // Path not found — go to root
-            node = tree[''];
-            path = '';
-        }
-
-        var parts = path ? path.split('/') : [];
         var listEl = document.getElementById('file-list');
         var viewerEl = document.getElementById('file-viewer');
         var breadEl = document.getElementById('explorer-breadcrumb');
         var cmdEl = document.getElementById('explorer-cmd');
         var titleEl = document.getElementById('explorer-title');
+
+        // A real sub-folder is missing from the loaded tree — usually a stale tree
+        // because the GitHub API is rate-limited. Don't silently bounce to root
+        // (which looks like a "loop"); explain it and offer a refresh.
+        if (!node && path) {
+            if (viewerEl) { viewerEl.style.display = 'none'; viewerEl.innerHTML = ''; }
+            if (breadEl) breadEl.innerHTML = '<a onclick="navigateTo(\'\')" style="cursor:pointer">~</a><span class="sep">/</span><span class="current-dir">' + escapeHtml(path) + '</span>';
+            if (cmdEl) cmdEl.textContent = 'ls -la ' + path;
+            if (titleEl) titleEl.textContent = 'bash — ' + path;
+            listEl.innerHTML = '<li><span class="fmeta" style="color:var(--yellow)">// "' + escapeHtml(path)
+                + '" is not in the loaded file tree (the GitHub file list may be rate-limited or out of date).</span></li>'
+                + '<li onclick="refreshTree()" style="cursor:pointer"><span class="icon">↻</span><span class="fname dir">refresh file tree</span><span class="fmeta">re-fetch from GitHub</span></li>'
+                + '<li onclick="navigateTo(\'\')" style="cursor:pointer"><span class="icon">⬆️</span><span class="fname dir">..</span><span class="fmeta">back to root</span></li>';
+            return;
+        }
+
+        if (!node) {
+            // Root itself missing (shouldn't happen) — fall back to root node.
+            node = tree[''] || { dirs: [], files: [] };
+            path = '';
+        }
+
+        var parts = path ? path.split('/') : [];
 
         viewerEl.style.display = 'none';
         viewerEl.innerHTML = '';

@@ -8,6 +8,60 @@ const GitHubAPI = (function () {
     let fileTree = null; // { '': { dirs: [], files: [] }, 'labs': {...}, ... }
     let allFiles = null; // Set of all file paths for existence checks
 
+    // Generated snapshot of the repo file list, used only when the GitHub API is
+    // unreachable (e.g. the unauthenticated 60/hr rate limit) AND nothing is cached.
+    // The live API supersedes this whenever it succeeds; regenerate with:
+    //   git ls-files
+    const FALLBACK_PATHS = [
+        ".claude/settings.local.json", ".github/workflows/deploy.yml", ".gitignore", ".nojekyll", ".vscode/settings.json", "README.md",
+        "app/css/2d92accdc77f74ad3949c6edb5b49686.gif", "app/css/penguin-walking-transparent-big.gif", "app/css/running-pose-only-transparent.gif", "app/css/styles.css", "app/js/app.js", "app/js/config.js",
+        "app/js/env.example.js", "app/js/github.js", "app/js/presence.js", "app/server/.dockerignore", "app/server/Dockerfile", "app/server/README.md",
+        "app/server/app.py", "app/server/auto-deploy.sh", "app/server/docker-compose.yml", "app/server/itc-os-presence.service", "app/server/requirements.txt", "course-outline.md",
+        "index.html", "labs/lab1/README.md", "labs/lab1/guides/images/page12_img0.png", "labs/lab1/guides/images/page15_img0.png", "labs/lab1/guides/images/page1_img0.png", "labs/lab1/guides/images/page2_img0.png",
+        "labs/lab1/guides/images/page4_img0.png", "labs/lab1/guides/images/page4_img1.jpg", "labs/lab1/guides/images/page4_img2.png", "labs/lab1/guides/images/page4_img3.png", "labs/lab1/guides/images/page5_img0.png", "labs/lab1/guides/images/page6_img0.png",
+        "labs/lab1/guides/images/page7_img0.png", "labs/lab1/guides/images/page8_img0.jpg", "labs/lab1/guides/lab1-guides.pdf", "labs/lab1/guides/slides.html", "labs/lab1/lab1-instruction.md", "labs/lab1/pictures/image.png",
+        "labs/lab1/pictures/lab-workflow.png", "labs/lab2/README.md", "labs/lab2/guides/images/page10_img0.png", "labs/lab2/guides/images/page11_img0.png", "labs/lab2/guides/images/page12_img0.png", "labs/lab2/guides/images/page12_img1.png",
+        "labs/lab2/guides/images/page13_img0.png", "labs/lab2/guides/images/page13_img1.png", "labs/lab2/guides/images/page14_img0.png", "labs/lab2/guides/images/page14_img1.png", "labs/lab2/guides/images/page15_img0.png", "labs/lab2/guides/images/page15_img1.png",
+        "labs/lab2/guides/images/page17_img0.png", "labs/lab2/guides/images/page1_img0.png", "labs/lab2/guides/images/page3_img0.jpeg", "labs/lab2/guides/images/page4_img0.png", "labs/lab2/guides/images/page5_img0.png", "labs/lab2/guides/images/page5_img1.png",
+        "labs/lab2/guides/images/page6_img0.png", "labs/lab2/guides/images/page7_img0.png", "labs/lab2/guides/images/page8_img0.png", "labs/lab2/guides/images/page9_img0.png", "labs/lab2/guides/images/page9_img1.png", "labs/lab2/guides/lab2-guides.pdf",
+        "labs/lab2/guides/slides.html", "labs/lab2/lab2-instruction.md", "labs/lab3/README.md", "labs/lab3/guides/slides.html", "labs/lab3/lab3-instruction.md", "labs/lab4/README.md",
+        "labs/lab4/guides/slides.html", "labs/lab4/lab4-challenge.md", "labs/lab4/lab4-instruction.md", "labs/lab5/README.md", "labs/lab5/guides/slides.html", "labs/lab5/lab5-instruction.md",
+        "labs/lab6/README.md", "labs/lab6/guides/slides.html", "labs/lab6/lab6-instruction.md", "labs/lab7/README.md", "labs/lab7/lab7-instruction.md", "labs/lab8/README.md",
+        "labs/lab8/lab8-instruction.md", "labs/lab9/README.md", "labs/lab9/lab9-instruction.md", "lectures/class-activity/README.md", "lectures/class-activity/class-activity1.md", "lectures/class-activity/class-activity1.pdf",
+        "lectures/class-activity/class-activity2.md", "lectures/class-activity/class-activity3.md", "lectures/class-activity/class-activity4.md", "lectures/class-activity/class-activity5.md", "lectures/class-activity/class-activity6.md", "lectures/class-activity/class-activity7.md",
+        "lectures/class-activity/class-activity8.md", "lectures/files/ch1.pdf", "lectures/files/ch10.pdf", "lectures/files/ch2.pdf", "lectures/files/ch3.pdf", "lectures/files/ch4.pdf",
+        "lectures/files/ch5.pdf", "lectures/files/ch6.pdf", "lectures/files/ch7.pdf", "lectures/files/ch8.pdf", "lectures/files/ch9.pdf", "lectures/notes/README.md",
+        "lectures/notes/week01-introduction-to-os.md", "lectures/notes/week02-os-structures-interfaces.md", "lectures/notes/week03-processes.md", "lectures/notes/week04-threads-multicore.md", "lectures/notes/week05-cpu-scheduling-1.md", "lectures/notes/week06-cpu-scheduling-2.md",
+        "lectures/notes/week07-critical-sections.md", "lectures/notes/week08-semaphores-sync.md", "lectures/notes/week09-deadlocks.md", "lectures/notes/week10-memory-management.md", "lectures/notes/week11-virtual-memory.md", "lectures/notes/week12-file-systems.md",
+        "lectures/visualizations/README.md", "lectures/visualizations/bankers-algorithm.html", "lectures/visualizations/deadlock-detection.html", "lectures/visualizations/index.html", "lectures/visualizations/rag-deadlock.html", "tools/create-2026-expanded-qbank.ps1",
+        "tools/fix-linux-tree-prompts.ps1", "tools/preview-moodle-qbank.ps1", "tools/revise-linux-qbank-and-add-lecture-short.ps1"
+    ];
+
+    // Persisted cache (localStorage so it survives reloads/new tabs, unlike sessionStorage).
+    function readCache() {
+        try {
+            const raw = localStorage.getItem(CACHE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !parsed.tree) return null;
+            return {
+                tree: parsed.tree,
+                files: new Set(parsed.files || []),
+                ts: parseInt(localStorage.getItem(CACHE_TS_KEY) || '0', 10)
+            };
+        } catch (e) {
+            return null;
+        }
+    }
+    function writeCache(tree, files) {
+        try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ tree: tree, files: Array.from(files) }));
+            localStorage.setItem(CACHE_TS_KEY, String(Date.now()));
+        } catch (e) {
+            /* storage disabled or full — non-fatal */
+        }
+    }
+
     // Build the hierarchical tree from a flat list of paths
     function buildTree(entries) {
         const tree = {};
@@ -86,14 +140,12 @@ const GitHubAPI = (function () {
     async function getTree() {
         if (fileTree) return fileTree;
 
-        // Check sessionStorage cache
-        const cached = sessionStorage.getItem(CACHE_KEY);
-        const cachedTs = sessionStorage.getItem(CACHE_TS_KEY);
+        const cached = readCache();
 
-        if (cached && cachedTs && (Date.now() - parseInt(cachedTs)) < CONFIG.cacheDuration) {
-            const parsed = JSON.parse(cached);
-            fileTree = parsed.tree;
-            allFiles = new Set(parsed.files);
+        // Fresh cache → use directly, no network call
+        if (cached && (Date.now() - cached.ts) < CONFIG.cacheDuration) {
+            fileTree = cached.tree;
+            allFiles = cached.files;
             return fileTree;
         }
 
@@ -103,18 +155,18 @@ const GitHubAPI = (function () {
             const result = buildTree(entries);
             fileTree = result.tree;
             allFiles = result.fileSet;
-
-            // Cache
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-                tree: fileTree,
-                files: Array.from(allFiles)
-            }));
-            sessionStorage.setItem(CACHE_TS_KEY, String(Date.now()));
-
+            writeCache(fileTree, allFiles);
             return fileTree;
         } catch (err) {
-            console.warn('GitHub API fetch failed, using fallback:', err.message);
-            // Return a minimal fallback
+            console.warn('GitHub API fetch failed:', err.message);
+            // Prefer the last successfully-fetched tree (even if stale) over the
+            // static fallback — it is the real, complete structure.
+            if (cached) {
+                console.warn('Using last cached repo tree from', new Date(cached.ts).toLocaleString());
+                fileTree = cached.tree;
+                allFiles = cached.files;
+                return fileTree;
+            }
             return getFallbackTree();
         }
     }
@@ -140,28 +192,22 @@ const GitHubAPI = (function () {
         };
     }
 
-    // Minimal fallback tree (used if API fails)
+    // Complete fallback tree built from the embedded snapshot (used only if the
+    // API fails and nothing is cached). Covers the full repo, incl. visualizations.
     function getFallbackTree() {
-        fileTree = {
-            '': {
-                dirs: ['labs', 'lectures'],
-                files: [
-                    { name: 'README.md' },
-                    { name: 'course-outline.md' },
-                    { name: 'index.html' }
-                ]
-            },
-            'labs': { dirs: ['lab1', 'lab2', 'lab3', 'lab4', 'lab5', 'lab6', 'lab7', 'lab8', 'lab9'], files: [] },
-            'lectures': { dirs: ['files', 'notes', 'class-activity'], files: [] }
-        };
-        allFiles = new Set(['README.md', 'course-outline.md', 'index.html']);
+        const entries = FALLBACK_PATHS.map(p => ({ path: p, type: 'blob' }));
+        const result = buildTree(entries);
+        fileTree = result.tree;
+        allFiles = result.fileSet;
         return fileTree;
     }
 
     // Force refresh the cache
     async function refresh() {
-        sessionStorage.removeItem(CACHE_KEY);
-        sessionStorage.removeItem(CACHE_TS_KEY);
+        try {
+            localStorage.removeItem(CACHE_KEY);
+            localStorage.removeItem(CACHE_TS_KEY);
+        } catch (e) { /* ignore */ }
         fileTree = null;
         allFiles = null;
         return getTree();

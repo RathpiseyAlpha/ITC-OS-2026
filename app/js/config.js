@@ -73,6 +73,9 @@ const CONFIG = {
         { lab: 'activity7', due: '2026-06-25T23:59:00', penalty: 5 }
     ],
 
-    // Cache duration for GitHub API responses (ms)
-    cacheDuration: 5 * 60 * 1000 // 5 minutes
+    // Cache duration for GitHub API responses (ms). Kept long because the repo
+    // tree changes rarely and the unauthenticated GitHub API allows only 60
+    // requests/hour; the file tree is persisted in localStorage and a stale copy
+    // is reused if the API is unreachable. Use the in-app refresh to force-update.
+    cacheDuration: 60 * 60 * 1000 // 1 hour
 };
