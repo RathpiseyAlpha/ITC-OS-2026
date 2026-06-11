@@ -458,9 +458,14 @@ function renderEditor(){
   const showReq = (action==='request');
   document.getElementById('requestForm').style.display = showReq?'flex':'none';
   if(showReq){
-    document.getElementById('reqProc').innerHTML = d.procs.map((p,i)=>'<option value="'+i+'">'+p+'</option>').join('');
+    // Preserve any request the user already typed so a re-render (incl. Apply) doesn't wipe it.
+    const prevProc = (document.getElementById('reqProc')||{}).value;
+    const prevVec = d.res.map((_,ri)=>{ const el=document.getElementById('req-'+ri); return el?el.value:'0'; });
+    const reqProc=document.getElementById('reqProc');
+    reqProc.innerHTML = d.procs.map((p,i)=>'<option value="'+i+'">'+p+'</option>').join('');
+    if(prevProc!=='' && prevProc!=null && parseInt(prevProc,10)<d.procs.length) reqProc.value=prevProc;
     document.getElementById('reqVecInputs').innerHTML = ' requests ' +
-      d.res.map((r,ri)=>'<input id="req-'+ri+'" type="number" min="0" value="0" title="'+r+'">').join(' ');
+      d.res.map((r,ri)=>'<input id="req-'+ri+'" type="number" min="0" value="'+(prevVec[ri]||0)+'" title="'+r+'">').join(' ');
   }
   // live-update Need & Available cells as the user types (without losing focus)
   document.querySelectorAll('#editorGrid input').forEach(inp=>inp.addEventListener('input', updateDerived));
