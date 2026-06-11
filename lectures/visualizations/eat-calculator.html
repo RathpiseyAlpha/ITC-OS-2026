@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Effective Access Time (EAT) &amp; the TLB</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --accent:#60a5fa; --border:#233042; --tlb:#f59e0b; --ok:#22c55e; --bad:#ef4444; --line:#60a5fa;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 540px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+  .side{flex:0 0 360px;min-width:300px}
+  svg{width:100%;height:auto;display:block}
+  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+
+  .sliders{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+  .srow{margin-bottom:16px}
+  .srow:last-child{margin-bottom:0}
+  .slabel{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:6px}
+  .slabel .val{font-weight:700;font-size:16px;color:var(--accent)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+
+  .result{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+  .eatBig{font-size:38px;font-weight:800;color:var(--tlb)}
+  .eatUnit{font-size:16px;color:var(--muted);font-weight:500}
+  .formula{font-family:"Consolas",monospace;font-size:13px;background:#0c141d;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:12px;line-height:1.7;white-space:pre-wrap}
+  .interp{font-size:14px;line-height:1.55;margin-top:12px}
+  .interp b{color:var(--ok)}
+
+  .presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .presets button{flex:1 1 100px;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 8px;font-size:13px;cursor:pointer}
+  .presets button:hover{background:#2e4459}
+
+  /* breakdown bars */
+  .bars{margin-top:14px}
+  .bar{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px}
+  .bar .name{width:120px;color:var(--muted);flex:0 0 auto}
+  .bar .track{flex:1;height:20px;background:#0c141d;border:1px solid var(--border);border-radius:5px;overflow:hidden}
+  .bar .fill{height:100%;border-radius:4px}
+  .bar .num{width:64px;text-align:right;font-weight:700;flex:0 0 auto}
+  .fill.ideal{background:var(--ok)} .fill.eat{background:var(--tlb)} .fill.notlb{background:var(--bad)}
+
+  .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>Effective Access Time (EAT) &amp; why the TLB matters</h1>
+  <div class="sub">Chapter 9 — drag the hit ratio and watch effective memory-access time fall. A TLB miss costs an extra memory access to read the page table.</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <p class="blockTitle">EAT vs TLB hit ratio</p>
+    <svg id="chart" viewBox="0 0 540 320" aria-label="EAT versus hit ratio graph"></svg>
+
+    <div class="bars">
+      <p class="blockTitle" style="margin-top:6px">How one average access splits</p>
+      <div class="bar"><span class="name">Ideal (1 access)</span><div class="track"><div class="fill ideal" id="barIdeal"></div></div><span class="num" id="numIdeal">—</span></div>
+      <div class="bar"><span class="name">EAT (with TLB)</span><div class="track"><div class="fill eat" id="barEat"></div></div><span class="num" id="numEat">—</span></div>
+      <div class="bar"><span class="name">No TLB (2 access)</span><div class="track"><div class="fill notlb" id="barNoTlb"></div></div><span class="num" id="numNoTlb">—</span></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="presets">
+      <button onclick="preset(10,0,80)">Lecture: 80% hit</button>
+      <button onclick="preset(10,0,99)">Lecture: 99% hit</button>
+      <button onclick="preset(100,10,98)">Realistic</button>
+    </div>
+
+    <div class="sliders">
+      <div class="srow">
+        <div class="slabel"><span>Memory access time (t<sub>mem</sub>)</span><span class="val"><span id="vMem">10</span> ns</span></div>
+        <input type="range" id="sMem" min="1" max="200" value="10" oninput="update()">
+      </div>
+      <div class="srow">
+        <div class="slabel"><span>TLB search time (t<sub>tlb</sub>)</span><span class="val"><span id="vTlb">0</span> ns</span></div>
+        <input type="range" id="sTlb" min="0" max="50" value="0" oninput="update()">
+        <div class="hint">Time to search the associative TLB. Often treated as ~0 (negligible) in textbook examples.</div>
+      </div>
+      <div class="srow">
+        <div class="slabel"><span>TLB hit ratio (α)</span><span class="val"><span id="vHit">80</span> %</span></div>
+        <input type="range" id="sHit" min="0" max="100" value="80" oninput="update()">
+      </div>
+    </div>
+
+    <div class="result">
+      <div><span class="eatBig" id="eatVal">—</span> <span class="eatUnit">ns&nbsp; effective access time</span></div>
+      <div class="formula" id="formula"></div>
+      <div class="interp" id="interp"></div>
+    </div>
+
+    <div class="legend">
+      <div class="row"><span class="sq" style="background:var(--ok)"></span> Ideal — one memory access (t<sub>mem</sub>), the best possible</div>
+      <div class="row"><span class="sq" style="background:var(--tlb)"></span> EAT — actual average with the TLB at this hit ratio</div>
+      <div class="row"><span class="sq" style="background:var(--bad)"></span> No TLB — every access needs two (page table + data)</div>
+      <div class="row" style="color:var(--muted);margin-top:8px">EAT = α·(t<sub>tlb</sub>+t<sub>mem</sub>) + (1−α)·(t<sub>tlb</sub>+2·t<sub>mem</sub>)</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SVGNS='http://www.w3.org/2000/svg';
+function el(tag,attrs,text){ const e=document.createElementNS(SVGNS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; return e; }
+
+/* EAT model:
+   hit  path = t_tlb + t_mem           (TLB gives frame, then 1 access for data)
+   miss path = t_tlb + 2*t_mem         (search TLB, read page table in memory, then data)
+   EAT = a*(t_tlb+t_mem) + (1-a)*(t_tlb+2*t_mem) = t_tlb + t_mem + (1-a)*t_mem  */
+function eatOf(tmem, ttlb, a){ return ttlb + tmem + (1-a)*tmem; }
+
+/* chart geometry */
+const W=540,H=320, padL=54,padR=18,padT=18,padB=46;
+const plotW=W-padL-padR, plotH=H-padT-padB;
+
+function preset(mem,tlb,hit){
+  document.getElementById('sMem').value=mem;
+  document.getElementById('sTlb').value=tlb;
+  document.getElementById('sHit').value=hit;
+  update();
+}
+
+function update(){
+  const tmem=+document.getElementById('sMem').value;
+  const ttlb=+document.getElementById('sTlb').value;
+  const hitP=+document.getElementById('sHit').value;
+  const a=hitP/100;
+  document.getElementById('vMem').textContent=tmem;
+  document.getElementById('vTlb').textContent=ttlb;
+  document.getElementById('vHit').textContent=hitP;
+
+  const eat=eatOf(tmem,ttlb,a);
+  const ideal=ttlb+tmem;          // best case (h=100%)
+  const noTlb=ttlb+2*tmem;        // worst case (h=0)
+  const yMax=noTlb;               // top of chart
+
+  document.getElementById('eatVal').textContent=eat.toFixed(2);
+
+  // formula box
+  document.getElementById('formula').textContent =
+    'EAT = α·(t_tlb + t_mem) + (1−α)·(t_tlb + 2·t_mem)\n'+
+    '    = '+a.toFixed(2)+'·('+ttlb+'+'+tmem+') + '+(1-a).toFixed(2)+'·('+ttlb+'+'+(2*tmem)+')\n'+
+    '    = '+eat.toFixed(2)+' ns';
+
+  // interpretation
+  const slow=((eat-ideal)/ideal*100);
+  document.getElementById('interp').innerHTML =
+    'At a <b>'+hitP+'%</b> hit ratio, the average access is <b>'+eat.toFixed(2)+' ns</b> — only <b>'+slow.toFixed(1)+'%</b> slower than the ideal single access ('+ideal+' ns). '+
+    'Without a TLB every access would take <b>'+noTlb+' ns</b> (two accesses).';
+
+  // breakdown bars (scaled to noTlb)
+  const pct=v=>(v/yMax*100).toFixed(1)+'%';
+  document.getElementById('barIdeal').style.width=pct(ideal);
+  document.getElementById('barEat').style.width=pct(eat);
+  document.getElementById('barNoTlb').style.width=pct(noTlb);
+  document.getElementById('numIdeal').textContent=ideal+' ns';
+  document.getElementById('numEat').textContent=eat.toFixed(2)+' ns';
+  document.getElementById('numNoTlb').textContent=noTlb+' ns';
+
+  drawChart(tmem,ttlb,a,eat,ideal,noTlb,yMax,hitP);
+}
+
+function xOf(hp){ return padL + (hp/100)*plotW; }
+function yOf(v,yMax){ return padT + plotH*(1 - v/yMax); }
+
+function drawChart(tmem,ttlb,a,eat,ideal,noTlb,yMax,hitP){
+  const svg=document.getElementById('chart');
+  svg.innerHTML='';
+
+  // axes
+  svg.appendChild(el('line',{x1:padL,y1:padT,x2:padL,y2:padT+plotH,stroke:'#33485f','stroke-width':1.5}));
+  svg.appendChild(el('line',{x1:padL,y1:padT+plotH,x2:padL+plotW,y2:padT+plotH,stroke:'#33485f','stroke-width':1.5}));
+
+  // y ticks (0, yMax/2, yMax)
+  [0,0.5,1].forEach(f=>{
+    const v=yMax*f, y=yOf(v,yMax);
+    svg.appendChild(el('line',{x1:padL-4,y1:y,x2:padL,y2:y,stroke:'#33485f'}));
+    svg.appendChild(el('text',{x:padL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#8aa0b6'}, v.toFixed(0)));
+    if(f>0) svg.appendChild(el('line',{x1:padL,y1:y,x2:padL+plotW,y2:y,stroke:'#1c2a3a','stroke-dasharray':'2 4'}));
+  });
+  svg.appendChild(el('text',{x:14,y:padT+plotH/2,'font-size':11,fill:'#8aa0b6',transform:'rotate(-90 14 '+(padT+plotH/2)+')','text-anchor':'middle'},'EAT (ns)'));
+
+  // x ticks
+  [0,25,50,75,100].forEach(hp=>{
+    const x=xOf(hp);
+    svg.appendChild(el('line',{x1:x,y1:padT+plotH,x2:x,y2:padT+plotH+4,stroke:'#33485f'}));
+    svg.appendChild(el('text',{x:x,y:padT+plotH+18,'text-anchor':'middle','font-size':11,fill:'#8aa0b6'},hp+'%'));
+  });
+  svg.appendChild(el('text',{x:padL+plotW/2,y:H-6,'text-anchor':'middle','font-size':11,fill:'#8aa0b6'},'TLB hit ratio (α)'));
+
+  // reference dashed lines: ideal (t_mem+t_tlb) and no-TLB (2t_mem+t_tlb)
+  const yIdeal=yOf(ideal,yMax), yNo=yOf(noTlb,yMax);
+  svg.appendChild(el('line',{x1:padL,y1:yIdeal,x2:padL+plotW,y2:yIdeal,stroke:'#22c55e','stroke-width':1,'stroke-dasharray':'5 4',opacity:.6}));
+  svg.appendChild(el('text',{x:padL+plotW-4,y:yIdeal-5,'text-anchor':'end','font-size':10,fill:'#22c55e'},'ideal '+ideal+' ns'));
+  svg.appendChild(el('line',{x1:padL,y1:yNo,x2:padL+plotW,y2:yNo,stroke:'#ef4444','stroke-width':1,'stroke-dasharray':'5 4',opacity:.5}));
+  svg.appendChild(el('text',{x:padL+4,y:yNo+14,'font-size':10,fill:'#ef4444'},'no TLB '+noTlb+' ns'));
+
+  // EAT line across all hit ratios (linear)
+  const x0=xOf(0), y0=yOf(eatOf(tmem,ttlb,0),yMax);
+  const x1=xOf(100), y1=yOf(eatOf(tmem,ttlb,1),yMax);
+  svg.appendChild(el('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'var(--line)','stroke-width':2.5}));
+
+  // current point
+  const cx=xOf(hitP), cy=yOf(eat,yMax);
+  svg.appendChild(el('line',{x1:cx,y1:padT+plotH,x2:cx,y2:cy,stroke:'#f59e0b','stroke-width':1,'stroke-dasharray':'3 3',opacity:.7}));
+  svg.appendChild(el('circle',{cx:cx,cy:cy,r:6,fill:'#f59e0b',stroke:'#06121f','stroke-width':2}));
+  const lx = cx>padL+plotW-90 ? cx-10 : cx+10;
+  const anchor = cx>padL+plotW-90 ? 'end':'start';
+  svg.appendChild(el('text',{x:lx,y:cy-8,'font-size':12,fill:'#f6c873','font-weight':700,'text-anchor':anchor}, eat.toFixed(2)+' ns @ '+hitP+'%'));
+}
+
+update();
+</script>
+</body>
+</html>

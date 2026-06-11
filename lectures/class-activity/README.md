@@ -20,7 +20,7 @@ This folder contains hands-on programming activities that accompany the lecture 
 | 5 | [Class Activity 5](class-activity5.md) | Week 8–9 — Semaphores & Deadlocks | Particle Buffer Semaphores and HELLO Ordering |
 | 6 | [Class Activity 6](class-activity6.md) | Week 9 — Deadlocks | Bank Transaction Deadlock Simulation |
 | 7 | [Class Activity 7](class-activity7.md) | Week 9 — Deadlocks | Reasoning about deadlock — RAG & Banker's (no-code, uses visualizations) |
-| 8 | [Class Activity 8](class-activity8.md) | Week 10–11 — Memory Management & Virtual Memory | Paging Address Translation & Page Replacement |
+| 8 | [Class Activity 8](class-activity8.md) | Week 10–11 — Memory Management & Virtual Memory | Paging & Page Replacement — reason (hand-trace) + simulate |
 
 _More activities will be added as the course progresses._
 
@@ -69,9 +69,9 @@ os-se-<YourStudentID>/
     │   ├── README.md              # ← Reasoning activity: written answers + traced tables
     │   └── screenshots/           # ← Your own screenshots from the visualizations
     ├── activity8/
-    │   ├── README.md
+    │   ├── README.md              # ← Part A hand-traces & predictions, Part C answers
     │   ├── screenshots/
-    │   ├── task1_paging/
+    │   ├── task1_paging/          # ← Part B simulator source
     │   └── task2_demand_paging/
     └── ...
 ```

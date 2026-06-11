@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Replacement — FIFO / LRU / OPT</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --accent:#60a5fa; --border:#233042;
+    --hit:#22c55e; --fault:#ef4444; --evict:#f59e0b; --new:#a855f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 560px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;overflow-x:auto}
+  .side{flex:0 0 360px;min-width:300px}
+  .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:118px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:15px;line-height:1.55}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:#2e4459}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .modes{display:flex;gap:8px;margin-bottom:14px}
+  .modes button{flex:1}
+  .modes button.active,.algos button.active,.scenarios button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .scenarios{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .scenarios button{flex:1 1 80px;padding:8px 6px;font-size:13px}
+  .algos{display:flex;gap:6px;margin-bottom:12px}
+  .algos button{flex:1}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  .builder{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+  .builder h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+  .brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  input[type=text],input[type=number]{background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:7px;padding:8px;font-size:14px}
+  input[type=text]{flex:1 1 180px}
+  input[type=number]{width:70px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .msg{font-size:12px;color:var(--evict);min-height:16px;margin-top:4px}
+  label.lbl{font-size:13px;color:var(--muted)}
+
+  /* trace matrix */
+  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+  table.tr{border-collapse:separate;border-spacing:4px}
+  table.tr td,table.tr th{width:34px;height:34px;text-align:center;font-size:14px;font-weight:600;border-radius:6px}
+  table.tr th{color:var(--muted);font-weight:600;font-size:12px}
+  td.ref{background:#13233f;color:#cfe0ff;font-weight:700}
+  td.ref.cur{box-shadow:0 0 0 2px var(--accent)}
+  td.slot{background:#0c141d;border:1px solid var(--border)}
+  td.slot.filled{background:#1c2940}
+  td.slot.cur{box-shadow:0 0 0 2px var(--accent)}
+  td.slot.newpg{background:#2a1c3d;border-color:var(--new);color:#e3c9ff}
+  td.slot.evicted{background:#3a2a10;border-color:var(--evict);color:#f6c873;text-decoration:line-through}
+  td.stat{font-weight:800;font-size:12px}
+  td.stat.H{color:var(--hit)}
+  td.stat.F{color:var(--fault)}
+  .rowlabel{color:var(--muted);font-size:12px;text-align:right;padding-right:6px;white-space:nowrap}
+  .counter{display:flex;gap:18px;margin-top:14px;align-items:center;flex-wrap:wrap}
+  .counter .big{font-size:30px;font-weight:800}
+  .counter .lab{font-size:12px;color:var(--muted)}
+  .faultN{color:var(--fault)} .hitN{color:var(--hit)}
+  /* comparison */
+  .cmp{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
+  .cmp h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+  .cmprow{display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border)}
+  .cmprow:first-of-type{border-top:none}
+  .cmprow b{font-size:15px}
+  .winner{color:var(--hit)}
+  .belady{background:#3a2a10;border:1px solid #6b4f1a;color:#f6c873;border-radius:8px;padding:10px;margin-top:10px;font-size:13px;line-height:1.5}
+  .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Demand Paging — Page Replacement (FIFO / LRU / OPT)</h1>
+  <div class="sub">Class Activity 8 · Task 2 — run a reference string through a fixed set of frames and watch <b>hits</b>, <b>faults</b>, and <b>eviction</b></div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <p class="blockTitle" id="cfgLine">Reference string · 3 frames</p>
+    <table class="tr" id="matrix"></table>
+
+    <div class="counter">
+      <div><div class="big faultN" id="faultCount">0</div><div class="lab">page faults</div></div>
+      <div><div class="big hitN" id="hitCount">0</div><div class="lab">hits</div></div>
+      <div><div class="big" id="ratePct" style="color:var(--accent)">—</div><div class="lab">fault rate</div></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="modes">
+      <button id="mEx" class="active" onclick="setMode('example')">Examples</button>
+      <button id="mCustom" onclick="setMode('custom')">Build your own</button>
+    </div>
+
+    <div class="scenarios" id="scenarioBar">
+      <button id="scLecture" class="active" onclick="loadScenario('lecture')">Lecture string</button>
+      <button id="scShort" onclick="loadScenario('short')">Short demo</button>
+      <button id="scBelady" onclick="loadScenario('belady')">Belady's anomaly</button>
+    </div>
+
+    <div class="builder" id="builder" style="display:none">
+      <h3>Your own run</h3>
+      <div class="brow">
+        <label class="lbl">Reference string:</label>
+      </div>
+      <div class="brow">
+        <input type="text" id="customRefs" value="7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1">
+      </div>
+      <div class="brow">
+        <label class="lbl">Frames:</label>
+        <input type="number" id="customFrames" min="1" max="8" value="3">
+        <button class="primary" onclick="loadCustom()">Run</button>
+      </div>
+      <div class="hint">Enter page numbers separated by spaces or commas. Frames start empty; the first distinct pages always fault (cold start).</div>
+      <div class="msg" id="builderMsg"></div>
+    </div>
+
+    <div class="algos">
+      <button id="aFIFO" class="active" onclick="setAlgo('FIFO')">FIFO</button>
+      <button id="aLRU" onclick="setAlgo('LRU')">LRU</button>
+      <button id="aOPT" onclick="setAlgo('OPT')">OPT</button>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText">Press <b>Next</b> to process one reference at a time, or <b>Play</b> to auto-run. Switch algorithm any time.</div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="cmp">
+      <h3>Total faults on this string</h3>
+      <div class="cmprow"><span>FIFO</span><b id="cmpFIFO">—</b></div>
+      <div class="cmprow"><span>LRU</span><b id="cmpLRU">—</b></div>
+      <div class="cmprow"><span>OPT (optimal)</span><b id="cmpOPT">—</b></div>
+      <div class="belady" id="beladyNote" style="display:none"></div>
+    </div>
+
+    <div class="legend">
+      <div class="row"><span class="sq" style="background:#2a1c3d;border-color:var(--new)"></span> Page just loaded on a fault (the victim it replaced is named in the caption)</div>
+      <div class="row"><span class="sq" style="background:#1c2940"></span> Resident page (unchanged this step)</div>
+      <div class="row"><span class="sq" style="background:var(--hit)"></span> <b>H</b> = hit &nbsp; <span class="sq" style="background:var(--fault)"></span> <b>F</b> = fault</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- scenarios ---------- */
+const SCEN = {
+  lecture: { refs:[7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1], frames:3 },
+  short:   { refs:[7,0,1,2,0,3,0,4,2,3], frames:3 },
+  belady:  { refs:[1,2,3,4,1,2,5,1,2,3,4,5], frames:3 },
+};
+
+let mode='example';
+let scenario='lecture';
+let refs = SCEN.lecture.refs.slice();
+let numFrames = 3;
+let algo='FIFO';
+let step=0;                 // number of references processed
+let trace=[];              // current algo trace
+let playing=false, playTimer=null;
+
+/* ---------- simulation ---------- */
+function chooseOpt(slots, refs, i){
+  let best=null, bestDist=-1;
+  for(const pg of slots){
+    if(pg===null) continue;
+    let next=Infinity;
+    for(let j=i+1;j<refs.length;j++){ if(refs[j]===pg){ next=j; break; } }
+    if(next>bestDist){ bestDist=next; best=pg; }
+  }
+  return best;
+}
+function simulate(refs, nf, algo){
+  let slots=Array(nf).fill(null);
+  let loadOrder=[];           // FIFO
+  let lastUsed={};            // LRU
+  let faults=0;
+  const tr=[];
+  for(let i=0;i<refs.length;i++){
+    const pg=refs[i];
+    const hit=slots.includes(pg);
+    let victim=null, slotIdx=-1;
+    if(!hit){
+      faults++;
+      const empty=slots.indexOf(null);
+      if(empty!==-1){ slotIdx=empty; slots[empty]=pg; loadOrder.push(pg); }
+      else {
+        if(algo==='FIFO') victim=loadOrder.shift();
+        else if(algo==='LRU'){ victim=slots[0]; for(const s of slots){ if(lastUsed[s]<lastUsed[victim]) victim=s; } }
+        else victim=chooseOpt(slots, refs, i);
+        slotIdx=slots.indexOf(victim);
+        slots[slotIdx]=pg;
+        if(algo==='FIFO') loadOrder.push(pg);
+      }
+    }
+    lastUsed[pg]=i;           // recency updates on hit AND fault (matters for LRU)
+    tr.push({page:pg, hit, slots:slots.slice(), victim, slotIdx, faults});
+  }
+  return tr;
+}
+function totalFaults(refs, nf, algo){ const t=simulate(refs,nf,algo); return t.length?t[t.length-1].faults:0; }
+
+/* ---------- render ---------- */
+function renderMatrix(){
+  const m=document.getElementById('matrix');
+  const N=refs.length;
+  let html='';
+  // reference row
+  html+='<tr><td class="rowlabel">ref</td>';
+  for(let i=0;i<N;i++){
+    const cur=(i===step-1);
+    html+='<td class="ref'+(cur?' cur':'')+'">'+(i<step?refs[i]:'·')+'</td>';
+  }
+  html+='</tr>';
+  // frame rows
+  for(let f=0; f<numFrames; f++){
+    html+='<tr><td class="rowlabel">F'+(f+1)+'</td>';
+    for(let i=0;i<N;i++){
+      if(i>=step){ html+='<td class="slot"></td>'; continue; }
+      const t=trace[i];
+      const val=t.slots[f];
+      const cur=(i===step-1);
+      let cls='slot';
+      if(val!==null) cls+=' filled';
+      if(cur) cls+=' cur';
+      // highlight new page / evicted victim only in the current column
+      let display = val===null?'':val;
+      if(cur && !t.hit && t.slotIdx===f){ cls='slot newpg cur'; display=val; }
+      html+='<td class="'+cls+'">'+display+'</td>';
+    }
+    html+='</tr>';
+  }
+  // status row
+  html+='<tr><td class="rowlabel">H/F</td>';
+  for(let i=0;i<N;i++){
+    if(i>=step){ html+='<td></td>'; continue; }
+    const t=trace[i];
+    html+='<td class="stat '+(t.hit?'H':'F')+'">'+(t.hit?'H':'F')+'</td>';
+  }
+  html+='</tr>';
+  m.innerHTML=html;
+}
+
+function render(){
+  renderMatrix();
+  const done = step>0 ? trace[step-1].faults : 0;
+  const hits = step - done;
+  document.getElementById('faultCount').textContent=done;
+  document.getElementById('hitCount').textContent=hits;
+  document.getElementById('ratePct').textContent = step>0 ? Math.round(done/step*100)+'%' : '—';
+  document.getElementById('cfgLine').textContent =
+    'Reference string · '+numFrames+' frames · '+algo;
+
+  // caption
+  const sl=document.getElementById('stepLabel');
+  const ct=document.getElementById('captionText');
+  if(step===0){
+    sl.textContent=algo+' · Step 0 of '+refs.length;
+    ct.innerHTML='Frames start <b>empty</b>. Press <b>Next</b> to reference the first page.';
+  } else {
+    const t=trace[step-1];
+    sl.textContent=algo+' · Step '+step+' of '+refs.length;
+    if(t.hit){
+      ct.innerHTML='Reference <b>'+t.page+'</b> → <b style="color:var(--hit)">HIT</b>. Page '+t.page+' is already resident, no disk access.'+
+        (algo==='LRU'?' (LRU marks it as <i>most recently used</i>.)':'');
+    } else if(t.victim===null){
+      ct.innerHTML='Reference <b>'+t.page+'</b> → <b style="color:var(--fault)">FAULT</b>. An empty frame exists, so page '+t.page+' is loaded into <b>F'+(t.slotIdx+1)+'</b> (cold-start fault).';
+    } else {
+      const why = algo==='FIFO' ? 'it was loaded earliest (oldest in)'
+                : algo==='LRU'  ? 'it was used least recently'
+                :                 'its next use is farthest in the future';
+      ct.innerHTML='Reference <b>'+t.page+'</b> → <b style="color:var(--fault)">FAULT</b>. Memory is full, so '+algo+' evicts <b style="color:var(--evict)">'+t.victim+'</b> ('+why+') and loads '+t.page+' into <b>F'+(t.slotIdx+1)+'</b>.';
+    }
+  }
+
+  // comparison panel
+  const fF=totalFaults(refs,numFrames,'FIFO');
+  const fL=totalFaults(refs,numFrames,'LRU');
+  const fO=totalFaults(refs,numFrames,'OPT');
+  const best=Math.min(fF,fL,fO);
+  const set=(id,v)=>{const e=document.getElementById(id);e.textContent=v;e.className=(v===best)?'winner':'';};
+  set('cmpFIFO',fF); set('cmpLRU',fL); set('cmpOPT',fO);
+
+  // belady note
+  const bn=document.getElementById('beladyNote');
+  if(scenario==='belady' && mode==='example'){
+    const f3=totalFaults(refs,3,'FIFO'), f4=totalFaults(refs,4,'FIFO');
+    bn.style.display='block';
+    bn.innerHTML='<b>Belady\'s anomaly:</b> FIFO faults with <b>3 frames = '+f3+'</b>, with <b>4 frames = '+f4+'</b>. '+
+      (f4>f3?'More frames caused <b>more</b> faults — the counterintuitive anomaly. (LRU and OPT never show it.)':'');
+  } else { bn.style.display='none'; }
+
+  document.getElementById('prevBtn').disabled=(step===0);
+  document.getElementById('nextBtn').disabled=(step>=refs.length);
+  document.getElementById('progress').textContent='Step '+step+' / '+refs.length;
+}
+
+/* ---------- mode / scenario / algo ---------- */
+function recompute(){ trace=simulate(refs,numFrames,algo); }
+function loadScenario(s){
+  scenario=s; mode='example';
+  refs=SCEN[s].refs.slice(); numFrames=SCEN[s].frames;
+  step=0; stopPlay(); recompute();
+  ['lecture','short','belady'].forEach(k=>document.getElementById('sc'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===s));
+  render();
+}
+function loadCustom(){
+  const raw=document.getElementById('customRefs').value;
+  const parsed=raw.split(/[\s,]+/).filter(x=>x!=='').map(Number);
+  const msg=document.getElementById('builderMsg');
+  if(parsed.some(isNaN)||parsed.length===0){ msg.textContent='Enter page numbers separated by spaces or commas.'; return; }
+  let nf=parseInt(document.getElementById('customFrames').value,10);
+  if(isNaN(nf)||nf<1||nf>8){ msg.textContent='Frames must be between 1 and 8.'; return; }
+  msg.textContent=''; refs=parsed; numFrames=nf; step=0; stopPlay(); recompute(); render();
+}
+function setAlgo(a){
+  algo=a;
+  ['FIFO','LRU','OPT'].forEach(k=>document.getElementById('a'+k).classList.toggle('active',k===a));
+  stopPlay(); recompute(); render();
+}
+function setMode(m){
+  mode=m; stopPlay();
+  document.getElementById('mEx').classList.toggle('active',m==='example');
+  document.getElementById('mCustom').classList.toggle('active',m==='custom');
+  document.getElementById('scenarioBar').style.display=(m==='example')?'flex':'none';
+  document.getElementById('builder').style.display=(m==='custom')?'block':'none';
+  if(m==='example') loadScenario(scenario); else loadCustom();
+}
+
+/* ---------- controls ---------- */
+function next(){ if(step<refs.length){ step++; render(); } if(step>=refs.length) stopPlay(); }
+function prev(){ if(step>0){ step--; render(); stopPlay(); } }
+function reset(){ step=0; stopPlay(); render(); }
+function togglePlay(){ playing?stopPlay():startPlay(); }
+function startPlay(){
+  playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{ if(step>=refs.length){stopPlay();return;} next(); }, 1100);
+}
+function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
+
+document.addEventListener('keydown', e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select') return;
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+recompute(); render();
+</script>
+</body>
+</html>

@@ -51,16 +51,32 @@
     <div class="go">Open →</div>
   </a>
 
-  <a class="card soon">
-    <div class="tag soon">Week 10 · Activity 8 · coming soon</div>
-    <h2>Paging &amp; Address Translation</h2>
-    <p>Split a logical address into page + offset, look it up in the page table, and assemble the physical address.</p>
+  <a class="card" href="paging-translation.html">
+    <div class="tag">Week 10 · Activity 8</div>
+    <h2>Paging, TLB &amp; Address Translation</h2>
+    <p>Split a logical address into page + offset, search the TLB (fast path), fall back to the page table on a miss, and assemble the physical address bit by bit.</p>
+    <div class="go">Open →</div>
   </a>
 
-  <a class="card soon">
-    <div class="tag soon">Week 11 · Activity 8 · coming soon</div>
-    <h2>Page Replacement (FIFO / LRU)</h2>
-    <p>Run a reference string through frames; watch hits, faults, and victim eviction under FIFO and LRU side by side.</p>
+  <a class="card" href="eat-calculator.html">
+    <div class="tag">Week 10 · Chapter 9</div>
+    <h2>Effective Access Time (EAT)</h2>
+    <p>Drag the TLB hit ratio and memory-time sliders; watch EAT drop on a live graph and see why a high hit ratio makes the TLB worth it.</p>
+    <div class="go">Open →</div>
+  </a>
+
+  <a class="card" href="page-replacement.html">
+    <div class="tag">Week 11 · Activity 8</div>
+    <h2>Page Replacement (FIFO / LRU / OPT)</h2>
+    <p>Run a reference string through frames; watch hits, faults, and victim eviction. Compare FIFO, LRU and OPT totals, and reproduce Belady's anomaly.</p>
+    <div class="go">Open →</div>
+  </a>
+
+  <a class="card" href="contiguous-allocation.html">
+    <div class="tag">Week 10 · Chapter 9</div>
+    <h2>Contiguous Allocation &amp; Fit Algorithms</h2>
+    <p>Place process requests into holes with First / Best / Worst fit, watch external fragmentation appear, then compact memory to fix it.</p>
+    <div class="go">Open →</div>
   </a>
 </div>
 

@@ -1,410 +1,247 @@
-# Class Activity 8 - Memory Management & Virtual Memory Simulators
+# Class Activity 8 - Memory Management & Virtual Memory: Reason + Simulate
 
 > **Related Lectures**: Week 10 - Memory Management, Week 11 - Virtual Memory  
 > **Topics**: Logical vs physical addresses, paging, address translation, page tables, internal fragmentation, demand paging, page faults, page replacement (FIFO, LRU, OPT)  
-> **Language**: Any programming language  
-> **Environment**: Linux, WSL, macOS, or Windows with any language runtime
+> **Format**: **Two layers.** First you **reason and hand-trace** (Part A) — this is what proves you understand. Then you **build a simulator** (Part B) and use it to **verify your own hand work**. Part C is applied reasoning.  
+> **Language**: Any programming language · **Environment**: any runtime
 
 ---
 
-## Objective
+## How this activity works (read first)
 
-In this activity, you will turn two core memory ideas into running programs.
+A coding-only task proves little — an AI can write a page-table translator or an LRU simulator instantly. So here the **simulator is a tool, not the point**: you must first work the problems **by hand** on your own personalized data, then build the program and use it to **check your traces**. Marks go to your **hand-traces, predictions, and explanations** as much as to the working code. A simulator with no hand-trace, or hand-traces that don't match your own simulator with no explanation, will score poorly.
 
-Task 1 makes the **paging illusion** visible. Every process believes it owns a clean, continuous block of memory starting at address `0`. In reality the OS scatters the process across physical frames and uses a **page table** to translate each logical address into a physical address. Your program will perform that translation, the same way the MMU does in hardware.
+> Be prepared to **reproduce any translation or trace on paper** if asked.
 
-Task 2 makes **virtual memory** visible. Physical memory is smaller than the addresses a process can use, so the OS keeps only some pages in memory and fetches the rest from disk on demand. When a needed page is not resident, a **page fault** occurs and a **page replacement algorithm** decides which resident page to evict. Your program will run a reference string through FIFO and LRU and count the page faults.
+### 🎬 Interactive Visualizations (your checking tools)
 
-By the end, you should understand how an address becomes a physical location, and why the choice of replacement algorithm changes how often a process touches the disk.
+Use these to **verify** your Part A hand-work — after you have traced it yourself, not before:
+
+- **Paging, TLB & Address Translation** (Part A1 / B1): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/paging-translation.html) · [source](../visualizations/paging-translation.html)
+- **Page Replacement — FIFO / LRU / OPT** (Part A2 / B2, incl. Belady's anomaly): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/page-replacement.html) · [source](../visualizations/page-replacement.html)
+- **Contiguous Allocation & Fit Algorithms** (external fragmentation, Part C Q1): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/contiguous-allocation.html) · [source](../visualizations/contiguous-allocation.html)
+- **Effective Access Time (EAT)** (why the TLB matters): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/eat-calculator.html) · [source](../visualizations/eat-calculator.html)
+
+Each has a **Build your own** mode — plug in your personalized address and reference string to check your traces. See [visualizations/README.md](../visualizations/README.md) for GitHub Pages links and offline use.
+
+### Your personalization
+
+Let **a** = the **last digit** of your student ID, **b** = the **second-to-last digit**. You will plug these into the data below so your numbers are your own.
 
 ---
 
-## Task Overview
+## Part A — Reason &amp; Hand-Trace (no code yet)
 
-| Task | What You Do | Screenshot Required |
-|------|-------------|--------------------|
-| **Task 1** | Build a paging address-translation simulator | Translation table + invalid-access message |
-| **Task 2** | Build a demand-paging simulator with FIFO and LRU page replacement | Per-step trace + page-fault counts |
-| **Task 3** | Explain your results using the lecture concepts | README answers |
+### A1 — Address translation by hand
 
-You may use any programming language, but your README must clearly say which language you used and how to run each program.
+Memory model (fixed for everyone):
+
+```text
+Page size:             16 bytes
+Logical address space: 8 pages   (logical addresses 0 .. 127)
+Page table:            page→frame, with two invalid (not-resident) pages
+
+Page | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
+Frame| 5 | 2 | 1 | – | 7 | – | 0 | 4      (pages 3 and 5 are invalid)
+```
+
+Translate these **six** logical addresses **by hand** — five fixed plus one of your own:
+
+```text
+20,  100,  48,  16,  127,   and   N = (10·a + b) mod 128
+```
+
+Fill this table (show your arithmetic for `page = LA / 16`, `offset = LA mod 16`, `physical = frame·16 + offset`):
+
+| Logical (LA) | page = LA/16 | offset = LA%16 | valid? | frame | physical = frame·16+offset |
+|---|---|---|---|---|---|
+| 20  | | | | | |
+| 100 | | | | | |
+| 48  | | | | | |
+| 16  | | | | | |
+| 127 | | | | | |
+| N = | | | | | |
+
+Then answer:
+1. For a valid page, **why is the offset identical** in the logical and physical address?
+2. The page size is 16 bytes — what is the **largest valid offset**, and **how many bits** does the offset need?
+3. A process needs **(60 + a)** bytes with 16-byte pages: how many **pages** are allocated, and how much **internal fragmentation** (wasted bytes in the last page) results? Show the calculation.
+
+### A2 — Page replacement by hand (FIFO vs LRU)
+
+Build **your** reference string from the lecture string by changing the first page to your digit:
+
+```text
+Base:  7 0 1 2 0 3 0 4 2 3 0 3        (first 12 of the Week 11 string)
+Yours: replace the FIRST number 7 with (a mod 7), keep the rest.
+Frames: 3   (start empty; loading into an empty frame still counts as a fault)
+```
+
+**Predict first (before tracing):** will **FIFO** or **LRU** cause more page faults on your string — or a tie? One sentence why.
+
+Now hand-trace **both** algorithms. Fill a row per reference; mark HIT/FAULT, the three frame slots, and the victim evicted (if any):
+
+**FIFO** (evict the page resident longest)
+
+| Ref | H/F | F1 | F2 | F3 | Evicted |
+|-----|-----|----|----|----|---------|
+| … (12 rows) | | | | | |
+
+**Total FIFO faults: ____**
+
+**LRU** (evict the page unused for longest; **hits also update recency**)
+
+| Ref | H/F | F1 | F2 | F3 | Evicted |
+|-----|-----|----|----|----|---------|
+| … (12 rows) | | | | | |
+
+**Total LRU faults: ____**
+
+State which algorithm faulted more on **your** string, and whether it matched your prediction.
 
 ---
 
-## Setup
+## Part B — Build the Simulator (and verify Part A)
 
-Create your activity folder:
+Now write programs that perform exactly what you did by hand, and **run your Part A data through them to check yourself**.
+
+### Setup
 
 ```bash
 mkdir -p activity8/{task1_paging,task2_demand_paging,screenshots}
 cd activity8
 ```
 
-Recommended filenames:
-
 ```text
-task1_paging/paging_translation.<extension>
-task2_demand_paging/page_replacement.<extension>
-README.md
-screenshots/task1_translation.png
-screenshots/task2_fifo.png
-screenshots/task2_lru.png
+task1_paging/paging_translation.<ext>
+task2_demand_paging/page_replacement.<ext>
 ```
 
-Examples:
+### B1 — Paging address-translation simulator
 
-```text
-paging_translation.py
-PagingTranslation.java
-paging_translation.c
-page_replacement.cpp
-```
+Write a program that translates logical addresses using the page table above (and its valid bits).
 
----
+**Required behavior**
+- store the page size, page table, and valid bits
+- translate at least the six A1 addresses (including your `N` and at least one **invalid** page)
+- for a valid address print page, offset, frame, and physical address
+- for an invalid page print exactly: `Page fault: page not in memory`
 
-## Task 1: Paging Address-Translation Simulator
-
-### Goal
-
-Write a program that translates **logical addresses** into **physical addresses** using a page table, exactly the way an MMU does.
-
-### Memory Model
-
-Use a small, easy-to-check configuration:
-
-```text
-Page size:            16 bytes
-Logical address space: 8 pages   (logical addresses 0 .. 127)
-Physical memory:       8 frames  (physical addresses 0 .. 127)
-```
-
-Define a page table that maps some pages to frames. Leave at least one page **invalid** (not loaded) so you can demonstrate an invalid reference:
-
-```text
-Page | Frame | Valid?
------+-------+-------
-  0  |   5   |  yes
-  1  |   2   |  yes
-  2  |   1   |  yes
-  3  |   -   |  no     (not in memory)
-  4  |   7   |  yes
-  5  |   3   |  no     (not in memory)
-  6  |   0   |  yes
-  7  |   4   |  yes
-```
-
-You may choose your own page size, table, and mappings, but you **must** keep at least one invalid page.
-
-### Translation Rule
-
-For a logical address `LA` and page size `P`:
-
-```text
-page_number = LA / P        (integer division)
-offset      = LA % P
-```
-
-Look up `page_number` in the page table:
-
-- If the page is **valid**, the physical address is:
-
-  ```text
-  physical_address = (frame_number * P) + offset
-  ```
-
-- If the page is **invalid**, do not translate. Print the required message instead (see below).
-
-### Required Behavior
-
-Your program must:
-
-- store the page size, the page table, and the valid bits
-- translate a **list of at least 6 logical addresses**, including at least one that lands on an **invalid** page
-- for each valid address, print the page number, offset, frame number, and final physical address
-- for each invalid address, print the required invalid-access message
-- report the **internal fragmentation** for one allocation (see questions)
-
-### Required Output Format
-
-For a valid translation, print a clear breakdown, for example:
-
+**Output example**
 ```text
 Logical 20  -> page 1, offset 4  -> frame 2 -> physical 36
-Logical 100 -> page 6, offset 4  -> frame 0 -> physical 4
+Logical 48  -> page 3 -> Page fault: page not in memory
 ```
 
-For an invalid reference, print exactly:
-
-```text
-Page fault: page not in memory
-```
-
-(In Task 1 this stands for an invalid/not-resident page. In Task 2 you will actually handle the fault.)
-
-### Pseudocode
-
+**Pseudocode**
 ```text
 P = 16
-page_table = { 0:5, 1:2, 2:1, 4:7, 6:0, 7:4 }   # only valid pages
-addresses  = [20, 100, 48, 16, 127, 80]          # 48 and 80 hit invalid pages
-
+page_table = { 0:5, 1:2, 2:1, 4:7, 6:0, 7:4 }   # valid pages only
 for LA in addresses:
-    page   = LA / P
-    offset = LA % P
-    if page is in page_table:
-        frame    = page_table[page]
-        physical = frame * P + offset
-        print translation breakdown
-    else:
-        print "Page fault: page not in memory"
+    page = LA / P;  offset = LA % P
+    if page in page_table: print page, offset, frame, frame*P+offset
+    else:                  print "Page fault: page not in memory"
 ```
 
-### Screenshot
+**Verify:** confirm every row of your A1 table matches the program. Screenshot → `screenshots/task1_translation.png`.
 
-Take one screenshot:
+### B2 — Demand-paging simulator (FIFO &amp; LRU)
+
+Run **two** reference strings through both FIFO and LRU: (i) the **full lecture string** below, and (ii) **your A2 string**.
 
 ```text
-screenshots/task1_translation.png
+Full string:  7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1
+Frames: 3   (start empty)
 ```
 
-Your screenshot must show:
+**Required behavior (per algorithm)**
+- process one reference at a time; decide HIT or FAULT
+- on a fault, load the page; if memory is full, evict the algorithm's victim
+- print the frame contents after each reference and the **total fault count**
+- FIFO evicts the oldest-loaded page; LRU evicts the least-recently-used page (**hits update recency**)
 
-- the page table or configuration printed
-- at least 6 logical addresses translated
-- at least one valid translation with its full breakdown
-- at least one `Page fault: page not in memory` message
-
----
-
-## Task 2: Demand Paging & Page Replacement Simulator
-
-### Goal
-
-Simulate **demand paging** with a limited number of physical frames. Run the same reference string through **FIFO** and **LRU**, count page faults, and print a per-step trace.
-
-### Required Configuration
-
-Use this reference string and frame count (the same one from the Week 11 notes), so your results are easy to check:
-
-```text
-Reference string: 7 0 1 2 0 3 0 4 2 3 0 3 2 1 2 0 1 7 0 1
-Number of frames: 3
-```
-
-The simulation starts with **all frames empty**. Loading a page into an empty frame still counts as a page fault (this is a cold-start / demand-paging fault).
-
-### Required Behavior
-
-For **each** algorithm (FIFO and LRU), your program must:
-
-- process the reference string one page at a time
-- for each reference, decide **HIT** (page already resident) or **FAULT** (page not resident)
-- on a fault, load the page; if all frames are full, evict the victim chosen by the algorithm
-- print the frame contents after each reference
-- print whether each reference was a HIT or FAULT
-- print the **total page-fault count** at the end
-
-### Algorithm Rules
-
-| Algorithm | Victim chosen on a full-memory fault |
-|-----------|--------------------------------------|
-| **FIFO**  | the page that has been resident the **longest** (oldest load time) |
-| **LRU**   | the page that was **least recently used** (oldest last-access time) |
-
-In LRU, **every reference** — both hits and faults — updates how recently a page was used.
-
-### Required Output Format
-
-Print a readable trace, for example:
-
+**Output example**
 ```text
 === FIFO ===
 Ref 7 | FAULT | frames: [7, _, _]
 Ref 0 | FAULT | frames: [7, 0, _]
-Ref 1 | FAULT | frames: [7, 0, 1]
-Ref 2 | FAULT | frames: [2, 0, 1]   (evicted 7)
-Ref 0 | HIT   | frames: [2, 0, 1]
+Ref 2 | FAULT | frames: [2, 0, 1]  (evicted 7)
 ...
 Total page faults (FIFO): 15
-```
-
-### Pseudocode
-
-```text
-frames = empty list of size N
-faults = 0
-
-for page in reference_string:
-    if page in frames:
-        record HIT
-        (LRU only: mark page as just used)
-    else:
-        record FAULT
-        faults += 1
-        if frames not full:
-            add page
-        else:
-            victim = choose_victim()      # FIFO: oldest loaded; LRU: oldest used
-            replace victim with page
-    print step trace
-
-print total faults
-```
-
-### Required Comparison
-
-After both runs, print a one-line comparison, for example:
-
-```text
 FIFO faults: 15 | LRU faults: 12
 ```
 
-> Note: with 3 frames and the reference string above, FIFO and LRU produce **different** fault counts. Your numbers should reflect that difference — if they are identical, check your eviction logic.
+**Verify:** confirm the program's counts for **your A2 string** match your hand-trace totals. If they differ, fix your trace (or your code) and explain what was wrong. Screenshots → `screenshots/task2_fifo.png`, `screenshots/task2_lru.png`.
 
-### Screenshots
+> The most common bug: forgetting that **LRU updates recency on hits**, not just faults. If FIFO and LRU give identical counts, check that first.
 
-Take two screenshots:
-
-```text
-screenshots/task2_fifo.png
-screenshots/task2_lru.png
-```
-
-Each screenshot must show:
-
-- the reference string and number of frames
-- the per-step HIT/FAULT trace with frame contents
-- the total page-fault count for that algorithm
+### Optional Extension — OPT &amp; Belady's anomaly
+- **OPT**: evict the page whose next use is farthest in the future; its fault count should be the lowest of the three.
+- **Belady's anomaly**: run **FIFO** on `1 2 3 4 1 2 5 1 2 3 4 5` with **3** frames, then **4** frames, and show 4 frames gives **more** faults. Screenshot → `screenshots/ext_belady.png`.
 
 ---
 
-## Optional Extension: Optimal (OPT) & Belady's Anomaly
+## Part C — Applied Reasoning
 
-After FIFO and LRU work, you may add either or both:
+Answer in your own words (original examples — don't reuse the lecture's):
 
-1. **OPT** — on a fault with full memory, evict the page whose **next use is farthest in the future** (or never used again). Compare its fault count to FIFO and LRU. It should be the lowest.
-
-2. **Belady's anomaly** — run **FIFO** with the reference string `1 2 3 4 1 2 5 1 2 3 4 5` using **3 frames**, then **4 frames**. Show that 4 frames produces **more** faults than 3 — the counterintuitive anomaly discussed in lecture.
-
-Optional screenshot:
-
-```text
-screenshots/task3_opt_or_belady.png
-```
+1. Why is paging free of **external** fragmentation, while contiguous allocation is not?
+2. Why does loading a page into an **empty** frame still count as a page fault?
+3. On your A2 string, **why** did LRU and FIFO differ (or tie)? Point to the specific reference where their behavior diverged.
+4. What is **thrashing**, and what would you observe if you re-ran B2 with only **1** frame for a working set that needs several pages?
+5. Demand paging loads a page only when first referenced. Give one **benefit** and one **risk** of this versus loading the whole program up front.
 
 ---
 
-## Questions
+## Deliverables &amp; Submission
 
-Answer these in your `README.md`:
-
-1. In Task 1, why does the **offset** stay the same in the logical and the physical address?
-2. In Task 1, for page size 16 bytes, what is the largest valid offset, and how many bits are needed for the offset?
-3. In Task 1, if a process needs 70 bytes and the page size is 16 bytes, how many pages are allocated and how much **internal fragmentation** results?
-4. Why is paging free of **external** fragmentation, while contiguous allocation is not?
-5. In Task 2, why does loading a page into an empty frame still count as a page fault?
-6. In Task 2, why does **LRU** generally cause fewer faults than **FIFO** on this reference string?
-7. What is **thrashing**, and how would it appear if you ran Task 2 with too few frames for the process's working set?
-
----
-
-## Deliverables & Submission
-
-### Required Screenshots
-
-```text
-screenshots/task1_translation.png
-screenshots/task2_fifo.png
-screenshots/task2_lru.png
-```
-
-### Required Source Files
-
-Submit your source files. Use names that match your language.
-
-Examples:
-
-```text
-task1_paging/paging_translation.py
-task2_demand_paging/page_replacement.py
-```
-
-or:
-
-```text
-task1_paging/PagingTranslation.java
-task2_demand_paging/PageReplacement.java
-```
-
-### Submission Folder Structure
+Submit a written report (Part A traces + Part C answers), your source files, and your screenshots.
 
 ```text
 os-se-<YourStudentID>/
 `-- os-class-activities-<YourStudentID>/
     `-- activity8/
-        |-- README.md
+        |-- README.md                 # Part A hand-traces & predictions, Part C answers
         |-- task1_paging/
-        |   `-- paging_translation.<extension>
+        |   `-- paging_translation.<ext>
         |-- task2_demand_paging/
-        |   `-- page_replacement.<extension>
+        |   `-- page_replacement.<ext>
         `-- screenshots/
             |-- task1_translation.png
             |-- task2_fifo.png
             `-- task2_lru.png
 ```
 
-### README Template
+### README template
 
 ````markdown
 # Class Activity 8 - Memory Management & Virtual Memory
 
-- **Student Name:** [Your Name]
-- **Student ID:** [Your ID]
-- **Programming Language Used:** [Python / C / C++ / Java / Other]
+- **Student Name:** [Your Name]   **Student ID:** [Your ID]
+- **Personalization:** a = [last digit], b = [2nd-last] → N = (10a+b) mod 128 = [...]
+- **Programming Language Used:** [...]
 
----
+## Part A1 — Address translation (by hand)
+[your filled translation table]
+1. Offset unchanged because: …
+2. Largest offset = …, bits = …
+3. (60 + a) = … bytes → … pages, internal fragmentation = … bytes (show working)
 
-## Task 1: Paging Address-Translation Simulator
+## Part A2 — Page replacement (by hand)
+- My reference string: …    Prediction (FIFO vs LRU): …
+[FIFO trace table] → FIFO faults: …
+[LRU trace table]  → LRU faults: …
+Which faulted more, and did it match my prediction: …
 
-![Address translation](screenshots/task1_translation.png)
+## Part B — Simulator verification
+![Translation](screenshots/task1_translation.png)
+![FIFO](screenshots/task2_fifo.png)
+![LRU](screenshots/task2_lru.png)
+- Did the simulator match my A1 table? …
+- Did the simulator's counts for my A2 string match my hand totals? … (if not, what was wrong)
 
-- Page size used:
-- Number of pages / frames:
-- Page table (page -> frame):
-- Example valid translation (show the full breakdown):
-- Invalid reference shown:
-- Internal fragmentation for a 70-byte process:
-
----
-
-## Task 2: Demand Paging & Page Replacement
-
-![FIFO trace](screenshots/task2_fifo.png)
-![LRU trace](screenshots/task2_lru.png)
-
-- Reference string:
-- Number of frames:
-- FIFO total page faults:
-- LRU total page faults:
-- Which algorithm performed better, and why:
-
----
-
-## Questions
-
-1. In Task 1, why does the offset stay the same in the logical and the physical address?
-2. For page size 16 bytes, what is the largest valid offset, and how many bits are needed for the offset?
-3. If a process needs 70 bytes with 16-byte pages, how many pages are allocated and how much internal fragmentation results?
-4. Why is paging free of external fragmentation, while contiguous allocation is not?
-5. Why does loading a page into an empty frame still count as a page fault?
-6. Why does LRU generally cause fewer faults than FIFO on this reference string?
-7. What is thrashing, and how would it appear with too few frames?
-
----
-
-## Reflection
-
-_What did these simulators teach you about how the OS turns the illusion of a large, private address space into real physical memory and disk?_
+## Part C — Applied reasoning
+1. …  2. …  3. …  4. …  5. …
 ````
 
 ---
@@ -413,21 +250,23 @@ _What did these simulators teach you about how the OS turns the illusion of a la
 
 | Criteria | Points | Description |
 |----------|--------|-------------|
-| **Task 1 translation correctness** | 25 | Correctly computes page number, offset, frame, and physical address for valid references. |
-| **Task 1 invalid handling** | 10 | Detects invalid/not-resident pages and prints the required message. |
-| **Task 2 FIFO** | 20 | Correct FIFO eviction, per-step trace, and fault count. |
-| **Task 2 LRU** | 20 | Correct LRU eviction (hits update recency), per-step trace, and fault count. |
-| **Task 2 comparison** | 10 | Reports both fault counts and shows FIFO and LRU differ. |
-| **README and screenshots** | 15 | Screenshots embedded, source files submitted, and questions answered clearly. |
+| **A1 hand translation** | 15 | Correct page/offset/frame/physical for all six addresses (incl. your N and an invalid page), with shown arithmetic and the fragmentation calculation. |
+| **A2 hand traces + prediction** | 20 | Complete FIFO and LRU trace tables for *your* string, correct fault totals, and a recorded prediction. |
+| **B1 simulator** | 15 | Correct translation program incl. the invalid-page message. |
+| **B2 simulator** | 20 | Correct FIFO and LRU (hits update recency), per-step trace, and fault counts on both strings. |
+| **Verification (A↔B)** | 10 | Hand-traces compared against the simulator with honest notes on any mismatch. |
+| **Part C reasoning** | 10 | In-your-own-words answers using original examples. |
+| **Report & screenshots** | 10 | Traces, predictions, source files, and screenshots all present and clear. |
 | **Total** | **100** | |
+
+> Up to **15 points** may be deducted for a working simulator submitted with **no hand-traces or no predictions** — the reasoning is what is being assessed.
 
 ---
 
 ## Tips
 
-- In Task 1, keep the page size a power of two (like 16). Then `page = LA >> 4` and `offset = LA & 15`, which makes the bit-splitting in question 2 obvious.
-- Print your page table at the start of Task 1 so your screenshot is self-explanatory.
-- In Task 2, the most common bug is forgetting that **LRU updates recency on hits too**, not just on faults. If FIFO and LRU give the same count, this is usually why.
-- A FIFO queue (oldest-first) and an LRU ordering (recently-used-last) are different bookkeeping structures — do not reuse one for the other.
-- Loading into an empty frame is still a fault: with 3 frames, the first 3 distinct pages always fault.
-- For the optional Belady's anomaly, use the exact string `1 2 3 4 1 2 5 1 2 3 4 5`; not every reference string exhibits the anomaly.
+- Keep page size a power of two: `page = LA >> 4`, `offset = LA & 15` — and the offset-bits answer falls right out.
+- Do Part A **before** writing any code; the simulator is your answer key, not your calculator.
+- A FIFO queue (oldest-first) and an LRU recency order are **different** structures — don't reuse one for the other.
+- With 3 empty frames, the first 3 distinct pages always fault — that's expected.
+- For Belady's anomaly use exactly `1 2 3 4 1 2 5 1 2 3 4 5`; not every string shows it.

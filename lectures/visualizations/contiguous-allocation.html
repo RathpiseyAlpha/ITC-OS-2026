@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contiguous Allocation &amp; Fit Algorithms</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --accent:#60a5fa; --border:#233042;
+    --os:#475569; --proc:#3b82f6; --newp:#a855f7; --hole:#1b2735; --holeEdge:#33485f;
+    --ok:#22c55e; --bad:#ef4444; --pick:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 540px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+  .side{flex:0 0 360px;min-width:300px}
+  .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:120px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:15px;line-height:1.55}
+  .verdict{font-size:17px;font-weight:700;margin-top:10px}
+  .verdict.ok{color:var(--ok)} .verdict.bad{color:var(--bad)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:#2e4459}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .algos{display:flex;gap:6px;margin-bottom:12px}
+  .algos button{flex:1}
+  .algos button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  .builder{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+  .builder h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+  .brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  input[type=text]{background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:7px;padding:8px;font-size:14px;flex:1 1 160px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .msg{font-size:12px;color:var(--pick);min-height:16px;margin-top:4px}
+  label.lbl{font-size:13px;color:var(--muted)}
+
+  /* memory bar */
+  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+  .ruler{display:flex;width:100%;font-size:10px;color:var(--muted);margin-bottom:2px}
+  .membar{display:flex;width:100%;height:80px;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .seg{display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid #0f1722;font-size:12px;font-weight:700;color:#fff;overflow:hidden;transition:.3s;white-space:nowrap}
+  .seg:last-child{border-right:none}
+  .seg.os{background:var(--os)}
+  .seg.proc{background:var(--proc)}
+  .seg.newp{background:var(--newp)}
+  .seg.hole{background:repeating-linear-gradient(45deg,#16212f,#16212f 6px,#1b2735 6px,#1b2735 12px);color:var(--muted);border:1px dashed var(--holeEdge)}
+  .seg.pick{box-shadow:inset 0 0 0 3px var(--pick);color:#fff}
+  .seg .sz{font-size:11px;font-weight:500;opacity:.85}
+  .stats{display:flex;gap:18px;margin-top:16px;flex-wrap:wrap}
+  .stat{text-align:center}
+  .stat .big{font-size:24px;font-weight:800}
+  .stat .lab{font-size:11px;color:var(--muted)}
+  .queue{display:flex;gap:6px;margin-top:16px;flex-wrap:wrap;align-items:center}
+  .qitem{padding:7px 12px;border-radius:8px;background:#13233f;border:1px solid var(--border);font-weight:700;font-size:14px}
+  .qitem.done{opacity:.4;text-decoration:line-through}
+  .qitem.cur{box-shadow:0 0 0 2px var(--accent);background:#1d2c3e}
+  .qitem.fail{border-color:var(--bad);color:#fda4a4}
+  .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .sq{width:18px;height:14px;border-radius:3px;flex:0 0 auto;border:1px solid var(--border)}
+  .sq.hole{background:repeating-linear-gradient(45deg,#16212f,#16212f 4px,#1b2735 4px,#1b2735 8px);border:1px dashed var(--holeEdge)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Contiguous Allocation &amp; Fit Algorithms</h1>
+  <div class="sub">Chapter 9 — place process requests into <b>holes</b> with First / Best / Worst fit, and watch <b>external fragmentation</b> appear</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <p class="blockTitle">Physical memory (64 units)</p>
+    <div class="ruler"><span style="flex:1">0</span><span>64</span></div>
+    <div class="membar" id="membar"></div>
+
+    <div class="stats">
+      <div class="stat"><div class="big" id="freeStat" style="color:var(--accent)">—</div><div class="lab">total free</div></div>
+      <div class="stat"><div class="big" id="largeStat" style="color:var(--ok)">—</div><div class="lab">largest hole</div></div>
+      <div class="stat"><div class="big" id="holeStat" style="color:var(--muted)">—</div><div class="lab">holes</div></div>
+    </div>
+
+    <p class="blockTitle" style="margin-top:18px">Request queue (sizes to place, in order)</p>
+    <div class="queue" id="queue"></div>
+  </div>
+
+  <div class="side">
+    <div class="algos">
+      <button id="aFirst" class="active" onclick="setAlgo('first')">First fit</button>
+      <button id="aBest" onclick="setAlgo('best')">Best fit</button>
+      <button id="aWorst" onclick="setAlgo('worst')">Worst fit</button>
+    </div>
+
+    <div class="builder">
+      <h3>Custom request queue</h3>
+      <div class="brow">
+        <label class="lbl">Sizes:</label>
+        <input type="text" id="customQ" value="6 8 10">
+        <button class="primary" onclick="loadCustom()">Set</button>
+        <button onclick="resetDefault()">Default</button>
+      </div>
+      <div class="hint">Space/comma separated. The starting memory layout (OS + 3 processes leaving holes of 8, 16, 8) stays fixed so you can compare the three fit strategies.</div>
+      <div class="msg" id="builderMsg"></div>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText">Press <b>Next</b> to place each request with the selected fit algorithm. Try all three on the same queue and compare.</div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button id="compactBtn" onclick="compact()">⇥ Compact</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="legend">
+      <div class="row"><span class="sq os" style="background:var(--os)"></span> Operating system</div>
+      <div class="row"><span class="sq" style="background:var(--proc)"></span> Process already in memory</div>
+      <div class="row"><span class="sq" style="background:var(--newp)"></span> Process placed in this run</div>
+      <div class="row"><span class="sq hole"></span> Hole (free block)</div>
+      <div class="row"><span class="sq" style="background:transparent;box-shadow:inset 0 0 0 2px var(--pick)"></span> Hole chosen by the algorithm</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL=64;
+/* initial layout — fixed. holes of 8, 16, 8 */
+function initialSegments(){
+  return [
+    {start:0,  size:8,  type:'os',   label:'OS'},
+    {start:8,  size:12, type:'proc', label:'P1'},
+    {start:20, size:8,  type:'hole', label:''},
+    {start:28, size:8,  type:'proc', label:'P2'},
+    {start:36, size:16, type:'hole', label:''},
+    {start:52, size:4,  type:'proc', label:'P3'},
+    {start:56, size:8,  type:'hole', label:''},
+  ];
+}
+let queue=[6,8,10];
+let algo='first';
+let frames=[];      // precomputed: frames[k] = state after k requests
+let step=0;
+let compacted=false;
+let playing=false, playTimer=null;
+
+/* ---------- fit selection ---------- */
+function chooseHole(segs, size, algo){
+  let pick=-1;
+  for(let i=0;i<segs.length;i++){
+    const s=segs[i];
+    if(s.type!=='hole'||s.size<size) continue;
+    if(pick===-1){ pick=i; continue; }
+    if(algo==='first') break;
+    if(algo==='best'  && s.size<segs[pick].size) pick=i;
+    if(algo==='worst' && s.size>segs[pick].size) pick=i;
+  }
+  return pick;
+}
+function place(segs, size, algo, id){
+  const i=chooseHole(segs,size,algo);
+  if(i===-1) return {segs, ok:false, pickStart:null};
+  const h=segs[i];
+  const newSegs=segs.slice();
+  const alloc={start:h.start,size:size,type:'newp',label:'Q'+id};
+  const repl=[alloc];
+  if(h.size>size) repl.push({start:h.start+size,size:h.size-size,type:'hole',label:''});
+  newSegs.splice(i,1,...repl);
+  return {segs:newSegs, ok:true, pickStart:h.start, pickSize:h.size, leftover:h.size-size};
+}
+function fragStats(segs){
+  const holes=segs.filter(s=>s.type==='hole');
+  const free=holes.reduce((a,h)=>a+h.size,0);
+  const largest=holes.reduce((a,h)=>Math.max(a,h.size),0);
+  return {free,largest,count:holes.length};
+}
+
+/* ---------- precompute the whole run ---------- */
+function recompute(){
+  frames=[];
+  let segs=initialSegments();
+  frames.push({segs, msg:'Initial layout: OS plus P1–P3, leaving three holes (8, 16, 8). Total free = 32, but it is <b>scattered</b>.', pickStart:null, ok:null, req:null});
+  for(let k=0;k<queue.length;k++){
+    const size=queue[k];
+    const r=place(segs,size,algo,k+1);
+    let msg;
+    if(r.ok){
+      msg='Request <b>'+size+'</b>: '+algoName()+' picks the hole at address '+r.pickStart+' (size '+r.pickSize+'). '+
+          (r.leftover>0?('Leftover <b>'+r.leftover+'</b> stays as a smaller hole — that sliver is future external fragmentation.'):'It fits exactly, no leftover.');
+    } else {
+      const fs=fragStats(segs);
+      msg='Request <b>'+size+'</b>: <b style="color:var(--bad)">no single hole is big enough</b> (largest is '+fs.largest+'). '+
+          'Yet total free = '+fs.free+' ≥ '+size+' — this is <b>external fragmentation</b>. Try <b>Compact</b>.';
+    }
+    frames.push({segs:r.segs, msg, pickStart:r.pickStart, ok:r.ok, req:size});
+    if(r.ok) segs=r.segs;   // failed request leaves memory unchanged
+  }
+}
+function algoName(){ return algo==='first'?'First fit':algo==='best'?'Best fit':'Worst fit'; }
+
+/* ---------- compaction ---------- */
+function compactSegs(segs){
+  const used=segs.filter(s=>s.type!=='hole');
+  const free=TOTAL-used.reduce((a,s)=>a+s.size,0);
+  let cur=0; const out=[];
+  for(const s of used){ out.push({...s,start:cur}); cur+=s.size; }
+  if(free>0) out.push({start:cur,size:free,type:'hole',label:''});
+  return out;
+}
+
+/* ---------- render ---------- */
+function curSegs(){
+  let segs=frames[step].segs;
+  if(compacted) segs=compactSegs(segs);
+  return segs;
+}
+function render(){
+  const segs=curSegs();
+  const bar=document.getElementById('membar');
+  const frame=frames[step];
+  bar.innerHTML='';
+  for(const s of segs){
+    const div=document.createElement('div');
+    let cls='seg '+s.type;
+    const isPick=(!compacted && frame.pickStart!==null && frame.ok && s.type==='newp' && s.start===frame.pickStart);
+    // highlight the chosen hole BEFORE allocation isn't shown post-hoc; instead highlight the newly placed block
+    if(isPick) cls+=' pick';
+    div.className=cls;
+    div.style.flex='0 0 '+(s.size/TOTAL*100)+'%';
+    div.title=(s.label||'hole')+' · '+s.size+' units · @'+s.start;
+    const name = s.type==='hole' ? 'hole' : s.label;
+    div.innerHTML='<div>'+name+'</div><div class="sz">'+s.size+'</div>';
+    bar.appendChild(div);
+  }
+  const fs=fragStats(segs);
+  document.getElementById('freeStat').textContent=fs.free;
+  document.getElementById('largeStat').textContent=fs.largest;
+  document.getElementById('holeStat').textContent=fs.count;
+
+  // queue chips
+  const q=document.getElementById('queue');
+  q.innerHTML='';
+  queue.forEach((sz,i)=>{
+    const chip=document.createElement('div');
+    let cls='qitem';
+    if(i<step-1) cls+=' done';
+    else if(i===step-1) cls+=frames[step].ok===false?' cur fail':' cur';
+    chip.className=cls; chip.textContent=sz;
+    q.appendChild(chip);
+  });
+
+  // caption
+  document.getElementById('stepLabel').textContent=algoName()+' · Step '+step+' of '+queue.length;
+  document.getElementById('captionText').innerHTML = compacted
+    ? 'After <b>compaction</b>, all free memory is shuffled into one contiguous hole of size '+fs.largest+'. A request that failed due to external fragmentation can now be satisfied. (Compaction needs dynamic relocation and is expensive — it copies live data.)'
+    : frame.msg;
+  const v=document.getElementById('verdict');
+  v.className='verdict'; v.textContent='';
+  if(!compacted && frame.ok===false){ v.className='verdict bad'; v.textContent='⛔ Allocation failed — external fragmentation'; }
+  else if(!compacted && frame.ok===true){ v.className='verdict ok'; v.textContent='✅ Placed (size '+frame.req+')'; }
+
+  document.getElementById('prevBtn').disabled=(step===0||compacted);
+  document.getElementById('nextBtn').disabled=(step>=queue.length||compacted);
+  document.getElementById('compactBtn').disabled=(fs.count<=1);
+  document.getElementById('progress').textContent='Step '+step+' / '+queue.length;
+}
+
+/* ---------- controls ---------- */
+function setAlgo(a){
+  algo=a; ['first','best','worst'].forEach(k=>document.getElementById('a'+k[0].toUpperCase()+k.slice(1)).classList.toggle('active',k===a));
+  step=0; compacted=false; stopPlay(); recompute(); render();
+}
+function loadCustom(){
+  const raw=document.getElementById('customQ').value;
+  const parsed=raw.split(/[\s,]+/).filter(x=>x!=='').map(Number);
+  const msg=document.getElementById('builderMsg');
+  if(parsed.some(n=>isNaN(n)||n<=0)||parsed.length===0){ msg.textContent='Enter positive sizes separated by spaces or commas.'; return; }
+  if(parsed.some(n=>n>TOTAL)){ msg.textContent='Each size must be ≤ '+TOTAL+'.'; return; }
+  msg.textContent=''; queue=parsed; step=0; compacted=false; stopPlay(); recompute(); render();
+}
+function resetDefault(){ document.getElementById('customQ').value='6 8 10'; queue=[6,8,10]; step=0; compacted=false; stopPlay(); recompute(); render(); }
+function next(){ if(step<queue.length){ step++; render(); } if(step>=queue.length) stopPlay(); }
+function prev(){ if(step>0){ step--; compacted=false; render(); stopPlay(); } }
+function reset(){ step=0; compacted=false; stopPlay(); render(); }
+function compact(){ compacted=true; stopPlay(); render(); }
+function togglePlay(){ playing?stopPlay():startPlay(); }
+function startPlay(){
+  if(compacted) return;
+  playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{ if(step>=queue.length){stopPlay();return;} next(); }, 1300);
+}
+function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
+
+document.addEventListener('keydown', e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select') return;
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+recompute(); render();
+</script>
+</body>
+</html>
