@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TLB — Translation Look-Aside Buffer</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --accent:#60a5fa; --border:#233042;
+    --tlb:#f59e0b; --hit:#22c55e; --miss:#ef4444; --evict:#f59e0b; --new:#a855f7; --frame:#a855f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 560px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;overflow-x:auto}
+  .side{flex:0 0 360px;min-width:300px}
+  .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:118px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:15px;line-height:1.55}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:#2e4459}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .modes{display:flex;gap:8px;margin-bottom:14px}
+  .modes button{flex:1}
+  .modes button.active,.scenarios button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .scenarios{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .scenarios button{flex:1 1 90px;padding:8px 6px;font-size:13px}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  .builder{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+  .builder h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+  .brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  input[type=text]{background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:7px;padding:8px;font-size:14px;flex:1 1 180px}
+  input[type=number]{background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:7px;padding:8px;font-size:14px;width:70px}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .msg{font-size:12px;color:var(--evict);min-height:16px;margin-top:4px}
+  label.lbl{font-size:13px;color:var(--muted)}
+
+  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+
+  /* path diagram */
+  .path{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+  .pline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .pbox{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:#0c141d;font-size:13px;font-weight:600;color:var(--muted);transition:.25s}
+  .pbox.on{color:#fff}
+  .pbox.cpu.on{border-color:var(--accent);background:#13233f;color:#cfe0ff}
+  .pbox.tlb.on{border-color:var(--tlb);background:#241a0c;color:#f6c873}
+  .pbox.pt.on{border-color:var(--accent);background:#13233f;color:#cfe0ff}
+  .pbox.mem.on{border-color:var(--frame);background:#241a33;color:#e6ccff}
+  .parrow{color:var(--muted);font-size:14px}
+  .ptag{font-size:11px;padding:1px 7px;border-radius:10px;font-weight:700}
+  .ptag.hit{background:#0d2a20;color:#86e6c2}
+  .ptag.miss{background:#3a1414;color:#fca5a5}
+
+  /* TLB slots */
+  table.tlb{border-collapse:collapse;width:100%;font-size:14px;margin-top:4px;max-width:340px}
+  table.tlb th,table.tlb td{border:1px solid var(--border);padding:7px 8px;text-align:center}
+  table.tlb th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  table.tlb td.empty{color:var(--muted)}
+  table.tlb tr.searching td{background:#221a0c}
+  table.tlb tr.hit td{background:#0e2a20;box-shadow:inset 0 0 0 2px var(--hit);color:#aef0cf;font-weight:700}
+  table.tlb tr.newpg td{background:#2a1c3d;box-shadow:inset 0 0 0 2px var(--new);color:#e3c9ff;font-weight:700}
+
+  /* page table compact */
+  table.pt{border-collapse:collapse;font-size:13px;margin-top:4px}
+  table.pt th,table.pt td{border:1px solid var(--border);padding:5px 9px;text-align:center}
+  table.pt th{color:var(--muted);font-size:11px;text-transform:uppercase}
+  table.pt tr.active td{background:#1d2c3e;box-shadow:inset 0 0 0 2px var(--accent)}
+  table.pt tr.dim td{opacity:.4}
+
+  /* reference stream */
+  .stream{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+  .rcell{width:32px;height:44px;border-radius:6px;background:#0c141d;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700}
+  .rcell .pg{font-size:14px}
+  .rcell .hf{font-size:10px;font-weight:800;margin-top:1px}
+  .rcell.cur{box-shadow:0 0 0 2px var(--accent)}
+  .rcell.hit{border-color:var(--hit)} .rcell.hit .hf{color:var(--hit)}
+  .rcell.miss{border-color:var(--miss)} .rcell.miss .hf{color:var(--miss)}
+
+  .counter{display:flex;gap:18px;margin-top:16px;align-items:center;flex-wrap:wrap}
+  .counter .big{font-size:28px;font-weight:800}
+  .counter .lab{font-size:11px;color:var(--muted)}
+  .hitN{color:var(--hit)} .missN{color:var(--miss)}
+  .ratioNote{font-size:12px;color:var(--muted);margin-top:10px}
+  .ratioNote a{color:var(--accent)}
+
+  .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <h1>TLB — Translation Look-Aside Buffer</h1>
+  <div class="sub">Chapter 9 — a small cache of recent page→frame translations. A <b>hit</b> skips the page table (fast); a <b>miss</b> walks it, then caches the result. For the raw translation, see <a href="paging-translation.html" style="color:var(--accent)">Paging &amp; Address Translation</a>; for the timing impact, the <a href="eat-calculator.html" style="color:var(--accent)">EAT calculator</a>.</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <p class="blockTitle">Translation path for the current reference</p>
+    <div class="path">
+      <div class="pline">
+        <span class="pbox cpu" id="pCpu">CPU<br><span style="font-weight:400;font-size:11px" id="pCpuSub">page —</span></span>
+        <span class="parrow">→</span>
+        <span class="pbox tlb" id="pTlb">TLB search <span class="ptag" id="pTag"></span></span>
+        <span class="parrow">→</span>
+        <span class="pbox mem" id="pMemHit">frame → memory<br><span style="font-weight:400;font-size:11px">fast path (hit)</span></span>
+      </div>
+      <div class="pline" style="margin-left:30px">
+        <span class="parrow">↘ on miss</span>
+        <span class="pbox pt" id="pPt">page table<br><span style="font-weight:400;font-size:11px">extra memory access</span></span>
+        <span class="parrow">→</span>
+        <span class="pbox mem" id="pMemMiss">frame → memory<br><span style="font-weight:400;font-size:11px">+ install in TLB</span></span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:16px">
+      <div>
+        <p class="blockTitle">TLB (<span id="tlbSizeLbl">4</span> entries · LRU)</p>
+        <table class="tlb" id="tlbTable"></table>
+      </div>
+      <div>
+        <p class="blockTitle">Page table</p>
+        <table class="pt" id="ptTable"></table>
+      </div>
+    </div>
+
+    <p class="blockTitle" style="margin-top:18px">Reference stream (page numbers)</p>
+    <div class="stream" id="stream"></div>
+
+    <div class="counter">
+      <div><div class="big hitN" id="hitCount">0</div><div class="lab">TLB hits</div></div>
+      <div><div class="big missN" id="missCount">0</div><div class="lab">TLB misses</div></div>
+      <div><div class="big" id="ratioPct" style="color:var(--tlb)">—</div><div class="lab">hit ratio</div></div>
+    </div>
+    <div class="ratioNote">A higher hit ratio means fewer page-table walks → lower effective access time. Plug this ratio into the <a href="eat-calculator.html">EAT calculator</a>.</div>
+  </div>
+
+  <div class="side">
+    <div class="modes">
+      <button id="mEx" class="active" onclick="setMode('example')">Examples</button>
+      <button id="mCustom" onclick="setMode('custom')">Build your own</button>
+    </div>
+
+    <div class="scenarios" id="scenarioBar">
+      <button id="scLocality" class="active" onclick="loadScenario('locality')">Good locality</button>
+      <button id="scPoor" onclick="loadScenario('poor')">Poor locality</button>
+      <button id="scCold" onclick="loadScenario('cold')">Cold start</button>
+    </div>
+
+    <div class="builder" id="builder" style="display:none">
+      <h3>Your own run</h3>
+      <div class="brow"><label class="lbl">Page references:</label></div>
+      <div class="brow"><input type="text" id="customRefs" value="1 1 4 1 6 4 1 2 7 7 4 0 1 6 2 1"></div>
+      <div class="brow">
+        <label class="lbl">TLB entries:</label>
+        <input type="number" id="customSize" min="1" max="6" value="4">
+        <button class="primary" onclick="loadCustom()">Run</button>
+      </div>
+      <div class="hint">Use pages 0–7 (valid pages: 0,1,2,4,6,7). Eviction is LRU. The TLB starts empty, so the first reference to each page always misses (cold).</div>
+      <div class="msg" id="builderMsg"></div>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText">Press <b>Next</b> to reference one page at a time, or <b>Play</b> to auto-run. Watch the TLB fill, then start serving hits.</div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="legend">
+      <div class="row"><span class="sq" style="background:#0e2a20;border-color:var(--hit)"></span> TLB hit — page found, page table skipped (fast)</div>
+      <div class="row"><span class="sq" style="background:#2a1c3d;border-color:var(--new)"></span> Entry just installed after a miss</div>
+      <div class="row"><span class="sq" style="background:#221a0c;border-color:var(--tlb)"></span> Entries being searched (parallel)</div>
+      <div class="row"><span class="sq" style="background:var(--hit)"></span> H = hit &nbsp; <span class="sq" style="background:var(--miss)"></span> M = miss</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* page table — only valid pages can appear in the stream */
+const PT = {0:5, 1:2, 2:1, 4:7, 6:0, 7:4};
+
+const SCEN = {
+  locality: { refs:[1,4,6,1,4,6,1,4,1,6,4,1,6,4,1,6], size:4 },   // working set {1,4,6} fits → ~81%
+  poor:     { refs:[0,1,2,4,6,7,0,1,2,4,6,7,0,1,2,4], size:4 },   // 6 pages thrash a 4-entry TLB → 0%
+  cold:     { refs:[1,4,6,2,1,4,6,2,1,4], size:4 },               // 4 cold misses, then warm hits → 60%
+};
+
+let mode='example', scenario='locality';
+let refs = SCEN.locality.refs.slice();
+let tlbSize = 4;
+let step=0, trace=[];
+let playing=false, playTimer=null;
+
+/* ---------- simulate (LRU) ---------- */
+function simulate(refs, size){
+  let slots=Array(size).fill(null);
+  let lastUsed={};
+  let hits=0, misses=0;
+  const tr=[];
+  for(let i=0;i<refs.length;i++){
+    const pg=refs[i];
+    const hit=slots.includes(pg);
+    let slotIdx=-1, victim=null;
+    if(hit){ hits++; }
+    else {
+      misses++;
+      const empty=slots.indexOf(null);
+      if(empty!==-1){ slotIdx=empty; slots[empty]=pg; }
+      else {
+        // evict LRU among resident
+        let v=slots[0]; for(const s of slots){ if(lastUsed[s]<lastUsed[v]) v=s; }
+        victim=v; slotIdx=slots.indexOf(v); slots[slotIdx]=pg;
+      }
+    }
+    lastUsed[pg]=i;
+    tr.push({pg, hit, slots:slots.slice(), slotIdx, victim, hits, misses});
+  }
+  return tr;
+}
+
+/* ---------- render ---------- */
+function renderPath(){
+  const t = step>0 ? trace[step-1] : null;
+  const setOn=(id,on)=>document.getElementById(id).classList.toggle('on', on);
+  document.getElementById('pCpuSub').textContent = t ? ('page '+t.pg) : 'page —';
+  const tag=document.getElementById('pTag');
+  tag.className='ptag';
+  if(!t){ ['pCpu','pTlb','pMemHit','pPt','pMemMiss'].forEach(id=>setOn(id,false)); tag.textContent=''; return; }
+  setOn('pCpu',true); setOn('pTlb',true);
+  if(t.hit){ tag.classList.add('hit'); tag.textContent='HIT'; setOn('pMemHit',true); setOn('pPt',false); setOn('pMemMiss',false); }
+  else { tag.classList.add('miss'); tag.textContent='MISS'; setOn('pMemHit',false); setOn('pPt',true); setOn('pMemMiss',true); }
+}
+function renderTLB(){
+  const tbl=document.getElementById('tlbTable');
+  const t = step>0 ? trace[step-1] : null;
+  let html='<tr><th>#</th><th>Page</th><th>Frame</th></tr>';
+  const slots = t ? t.slots : Array(tlbSize).fill(null);
+  for(let i=0;i<tlbSize;i++){
+    const pg=slots[i];
+    let cls='';
+    if(t){
+      if(t.hit && pg===t.pg) cls='hit';
+      else if(!t.hit && i===t.slotIdx) cls='newpg';
+      else if(t.hit) cls='searching';
+    }
+    const cells = pg===null ? '<td class="empty">—</td><td class="empty">—</td>' : '<td>'+pg+'</td><td>'+PT[pg]+'</td>';
+    html+='<tr class="'+cls+'"><td>'+i+'</td>'+cells+'</tr>';
+  }
+  tbl.innerHTML=html;
+}
+function renderPT(){
+  const tbl=document.getElementById('ptTable');
+  const t = step>0 ? trace[step-1] : null;
+  let html='<tr><th>Pg</th><th>Fr</th></tr>';
+  for(const pg of Object.keys(PT)){
+    // highlight the consulted row only on a miss
+    const active = t && !t.hit && (+pg===t.pg);
+    const dim = t && t.hit;
+    const cls = active ? 'active' : (dim ? 'dim' : '');
+    html+='<tr class="'+cls+'"><td>'+pg+'</td><td>'+PT[pg]+'</td></tr>';
+  }
+  tbl.innerHTML=html;
+}
+function renderStream(){
+  const s=document.getElementById('stream');
+  s.innerHTML='';
+  refs.forEach((pg,i)=>{
+    const div=document.createElement('div');
+    let cls='rcell';
+    let hf='';
+    if(i<step){ const t=trace[i]; cls+= t.hit?' hit':' miss'; hf=t.hit?'H':'M'; }
+    if(i===step-1) cls+=' cur';
+    div.className=cls;
+    div.innerHTML='<div class="pg">'+(i<step?pg:'·')+'</div><div class="hf">'+hf+'</div>';
+    s.appendChild(div);
+  });
+}
+function render(){
+  renderPath(); renderTLB(); renderPT(); renderStream();
+  document.getElementById('tlbSizeLbl').textContent=tlbSize;
+  const t = step>0 ? trace[step-1] : null;
+  const hits=t?t.hits:0, misses=t?t.misses:0;
+  document.getElementById('hitCount').textContent=hits;
+  document.getElementById('missCount').textContent=misses;
+  document.getElementById('ratioPct').textContent = step>0 ? Math.round(hits/step*100)+'%' : '—';
+
+  const sl=document.getElementById('stepLabel'), ct=document.getElementById('captionText');
+  if(step===0){
+    sl.textContent='Step 0 of '+refs.length;
+    ct.innerHTML='The TLB starts <b>empty</b>. Press <b>Next</b> to reference the first page — it must miss (cold start).';
+  } else {
+    sl.textContent='Step '+step+' of '+refs.length;
+    if(t.hit){
+      ct.innerHTML='Reference page <b>'+t.pg+'</b> → <b style="color:var(--hit)">TLB HIT</b>. Frame '+PT[t.pg]+' is read straight from the TLB — the page table is skipped. (LRU marks page '+t.pg+' most-recently-used.)';
+    } else if(t.victim===null){
+      ct.innerHTML='Reference page <b>'+t.pg+'</b> → <b style="color:var(--miss)">TLB MISS</b>. The MMU walks the page table (frame '+PT[t.pg]+'), then <b>installs</b> page '+t.pg+' into an empty TLB slot.';
+    } else {
+      ct.innerHTML='Reference page <b>'+t.pg+'</b> → <b style="color:var(--miss)">TLB MISS</b>. TLB is full, so LRU <b>evicts page '+t.victim+'</b> (least recently used) and installs page '+t.pg+' (frame '+PT[t.pg]+').';
+    }
+  }
+  document.getElementById('prevBtn').disabled=(step===0);
+  document.getElementById('nextBtn').disabled=(step>=refs.length);
+  document.getElementById('progress').textContent='Step '+step+' / '+refs.length;
+}
+
+/* ---------- mode / scenario ---------- */
+function recompute(){ trace=simulate(refs, tlbSize); }
+function loadScenario(s){
+  scenario=s; mode='example';
+  refs=SCEN[s].refs.slice(); tlbSize=SCEN[s].size;
+  step=0; stopPlay(); recompute();
+  ['Locality','Poor','Cold'].forEach(k=>document.getElementById('sc'+k).classList.remove('active'));
+  document.getElementById('sc'+({locality:'Locality',poor:'Poor',cold:'Cold'})[s]).classList.add('active');
+  render();
+}
+function loadCustom(){
+  const raw=document.getElementById('customRefs').value;
+  const parsed=raw.split(/[\s,]+/).filter(x=>x!=='').map(Number);
+  const msg=document.getElementById('builderMsg');
+  if(parsed.some(n=>isNaN(n)) || parsed.length===0){ msg.textContent='Enter page numbers separated by spaces or commas.'; return; }
+  if(parsed.some(n=>!(n in PT))){ msg.textContent='Use only valid pages: 0, 1, 2, 4, 6, 7.'; return; }
+  let sz=parseInt(document.getElementById('customSize').value,10);
+  if(isNaN(sz)||sz<1||sz>6){ msg.textContent='TLB entries must be 1–6.'; return; }
+  msg.textContent=''; refs=parsed; tlbSize=sz; step=0; stopPlay(); recompute(); render();
+}
+function setMode(m){
+  mode=m; stopPlay();
+  document.getElementById('mEx').classList.toggle('active',m==='example');
+  document.getElementById('mCustom').classList.toggle('active',m==='custom');
+  document.getElementById('scenarioBar').style.display=(m==='example')?'flex':'none';
+  document.getElementById('builder').style.display=(m==='custom')?'block':'none';
+  if(m==='example') loadScenario(scenario); else loadCustom();
+}
+
+/* ---------- controls ---------- */
+function next(){ if(step<refs.length){ step++; render(); } if(step>=refs.length) stopPlay(); }
+function prev(){ if(step>0){ step--; render(); stopPlay(); } }
+function reset(){ step=0; stopPlay(); render(); }
+function togglePlay(){ playing?stopPlay():startPlay(); }
+function startPlay(){
+  playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{ if(step>=refs.length){stopPlay();return;} next(); }, 1200);
+}
+function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
+
+document.addEventListener('keydown', e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select') return;
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+recompute(); render();
+</script>
+</body>
+</html>

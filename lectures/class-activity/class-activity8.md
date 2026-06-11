@@ -17,7 +17,8 @@ A coding-only task proves little — an AI can write a page-table translator or 
 
 Use these to **verify** your Part A hand-work — after you have traced it yourself, not before:
 
-- **Paging, TLB & Address Translation** (Part A1 / B1): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/paging-translation.html) · [source](../visualizations/paging-translation.html)
+- **Paging & Address Translation** (Part A1 / B1): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/paging-translation.html) · [source](../visualizations/paging-translation.html)
+- **TLB (Translation Look-Aside Buffer)**: [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/tlb.html) · [source](../visualizations/tlb.html)
 - **Page Replacement — FIFO / LRU / OPT** (Part A2 / B2, incl. Belady's anomaly): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/page-replacement.html) · [source](../visualizations/page-replacement.html)
 - **Contiguous Allocation & Fit Algorithms** (external fragmentation, Part C Q1): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/contiguous-allocation.html) · [source](../visualizations/contiguous-allocation.html)
 - **Effective Access Time (EAT)** (why the TLB matters): [open live](https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/eat-calculator.html) · [source](../visualizations/eat-calculator.html)

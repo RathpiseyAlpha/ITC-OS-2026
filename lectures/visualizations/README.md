@@ -7,7 +7,8 @@ Step-through, animated explanations of OS concepts. Each file is **self-containe
 | [rag-deadlock.html](rag-deadlock.html) | Resource Allocation Graph & cycle-based deadlock detection (single-instance) | Activity 7 · Task 1 |
 | [bankers-algorithm.html](bankers-algorithm.html) | Banker's Algorithm: safety check + resource requests | Activity 7 · Task 2 |
 | [deadlock-detection.html](deadlock-detection.html) | Multi-instance deadlock detection (reduction algorithm) — shows a cycle that is *not* a deadlock | Activity 7 · Task 1 extension |
-| [paging-translation.html](paging-translation.html) | Paging address translation: logical → page + offset → **TLB** lookup → page-table fallback → physical address, with valid/invalid bits | Activity 8 · Task 1 (Ch 9) |
+| [paging-translation.html](paging-translation.html) | Paging address translation: logical → page + offset → page-table lookup → physical address, with valid/invalid bits | Activity 8 · Task 1 (Ch 9) |
+| [tlb.html](tlb.html) | TLB cache: reference-stream step-through with hits, misses, LRU eviction, and running hit ratio | Chapter 9 |
 | [page-replacement.html](page-replacement.html) | Demand paging & page replacement: FIFO / LRU / OPT step-through, fault counts, Belady's anomaly | Activity 8 · Task 2 (Ch 10) |
 | [contiguous-allocation.html](contiguous-allocation.html) | Contiguous allocation with First / Best / Worst fit, external fragmentation, and compaction | Chapter 9 |
 | [eat-calculator.html](eat-calculator.html) | Effective Access Time vs TLB hit ratio — interactive sliders + live graph | Chapter 9 |
@@ -31,6 +32,7 @@ These links render the pages immediately through `htmlpreview.github.io`:
 - **Banker's Algorithm** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/bankers-algorithm.html
 - **Multi-Instance Deadlock Detection** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/deadlock-detection.html
 - **Paging & Address Translation** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/paging-translation.html
+- **TLB (Translation Look-Aside Buffer)** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/tlb.html
 - **Page Replacement (FIFO/LRU/OPT)** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/page-replacement.html
 - **Contiguous Allocation & Fit Algorithms** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/contiguous-allocation.html
 - **Effective Access Time (EAT)** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/eat-calculator.html
@@ -53,6 +55,7 @@ Enable once, then the pages are served from your own domain.
 - Banker's Algorithm → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/bankers-algorithm.html
 - Multi-Instance Deadlock Detection → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/deadlock-detection.html
 - Paging & Address Translation → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/paging-translation.html
+- TLB (Translation Look-Aside Buffer) → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/tlb.html
 - Page Replacement (FIFO/LRU/OPT) → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/page-replacement.html
 - Contiguous Allocation & Fit Algorithms → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/contiguous-allocation.html
 - Effective Access Time (EAT) → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/eat-calculator.html

@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paging, TLB &amp; Address Translation</title>
+<title>Paging &amp; Address Translation</title>
 <style>
   :root{
     --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
-    --page:#3b82f6; --offset:#10b981; --frame:#a855f7; --tlb:#f59e0b;
+    --page:#3b82f6; --offset:#10b981; --frame:#a855f7;
     --accent:#60a5fa; --border:#233042; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b;
   }
   *{box-sizing:border-box}
@@ -22,7 +22,7 @@
   .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
   .caption .text{font-size:15px;line-height:1.55}
   .verdict{font-size:18px;font-weight:700;margin-top:10px}
-  .verdict.ok{color:var(--ok)} .verdict.bad{color:var(--bad)} .verdict.fast{color:var(--tlb)}
+  .verdict.ok{color:var(--ok)} .verdict.bad{color:var(--bad)}
   .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
   button:hover:not(:disabled){background:#2e4459}
@@ -46,11 +46,7 @@
   .msg{font-size:12px;color:var(--warn);min-height:16px;margin-top:4px}
 
   /* stage internals */
-  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px;display:flex;align-items:center;gap:8px}
-  .badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;letter-spacing:.03em}
-  .badge.search{background:#3a2a10;color:#f6c873}
-  .badge.hit{background:#0d2a20;color:#86e6c2}
-  .badge.miss{background:#3a1414;color:#fca5a5}
+  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
   .addrLine{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .addrLabel{font-size:13px;color:var(--muted)}
   .addrVal{font-size:22px;font-weight:700}
@@ -62,21 +58,14 @@
   .bit.dim{opacity:.25}
   .fieldlabel{display:flex;gap:4px;margin-top:6px;font-size:11px;color:var(--muted)}
   .fieldlabel span{text-align:center}
-  .arrowDown{font-size:20px;color:var(--muted);text-align:center;margin:8px 0}
-  .arrowDown.slow{color:var(--bad)}
-  .arrowDown small{font-size:11px;display:block;color:var(--muted)}
-  table.pt,table.tlb{border-collapse:collapse;width:100%;font-size:14px;margin-top:4px}
-  table.pt th,table.pt td,table.tlb th,table.tlb td{border:1px solid var(--border);padding:7px 8px;text-align:center}
-  table.pt th,table.tlb th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .arrowDown{font-size:22px;color:var(--muted);text-align:center;margin:10px 0}
+  table.pt{border-collapse:collapse;width:100%;font-size:14px;margin-top:4px}
+  table.pt th,table.pt td{border:1px solid var(--border);padding:7px 8px;text-align:center}
+  table.pt th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
   table.pt td.valid{color:var(--ok);font-weight:700}
   table.pt td.invalid{color:var(--bad);font-weight:700}
   table.pt tr.active td{background:#1d2c3e;box-shadow:inset 0 0 0 2px var(--accent)}
   table.pt tr.active.faultrow td{box-shadow:inset 0 0 0 2px var(--bad)}
-  table.pt tr.dimmed td{opacity:.45}
-  table.tlb tr.searching td{background:#221a0c}
-  table.tlb tr.tlbhit td{background:#0e2a20;box-shadow:inset 0 0 0 2px var(--ok);color:#aef0cf;font-weight:700}
-  table.tlb tr.installed td{background:#0e2a20;box-shadow:inset 0 0 0 2px var(--ok)}
-  .tlbEmpty{color:var(--muted);font-size:13px;padding:6px}
   .ptInput{width:46px;padding:4px;text-align:center}
   .frames{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
   .fcell{flex:1 1 44px;min-width:40px;border:1px solid var(--border);border-radius:6px;padding:6px 2px;text-align:center;background:#0c141d;transition:.25s}
@@ -90,8 +79,8 @@
 </head>
 <body>
 <header>
-  <h1>Paging, TLB &amp; Address Translation</h1>
-  <div class="sub">Class Activity 8 · Task 1 — the MMU checks the <b>TLB</b> first (fast path); on a miss it walks the <b>page table</b> (slow path), then caches the result (Chapter 9)</div>
+  <h1>Paging &amp; Address Translation</h1>
+  <div class="sub">Class Activity 8 · Task 1 — how the MMU turns a <b>logical address</b> into a <b>physical address</b> through a page table (Chapter 9). For the cache that speeds this up, see the <a href="tlb.html" style="color:var(--accent)">TLB visualizer</a>.</div>
 </header>
 
 <div class="wrap">
@@ -107,20 +96,14 @@
 
     <div class="arrowDown">▼</div>
 
-    <!-- TLB -->
-    <p class="blockTitle">2 · TLB <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(translation look-aside buffer — associative cache, searched in parallel)</span> <span id="tlbBadge"></span></p>
-    <table class="tlb" id="tlbTable"></table>
-
-    <div class="arrowDown" id="ptArrow">▼ <small>on a TLB miss only</small></div>
-
     <!-- Page table -->
-    <p class="blockTitle">3 · Page table <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(in main memory — the slow path)</span></p>
+    <p class="blockTitle">2 · Index the page table at <span id="ptIndexLabel" class="pill page">page —</span></p>
     <table class="pt" id="ptTable"></table>
 
     <div class="arrowDown">▼</div>
 
     <!-- Physical address -->
-    <p class="blockTitle">4 · Physical address (sent to memory)</p>
+    <p class="blockTitle">3 · Physical address (sent to memory)</p>
     <div class="calc" id="calcBox">Waiting…</div>
     <div class="bits" id="paBits" style="margin-top:10px"></div>
     <div class="fieldlabel" id="paFieldLabels"></div>
@@ -144,7 +127,7 @@
         <input type="number" id="customLA" min="0" max="127" value="42">
         <button class="primary" onclick="loadCustom()">Translate</button>
       </div>
-      <div class="hint">Page size is fixed at 16 bytes, 8 pages, 8 frames. Edit the <b>frame</b> column in the page table to change the mapping — leave a cell blank to mark a page <b>invalid</b>. The TLB is preloaded with pages 1, 4 and 6 (simulating recent use).</div>
+      <div class="hint">Page size is fixed at 16 bytes, 8 pages, 8 frames. Edit the <b>frame</b> column in the table below to change the mapping — leave a cell blank to mark a page <b>invalid</b> (not in memory).</div>
       <div class="msg" id="builderMsg"></div>
     </div>
 
@@ -163,250 +146,205 @@
     </div>
 
     <div class="legend">
-      <div class="row"><span class="sq" style="background:var(--tlb)"></span> TLB hit → frame found in one fast lookup (page table skipped)</div>
-      <div class="row"><span class="sq" style="background:var(--page)"></span> Page-number bits (high 3) — the TLB/page-table key</div>
-      <div class="row"><span class="sq" style="background:var(--offset)"></span> Offset bits (low 4) — copied <i>unchanged</i> to the physical address</div>
-      <div class="row"><span class="sq" style="background:var(--frame)"></span> Frame number — high bits of the physical address</div>
+      <div class="row"><span class="sq" style="background:var(--page)"></span> Page number bits (high 3 bits) — index into page table</div>
+      <div class="row"><span class="sq" style="background:var(--offset)"></span> Offset bits (low 4 bits) — copied <i>unchanged</i> to the physical address</div>
+      <div class="row"><span class="sq" style="background:var(--frame)"></span> Frame number — from the page table, becomes the high bits of the physical address</div>
       <div class="row"><span class="sq" style="background:var(--bad)"></span> Invalid page → page fault (trap to the OS)</div>
     </div>
   </div>
 </div>
 
 <script>
-const P = 16, OFF_BITS = 4, PAGE_BITS = 3, NPAGES = 8, NFRAMES = 8;
+const P = 16;            // page size (bytes)
+const OFF_BITS = 4;      // log2(16)
+const PAGE_BITS = 3;     // 8 pages
+const NPAGES = 8, NFRAMES = 8;
 
 /* page table: page -> frame, or null = invalid. Matches Activity 8 model. */
 let pageTable = [5, 2, 1, null, 7, null, 0, 4];
-/* TLB preloaded with some recently-used valid pages */
-let tlb = [];                 // array of {p, f}
-const TLB_PRELOAD = [1, 4, 6];
 
+/* Example logical addresses (from the activity) */
 const EXAMPLES = [20, 100, 48, 16, 127];
 
 let mode = 'example';
 let curLA = 20;
-let phases = [];              // computed phase list for current address
-let step = 0;
+let step = 0;            // 0..5
+const MAXSTEP = 5;
 let playing = false, playTimer = null;
 
 /* ---------- helpers ---------- */
 function toBits(val, n){ return val.toString(2).padStart(n,'0').split('').map(Number); }
 function pageOf(la){ return la >> OFF_BITS; }
 function offsetOf(la){ return la & (P-1); }
-function tlbHas(pg){ return tlb.some(e=>e.p===pg); }
-function buildTLB(){ tlb = TLB_PRELOAD.filter(p=>pageTable[p]!==null).map(p=>({p, f:pageTable[p]})); }
 
-/* ---------- phase computation ---------- */
-function computePhases(la){
-  const pg = pageOf(la), fr = pageTable[pg], hit = tlbHas(pg);
-  let ph = ['addr','split','tlb'];
-  if(hit){ ph.push('hit','compute','assemble'); }
-  else {
-    ph.push('miss','pt');
-    if(fr===null) ph.push('fault');
-    else ph.push('install','compute','assemble');
-  }
-  return ph;
-}
-function phaseIdx(name){ return phases.indexOf(name); }
-function reached(name){ const i=phaseIdx(name); return i>=0 && step>=i; }
-function curPhase(){ return phases[step]; }
-function isHit(){ return phaseIdx('hit')>=0; }
-function isFault(){ return phaseIdx('fault')>=0; }
-
-/* ---------- render: bits ---------- */
+/* ---------- render ---------- */
 function renderBits(){
-  const la = curLA, bits = toBits(la, PAGE_BITS+OFF_BITS);
+  const la = curLA;
+  const bits = toBits(la, PAGE_BITS+OFF_BITS);
   const laBits = document.getElementById('laBits');
   laBits.innerHTML = '';
   bits.forEach((b,i)=>{
-    const cls = i<PAGE_BITS ? 'page' : 'offset';
-    const dim = reached('split') ? '' : ' dim';
-    const el = document.createElement('div'); el.className='bit '+cls+dim; el.textContent=b; laBits.appendChild(el);
+    const isPage = i < PAGE_BITS;
+    const cls = isPage ? 'page' : 'offset';
+    const dim = step < 1 ? ' dim' : '';
+    const el = document.createElement('div');
+    el.className = 'bit '+cls+dim;
+    el.textContent = b;
+    laBits.appendChild(el);
   });
   const lbl = document.getElementById('laFieldLabels');
-  if(reached('split')){
+  if(step >= 1){
+    const pg = pageOf(la), off = offsetOf(la);
     lbl.innerHTML =
-      '<span style="width:'+(PAGE_BITS*34)+'px;color:var(--page)">page = '+pageOf(la)+'</span>'+
-      '<span style="width:'+(OFF_BITS*34)+'px;color:var(--offset)">offset = '+offsetOf(la)+'</span>';
-  } else lbl.innerHTML='';
+      '<span style="width:'+(PAGE_BITS*34)+'px;color:var(--page)">page = '+pg+'</span>'+
+      '<span style="width:'+(OFF_BITS*34)+'px;color:var(--offset)">offset = '+off+'</span>';
+  } else { lbl.innerHTML=''; }
 }
 
-/* ---------- render: TLB ---------- */
-function renderTLB(){
-  const t = document.getElementById('tlbTable');
-  const badge = document.getElementById('tlbBadge');
-  const pg = pageOf(curLA);
-  const searching = reached('tlb') && !reached('hit') && !reached('miss');
-  const hitNow = reached('hit');
-  const installNow = reached('install');
-
-  // display rows: current tlb, plus the installed entry once we reach 'install'
-  const rows = tlb.slice();
-  if(installNow && !tlbHas(pg)) rows.push({p:pg, f:pageTable[pg], _new:true});
-
-  let html = '<tr><th>Page</th><th>Frame</th></tr>';
-  if(rows.length===0){ html += '<tr><td colspan="2" class="tlbEmpty">(empty)</td></tr>'; }
-  rows.forEach(e=>{
-    let cls='';
-    if(searching) cls='searching';
-    if(hitNow && e.p===pg) cls='tlbhit';
-    if(e._new) cls='installed';
-    html += '<tr class="'+cls+'"><td>'+e.p+'</td><td>'+e.f+'</td></tr>';
-  });
-  t.innerHTML = html;
-
-  badge.className='badge';
-  if(searching){ badge.classList.add('search'); badge.textContent='searching page '+pg+' …'; }
-  else if(hitNow){ badge.classList.add('hit'); badge.textContent='HIT — page '+pg+' found'; }
-  else if(reached('miss')){ badge.classList.add('miss'); badge.textContent='MISS — page '+pg+' not in TLB'; }
-  else badge.textContent='';
-}
-
-/* ---------- render: page table ---------- */
-function renderPageTable(){
+function renderTable(){
   const t = document.getElementById('ptTable');
-  const arrow = document.getElementById('ptArrow');
   const pg = pageOf(curLA);
   const editable = (mode==='custom');
-  const consulted = reached('pt');          // only highlighted on the miss path
-  arrow.classList.toggle('slow', reached('miss'));
-  arrow.style.opacity = isHit() ? '.4' : '1';
-
   let html = '<tr><th>Page</th><th>Frame</th><th>Valid?</th></tr>';
   for(let i=0;i<NPAGES;i++){
     const fr = pageTable[i];
-    const active = consulted && i===pg;
-    const isFlt = active && fr===null;
-    let rowcls = active ? ('active'+(isFlt?' faultrow':'')) : '';
-    if(isHit() && reached('hit')) rowcls += ' dimmed';   // page table not used on a hit
+    const active = (step>=2 && i===pg);
+    const isFault = active && fr===null;
+    const rowcls = active ? ('active'+(isFault?' faultrow':'')) : '';
     const frameCell = editable
       ? '<input class="ptInput" type="number" min="0" max="7" value="'+(fr===null?'':fr)+'" onchange="editFrame('+i+',this.value)">'
       : (fr===null ? '—' : fr);
-    const validCell = fr===null ? '<td class="invalid">invalid</td>' : '<td class="valid">valid</td>';
+    const validCell = fr===null
+      ? '<td class="invalid">invalid</td>'
+      : '<td class="valid">valid</td>';
     html += '<tr class="'+rowcls+'"><td>'+i+'</td><td>'+frameCell+'</td>'+validCell+'</tr>';
   }
   t.innerHTML = html;
+  document.getElementById('ptIndexLabel').textContent = step>=2 ? ('page '+pg) : 'page —';
 }
 
-/* ---------- render: physical ---------- */
 function renderPhysical(){
-  const la=curLA, pg=pageOf(la), off=offsetOf(la), fr=pageTable[pg];
-  const calc=document.getElementById('calcBox');
-  const paBits=document.getElementById('paBits');
-  const paLbl=document.getElementById('paFieldLabels');
-  const framesRow=document.getElementById('framesRow');
+  const la = curLA, pg = pageOf(la), off = offsetOf(la), fr = pageTable[pg];
+  const calc = document.getElementById('calcBox');
+  const paBits = document.getElementById('paBits');
+  const paLbl = document.getElementById('paFieldLabels');
+  const framesRow = document.getElementById('framesRow');
 
   framesRow.innerHTML='';
   for(let f=0; f<NFRAMES; f++){
-    const target = reached('assemble') && fr!==null && f===fr;
-    const div=document.createElement('div');
+    const target = (step>=5 && fr!==null && f===fr);
+    const div = document.createElement('div');
     div.className='fcell'+(target?' target':'');
     div.innerHTML='<div class="fn">frame '+f+'</div><div class="fv">'+(target?('byte '+(fr*P+off)):'·')+'</div>';
     framesRow.appendChild(div);
   }
 
-  if(isFault() && reached('fault')){
-    calc.innerHTML='Page '+pg+' is invalid → Page fault: page not in memory.\nThe MMU traps to the OS; no physical address is produced.';
-    paBits.innerHTML=''; paLbl.innerHTML=''; return;
-  }
-  if(!reached('compute')){ calc.textContent='Waiting…'; paBits.innerHTML=''; paLbl.innerHTML=''; return; }
+  if(step<3){ calc.textContent='Waiting…'; paBits.innerHTML=''; paLbl.innerHTML=''; return; }
 
-  const src = isHit() ? 'TLB' : 'page table';
-  let txt = 'frame '+fr+' (from the '+src+')\n'
-          + 'physical = frame × '+P+' + offset\n'
-          + '         = '+fr+' × '+P+' + '+off+' = '+(fr*P+off);
+  if(fr===null){
+    calc.innerHTML='Page '+pg+' is invalid → Page fault: page not in memory.\nThe MMU traps to the OS; no physical address is produced.';
+    paBits.innerHTML=''; paLbl.innerHTML='';
+    return;
+  }
+
+  let txt = 'page '+pg+' is valid → frame '+fr+'\n';
+  if(step>=4){
+    txt += 'physical = frame × '+P+' + offset\n';
+    txt += '         = '+fr+' × '+P+' + '+off+' = '+(fr*P+off);
+  }
   calc.textContent = txt;
 
-  if(reached('assemble')){
-    const fbits=toBits(fr,PAGE_BITS), obits=toBits(off,OFF_BITS);
+  if(step>=5){
+    const fbits = toBits(fr, PAGE_BITS);
+    const obits = toBits(off, OFF_BITS);
     paBits.innerHTML='';
     fbits.forEach(b=>{const e=document.createElement('div');e.className='bit frame';e.textContent=b;paBits.appendChild(e);});
     obits.forEach(b=>{const e=document.createElement('div');e.className='bit offset';e.textContent=b;paBits.appendChild(e);});
-    paLbl.innerHTML='<span style="width:'+(PAGE_BITS*34)+'px;color:var(--frame)">frame = '+fr+'</span>'+
-                    '<span style="width:'+(OFF_BITS*34)+'px;color:var(--offset)">offset = '+off+'</span>';
+    paLbl.innerHTML =
+      '<span style="width:'+(PAGE_BITS*34)+'px;color:var(--frame)">frame = '+fr+'</span>'+
+      '<span style="width:'+(OFF_BITS*34)+'px;color:var(--offset)">offset = '+off+'</span>';
   } else { paBits.innerHTML=''; paLbl.innerHTML=''; }
 }
 
-/* ---------- captions per phase ---------- */
-function captionFor(){
-  const la=curLA, pg=pageOf(la), off=offsetOf(la), fr=pageTable[pg];
-  switch(curPhase()){
-    case 'addr':    return 'CPU emits logical address <b>'+la+'</b>. With page size 16, every address is 7 bits: 3 page-number bits + 4 offset bits.';
-    case 'split':   return 'Split the bits: <b>page = '+la+' ÷ 16 = '+pg+'</b>, <b>offset = '+la+' mod 16 = '+off+'</b>.';
-    case 'tlb':     return 'The MMU searches the <b>TLB</b> first — all entries are compared to page <b>'+pg+'</b> in parallel.';
-    case 'hit':     return '<b>TLB hit!</b> Page '+pg+' → frame '+fr+' comes straight from the TLB. The page table in memory is <b>not</b> touched — this is the fast path (~1 memory time).';
-    case 'miss':    return '<b>TLB miss.</b> Page '+pg+' is not cached, so the MMU must walk the <b>page table</b> in main memory (the extra access that makes a miss slower).';
-    case 'pt':      return 'Index the page table at page <b>'+pg+'</b> and read its entry.';
-    case 'fault':   return 'The valid bit says page <b>'+pg+'</b> is <b>invalid</b> — not in memory. The MMU raises a <b>page fault</b> and traps to the OS.';
-    case 'install': return 'Page '+pg+' is valid → frame '+fr+'. The MMU <b>installs</b> (page '+pg+' → frame '+fr+') into the TLB so the next reference to this page is a fast hit.';
-    case 'compute': return 'Physical address = frame × page-size + offset = <b>'+fr+' × 16 + '+off+' = '+(fr*P+off)+'</b>. The <b>offset is unchanged</b>.';
-    case 'assemble':return 'Assemble the physical address: <b>frame bits</b> (high) + the <b>same offset bits</b> (low). Byte <b>'+(fr*P+off)+'</b> in frame '+fr+' is accessed.';
-  }
-  return '';
-}
+const CAPS = [
+  la=>'CPU emits logical address <b>'+la+'</b>. With page size 16, every address is 7 bits: 3 page-number bits + 4 offset bits.',
+  la=>'Split the bits: <b>page = '+la+' ÷ 16 = '+pageOf(la)+'</b> (high 3 bits), <b>offset = '+la+' mod 16 = '+offsetOf(la)+'</b> (low 4 bits).',
+  la=>'Use the page number <b>'+pageOf(la)+'</b> as an index into the page table to read its entry.',
+  la=>{ const fr=pageTable[pageOf(la)];
+        return fr===null
+          ? 'The valid bit says page <b>'+pageOf(la)+'</b> is <b>invalid</b> — it is not in physical memory. The MMU raises a <b>page fault</b>.'
+          : 'The entry is <b>valid</b>: page <b>'+pageOf(la)+'</b> lives in <b>frame '+fr+'</b>.'; },
+  la=>{ const fr=pageTable[pageOf(la)];
+        return fr===null ? 'No translation — execution traps to the OS.'
+          : 'Physical address = frame × page-size + offset = <b>'+fr+' × 16 + '+offsetOf(la)+' = '+(fr*P+offsetOf(la))+'</b>. Notice the <b>offset is unchanged</b>.'; },
+  la=>{ const fr=pageTable[pageOf(la)];
+        return fr===null ? 'Page fault — nothing is placed in memory.'
+          : 'Assemble the physical address: <b>frame bits</b> (high) + the <b>same offset bits</b> (low). Byte <b>'+(fr*P+offsetOf(la))+'</b> in frame '+fr+' is accessed.'; },
+];
 
-/* ---------- main render ---------- */
 function render(){
-  renderBits(); renderTLB(); renderPageTable(); renderPhysical();
-  const la=curLA, fr=pageTable[pageOf(la)];
-  const last = phases.length-1;
-  document.getElementById('stepLabel').textContent='Logical '+la+' · Step '+step+' of '+last;
-  document.getElementById('captionText').innerHTML = captionFor();
+  renderBits(); renderTable(); renderPhysical();
+  const la = curLA, fr = pageTable[pageOf(la)];
+  document.getElementById('stepLabel').textContent = 'Logical '+la+' · Step '+step+' of '+MAXSTEP;
+  document.getElementById('captionText').innerHTML = CAPS[step](la);
 
-  const v=document.getElementById('verdict'); v.className='verdict'; v.textContent='';
-  if(reached('fault')){ v.className='verdict bad'; v.textContent='⛔ Page fault: page not in memory'; }
-  else if(reached('assemble')){
-    if(isHit()){ v.className='verdict fast'; v.textContent='⚡ TLB hit → physical '+(fr*P+offsetOf(la)); }
-    else { v.className='verdict ok'; v.textContent='✅ Physical address = '+(fr*P+offsetOf(la)); }
-  }
+  const v = document.getElementById('verdict');
+  v.className='verdict'; v.textContent='';
+  if(step>=3 && fr===null){ v.className='verdict bad'; v.textContent='⛔ Page fault: page not in memory'; }
+  else if(step>=MAXSTEP && fr!==null){ v.className='verdict ok'; v.textContent='✅ Physical address = '+(fr*P+offsetOf(la)); }
 
-  document.getElementById('prevBtn').disabled=(step===0);
-  document.getElementById('nextBtn').disabled=(step>=last);
-  document.getElementById('progress').textContent='Step '+step+' / '+last;
+  const faulted = (fr===null && step>=3);
+  document.getElementById('prevBtn').disabled = (step===0);
+  document.getElementById('nextBtn').disabled = (step>=MAXSTEP || faulted);
+  document.getElementById('progress').textContent = 'Step '+step+' / '+MAXSTEP;
 }
 
 /* ---------- mode / scenarios ---------- */
 function buildScenarioBar(){
-  document.getElementById('scenarioBar').innerHTML =
-    EXAMPLES.map(a=>'<button onclick="loadExample('+a+')" id="ex'+a+'">'+a+'</button>').join('');
+  const bar = document.getElementById('scenarioBar');
+  bar.innerHTML = EXAMPLES.map(a=>
+    '<button onclick="loadExample('+a+')" id="ex'+a+'">'+a+'</button>').join('');
   highlightExample();
 }
 function highlightExample(){
-  EXAMPLES.forEach(a=>{const b=document.getElementById('ex'+a); if(b) b.classList.toggle('active', mode==='example' && a===curLA);});
+  EXAMPLES.forEach(a=>{
+    const b=document.getElementById('ex'+a);
+    if(b) b.classList.toggle('active', mode==='example' && a===curLA);
+  });
 }
-function loadExample(a){ mode='example'; buildTLB(); curLA=a; phases=computePhases(a); step=0; stopPlay(); highlightExample(); render(); }
+function loadExample(a){ mode='example'; curLA=a; step=0; stopPlay(); highlightExample(); render(); }
 function loadCustom(){
-  const v=parseInt(document.getElementById('customLA').value,10);
-  const msg=document.getElementById('builderMsg');
-  if(isNaN(v)||v<0||v>127){ msg.textContent='Enter a logical address between 0 and 127.'; return; }
-  msg.textContent=''; buildTLB(); curLA=v; phases=computePhases(v); step=0; stopPlay(); render();
+  const v = parseInt(document.getElementById('customLA').value,10);
+  const msg = document.getElementById('builderMsg');
+  if(isNaN(v) || v<0 || v>127){ msg.textContent='Enter a logical address between 0 and 127.'; return; }
+  msg.textContent=''; curLA=v; step=0; stopPlay(); render();
 }
-function editFrame(page,val){
-  const msg=document.getElementById('builderMsg');
-  if(val.trim()===''){ pageTable[page]=null; }
-  else { const f=parseInt(val,10); if(isNaN(f)||f<0||f>7){ msg.textContent='Frame must be 0–7 (or blank for invalid).'; return; } pageTable[page]=f; }
-  msg.textContent=''; buildTLB(); phases=computePhases(curLA); step=Math.min(step,2); render();
+function editFrame(page, val){
+  const msg = document.getElementById('builderMsg');
+  if(val.trim()===''){ pageTable[page]=null; msg.textContent='Page '+page+' set to invalid.'; render(); return; }
+  const f = parseInt(val,10);
+  if(isNaN(f)||f<0||f>7){ msg.textContent='Frame must be 0–7 (or blank for invalid).'; return; }
+  pageTable[page]=f; msg.textContent=''; step=Math.min(step,2); render();
 }
+
 function setMode(m){
   mode=m; stopPlay(); step=0;
   document.getElementById('mEx').classList.toggle('active', m==='example');
   document.getElementById('mCustom').classList.toggle('active', m==='custom');
-  document.getElementById('scenarioBar').style.display=(m==='example')?'flex':'none';
-  document.getElementById('builder').style.display=(m==='custom')?'block':'none';
-  if(m==='example'){ pageTable=[5,2,1,null,7,null,0,4]; buildTLB(); curLA=EXAMPLES[0]; phases=computePhases(curLA); highlightExample(); }
-  else { buildTLB(); phases=computePhases(curLA); }
+  document.getElementById('scenarioBar').style.display = (m==='example')?'flex':'none';
+  document.getElementById('builder').style.display = (m==='custom')?'block':'none';
+  if(m==='example'){ pageTable=[5,2,1,null,7,null,0,4]; curLA=EXAMPLES[0]; highlightExample(); }
   render();
 }
 
 /* ---------- controls ---------- */
-function next(){ const last=phases.length-1; if(step<last){ step++; render(); } if(step>=last) stopPlay(); }
+function next(){ const fr=pageTable[pageOf(curLA)]; const cap=(fr===null)?3:MAXSTEP; if(step<cap){ step++; render(); } if(step>=cap) stopPlay(); }
 function prev(){ if(step>0){ step--; render(); stopPlay(); } }
 function reset(){ step=0; stopPlay(); render(); }
 function togglePlay(){ playing?stopPlay():startPlay(); }
 function startPlay(){
   playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
-  playTimer=setInterval(()=>{ const last=phases.length-1; if(step>=last){stopPlay();return;} next(); }, 1500);
+  playTimer=setInterval(()=>{ const fr=pageTable[pageOf(curLA)]; const cap=(fr===null)?3:MAXSTEP; if(step>=cap){stopPlay();return;} next(); }, 1400);
 }
 function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
 
@@ -419,7 +357,8 @@ document.addEventListener('keydown', e=>{
 });
 
 /* init */
-buildTLB(); phases=computePhases(curLA); buildScenarioBar(); render();
+buildScenarioBar();
+render();
 </script>
 </body>
 </html>
