@@ -17,7 +17,7 @@
   .sub{color:var(--muted);font-size:13px;margin-top:4px}
   .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
   .stage{flex:1 1 560px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;overflow-x:auto}
-  .side{flex:0 0 360px;min-width:300px}
+  .side{flex:0 0 360px;min-width:300px;position:sticky;top:16px;align-self:flex-start}
   .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:118px;margin-bottom:14px}
   .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
   .caption .text{font-size:15px;line-height:1.55}
@@ -26,13 +26,24 @@
   button:hover:not(:disabled){background:#2e4459}
   button:disabled{opacity:.4;cursor:not-allowed}
   button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
-  .modes{display:flex;gap:8px;margin-bottom:14px}
-  .modes button{flex:1}
-  .modes button.active,.algos button.active,.scenarios button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
-  .scenarios{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  /* parent tabs — enclosed segmented pill */
+  .modes{display:flex;gap:4px;margin-bottom:14px;background:#0c141d;border:1px solid var(--border);border-radius:12px;padding:4px}
+  .modes button{flex:1;background:transparent;border:1px solid transparent;border-radius:9px;padding:9px 12px;color:var(--muted);font-weight:600}
+  .modes button:hover:not(.active){background:#1a2735;color:var(--ink)}
+  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+  /* child tabs — outline chips with accent underline */
+  .scenarios,.algos{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
   .scenarios button{flex:1 1 80px;padding:8px 6px;font-size:13px}
-  .algos{display:flex;gap:6px;margin-bottom:12px}
   .algos button{flex:1}
+  .scenarios button,.algos button{background:#1a2331;border:1px solid var(--border);border-bottom:2px solid #2a3b4d;border-radius:8px;color:var(--muted)}
+  .scenarios button:hover:not(.active),.algos button:hover:not(.active){background:#22303f;color:var(--ink)}
+  .scenarios button.active,.algos button.active{background:#101b27;color:var(--ink);border-bottom-color:var(--accent);box-shadow:inset 0 -2px 0 0 var(--accent);font-weight:600}
+  /* +/- stepper */
+  .stepper{display:inline-flex;align-items:center;border:1px solid #33485f;border-radius:7px;overflow:hidden;background:#0c141d;vertical-align:middle}
+  .stepper button{background:#1a2735;border:none;color:var(--ink);width:26px;height:32px;padding:0;font-size:15px;line-height:1;cursor:pointer;border-radius:0;transition:.15s}
+  .stepper button:hover:not(:disabled){background:#2e4459}
+  .stepper button:disabled{opacity:.35;cursor:not-allowed}
+  .stepper .sval{min-width:30px;text-align:center;font-weight:700;font-size:14px;padding:0 4px;font-variant-numeric:tabular-nums}
   .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
   .builder{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
   .builder h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
@@ -117,7 +128,7 @@
       </div>
       <div class="brow">
         <label class="lbl">Frames:</label>
-        <input type="number" id="customFrames" min="1" max="8" value="3">
+        <span class="stepper"><button onclick="bumpFrames(-1)">−</button><span class="sval" id="customFrames">3</span><button onclick="bumpFrames(1)">+</button></span>
         <button class="primary" onclick="loadCustom()">Run</button>
       </div>
       <div class="hint">Enter page numbers separated by spaces or commas. Frames start empty; the first distinct pages always fault (cold start).</div>
@@ -171,6 +182,8 @@ let mode='example';
 let scenario='lecture';
 let refs = SCEN.lecture.refs.slice();
 let numFrames = 3;
+let cFrames = 3;               // custom-run frame count (driven by +/- stepper)
+function bumpFrames(d){ cFrames=Math.min(8,Math.max(1,cFrames+d)); document.getElementById('customFrames').textContent=cFrames; }
 let algo='FIFO';
 let step=0;                 // number of references processed
 let trace=[];              // current algo trace
@@ -326,9 +339,7 @@ function loadCustom(){
   const parsed=raw.split(/[\s,]+/).filter(x=>x!=='').map(Number);
   const msg=document.getElementById('builderMsg');
   if(parsed.some(isNaN)||parsed.length===0){ msg.textContent='Enter page numbers separated by spaces or commas.'; return; }
-  let nf=parseInt(document.getElementById('customFrames').value,10);
-  if(isNaN(nf)||nf<1||nf>8){ msg.textContent='Frames must be between 1 and 8.'; return; }
-  msg.textContent=''; refs=parsed; numFrames=nf; step=0; stopPlay(); recompute(); render();
+  msg.textContent=''; refs=parsed; numFrames=cFrames; step=0; stopPlay(); recompute(); render();
 }
 function setAlgo(a){
   algo=a;

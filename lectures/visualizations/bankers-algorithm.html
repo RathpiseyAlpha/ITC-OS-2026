@@ -17,7 +17,7 @@
   .sub{color:var(--muted);font-size:13px;margin-top:4px}
   .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
   .stage{flex:1 1 600px;min-width:360px}
-  .side{flex:0 0 360px;min-width:320px}
+  .side{flex:0 0 360px;min-width:320px;position:sticky;top:16px;align-self:flex-start}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
   h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin:0 0 10px}
   table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
@@ -48,9 +48,19 @@
   button:hover:not(:disabled){background:#2e4459}
   button:disabled{opacity:.4;cursor:not-allowed}
   button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
-  .modes{display:flex;gap:8px;margin-bottom:12px}
-  .modes button{flex:1}
-  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  /* parent tabs — enclosed segmented pill */
+  .modes{display:flex;gap:4px;margin-bottom:10px;background:#0c141d;border:1px solid var(--border);border-radius:12px;padding:4px}
+  .modes button{flex:1;background:transparent;border:1px solid transparent;border-radius:9px;padding:9px 12px;color:var(--muted);font-weight:600}
+  .modes button:hover:not(.active){background:#1a2735;color:var(--ink)}
+  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+  /* +/- stepper */
+  .stepper{display:inline-flex;align-items:center;border:1px solid #33485f;border-radius:7px;overflow:hidden;background:#0c141d;vertical-align:middle}
+  .stepper button{background:#1a2735;border:none;color:var(--ink);width:24px;height:28px;padding:0;font-size:15px;line-height:1;cursor:pointer;border-radius:0;transition:.15s}
+  .stepper button:hover:not(:disabled){background:#2e4459}
+  .stepper button:disabled{opacity:.35;cursor:not-allowed}
+  .stepper .sval{min-width:26px;text-align:center;font-weight:700;font-size:14px;padding:0 2px;font-variant-numeric:tabular-nums}
+  .stepper.sm button{width:22px;height:26px;font-size:14px}
+  .stepper.sm .sval{min-width:20px;font-size:13px}
   .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
   code{background:#0c141d;padding:1px 5px;border-radius:4px;color:#cfe3ff}
   .hl-need{outline:2px solid var(--warn);outline-offset:-2px}
@@ -61,6 +71,7 @@
   .editor .erow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
   .editor .small{padding:5px 10px;font-size:13px}
   .editor table th, .editor table td{padding:4px}
+  #editorGrid{overflow-x:auto}
   .emsg{font-size:13px;min-height:18px;margin:6px 0;color:var(--bad)}
   .emsg.ok{color:var(--ok)}
   .hint{font-size:12px;color:var(--muted);margin-top:4px}
@@ -100,13 +111,9 @@
       <h2>Edit your scenario</h2>
       <div class="erow">
         Resource types:
-        <button class="small" onclick="changeRes(-1)">−</button>
-        <span id="resCount">3</span>
-        <button class="small" onclick="changeRes(1)">+</button>
+        <span class="stepper"><button onclick="changeRes(-1)">−</button><span class="sval" id="resCount">3</span><button onclick="changeRes(1)">+</button></span>
         &nbsp;&nbsp; Processes:
-        <button class="small" onclick="changeProc(-1)">−</button>
-        <span id="procCount">5</span>
-        <button class="small" onclick="changeProc(1)">+</button>
+        <span class="stepper"><button onclick="changeProc(-1)">−</button><span class="sval" id="procCount">5</span><button onclick="changeProc(1)">+</button></span>
       </div>
       <div id="editorGrid"></div>
       <div class="erow" id="requestForm" style="display:none">
@@ -293,6 +300,7 @@ let dataSource='example';     // 'example' | 'custom'
 let action='safety';          // 'safety' | 'request'
 let DATA = exampleData();
 let customDATA = defaultCustom();
+let customReq = [0,0,0];       // resource-request vector (driven by +/- steppers)
 let trace=null, idx=0;
 let playing=false, playTimer=null;
 
@@ -425,6 +433,11 @@ function changeProc(d){
   renderEditor();
 }
 
+/* Matrix cells and the request vector are +/- steppers that mutate state directly. */
+function bumpCell(field,i,r,delta){ customDATA[field][i][r]=Math.max(0, customDATA[field][i][r]+delta); renderEditor(); }
+function bumpTotal(r,delta){ customDATA.total[r]=Math.max(0, customDATA.total[r]+delta); renderEditor(); }
+function bumpReq(ri,delta){ customReq[ri]=Math.max(0, (customReq[ri]||0)+delta); renderEditor(); }
+
 function renderEditor(){
   const d=customDATA;
   document.getElementById('resCount').textContent=d.res.length;
@@ -439,8 +452,8 @@ function renderEditor(){
 
   d.procs.forEach((p,i)=>{
     let row = '<tr><td class="proc">'+p+'</td>';
-    row += d.res.map((_,r)=>'<td><input id="al-'+i+'-'+r+'" type="number" min="0" value="'+d.alloc[i][r]+'"></td>').join('');
-    row += d.res.map((_,r)=>'<td><input id="mx-'+i+'-'+r+'" type="number" min="0" value="'+d.max[i][r]+'"></td>').join('');
+    row += d.res.map((_,r)=>'<td><span class="stepper sm"><button onclick="bumpCell(\'alloc\','+i+','+r+',-1)">−</button><span class="sval">'+d.alloc[i][r]+'</span><button onclick="bumpCell(\'alloc\','+i+','+r+',1)">+</button></span></td>').join('');
+    row += d.res.map((_,r)=>'<td><span class="stepper sm"><button onclick="bumpCell(\'max\','+i+','+r+',-1)">−</button><span class="sval">'+d.max[i][r]+'</span><button onclick="bumpCell(\'max\','+i+','+r+',1)">+</button></span></td>').join('');
     row += d.res.map((_,r)=>'<td id="nd-'+i+'-'+r+'" style="color:var(--muted)">'+(d.max[i][r]-d.alloc[i][r])+'</td>').join('');
     row += '</tr>';
     html += row;
@@ -448,7 +461,7 @@ function renderEditor(){
 
   // totals + available row
   html+='<tr><td class="proc">Total</td>'
-    + d.res.map((_,r)=>'<td><input id="tot-'+r+'" type="number" min="0" value="'+d.total[r]+'"></td>').join('')
+    + d.res.map((_,r)=>'<td><span class="stepper sm"><button onclick="bumpTotal('+r+',-1)">−</button><span class="sval">'+d.total[r]+'</span><button onclick="bumpTotal('+r+',1)">+</button></span></td>').join('')
     + '<td colspan="'+d.res.length+'" style="color:var(--muted)">Available →</td>'
     + d.res.map((_,r)=>{ const av=d.total[r]-d.alloc.reduce((s,row)=>s+row[r],0); return '<td id="av-'+r+'" style="color:'+(av<0?'var(--bad)':'var(--ok)')+'">'+av+'</td>'; }).join('')
     + '</tr></tbody></table>';
@@ -458,14 +471,16 @@ function renderEditor(){
   const showReq = (action==='request');
   document.getElementById('requestForm').style.display = showReq?'flex':'none';
   if(showReq){
-    // Preserve any request the user already typed so a re-render (incl. Apply) doesn't wipe it.
+    // Keep the request vector sized to the resource count; it lives in customReq
+    // (a +/- stepper state) so a re-render — including Apply — never wipes it.
+    while(customReq.length < d.res.length) customReq.push(0);
+    customReq.length = d.res.length;
     const prevProc = (document.getElementById('reqProc')||{}).value;
-    const prevVec = d.res.map((_,ri)=>{ const el=document.getElementById('req-'+ri); return el?el.value:'0'; });
     const reqProc=document.getElementById('reqProc');
     reqProc.innerHTML = d.procs.map((p,i)=>'<option value="'+i+'">'+p+'</option>').join('');
     if(prevProc!=='' && prevProc!=null && parseInt(prevProc,10)<d.procs.length) reqProc.value=prevProc;
     document.getElementById('reqVecInputs').innerHTML = ' requests ' +
-      d.res.map((r,ri)=>'<input id="req-'+ri+'" type="number" min="0" value="'+(prevVec[ri]||0)+'" title="'+r+'">').join(' ');
+      d.res.map((r,ri)=>'<span class="stepper sm" title="'+r+'"><button onclick="bumpReq('+ri+',-1)">−</button><span class="sval">'+(customReq[ri]||0)+'</span><button onclick="bumpReq('+ri+',1)">+</button></span>').join(' ');
   }
   // live-update Need & Available cells as the user types (without losing focus)
   document.querySelectorAll('#editorGrid input').forEach(inp=>inp.addEventListener('input', updateDerived));
@@ -501,7 +516,7 @@ function clampInt(v){ v=parseInt(v,10); return (isNaN(v)||v<0)?0:v; }
 
 function readRequestForm(){
   const pi=parseInt(document.getElementById('reqProc').value,10)||0;
-  const vec=customDATA.res.map((_,r)=>clampInt((document.getElementById('req-'+r)||{}).value));
+  const vec=customDATA.res.map((_,r)=>customReq[r]||0);
   return {pi, vec};
 }
 

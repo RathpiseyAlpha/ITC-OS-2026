@@ -17,7 +17,7 @@
   .sub{color:var(--muted);font-size:13px;margin-top:4px}
   .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
   .stage{flex:1 1 540px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
-  .side{flex:0 0 360px;min-width:300px}
+  .side{flex:0 0 360px;min-width:300px;position:sticky;top:16px;align-self:flex-start}
   .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:120px;margin-bottom:14px}
   .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
   .caption .text{font-size:15px;line-height:1.55}
@@ -28,12 +28,24 @@
   button:hover:not(:disabled){background:#2e4459}
   button:disabled{opacity:.4;cursor:not-allowed}
   button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
-  .modes{display:flex;gap:8px;margin-bottom:14px}
-  .modes button{flex:1}
-  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  /* parent tabs — enclosed segmented pill */
+  .modes{display:flex;gap:4px;margin-bottom:14px;background:#0c141d;border:1px solid var(--border);border-radius:12px;padding:4px}
+  .modes button{flex:1;background:transparent;border:1px solid transparent;border-radius:9px;padding:9px 12px;color:var(--muted);font-weight:600}
+  .modes button:hover:not(.active){background:#1a2735;color:var(--ink)}
+  .modes button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+  /* child tabs — outline chips with accent underline */
   .scenarios{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
-  .scenarios button{flex:1 1 60px;padding:8px 6px}
-  .scenarios button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .scenarios button{flex:1 1 60px;padding:8px 6px;background:#1a2331;border:1px solid var(--border);border-bottom:2px solid #2a3b4d;border-radius:8px;color:var(--muted)}
+  .scenarios button:hover:not(.active){background:#22303f;color:var(--ink)}
+  .scenarios button.active{background:#101b27;color:var(--ink);border-bottom-color:var(--accent);box-shadow:inset 0 -2px 0 0 var(--accent);font-weight:600}
+  /* +/- stepper */
+  .stepper{display:inline-flex;align-items:center;border:1px solid #33485f;border-radius:7px;overflow:hidden;background:#0c141d;vertical-align:middle}
+  .stepper button{background:#1a2735;border:none;color:var(--ink);width:26px;height:32px;padding:0;font-size:15px;line-height:1;cursor:pointer;border-radius:0;transition:.15s}
+  .stepper button:hover:not(:disabled){background:#2e4459}
+  .stepper button:disabled{opacity:.35;cursor:not-allowed}
+  .stepper .sval{min-width:30px;text-align:center;font-weight:700;font-size:14px;padding:0 4px;font-variant-numeric:tabular-nums}
+  .stepper.sm button{width:22px;height:26px;font-size:14px}
+  .stepper.sm .sval{min-width:24px;font-size:13px}
   .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
   .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
   .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
@@ -124,10 +136,10 @@
       <h3>Your own translation</h3>
       <div class="brow">
         <label class="addrLabel">Logical address (0–127):</label>
-        <input type="number" id="customLA" min="0" max="127" value="42">
+        <span class="stepper"><button onclick="bumpLA(-1)">−</button><span class="sval" id="customLA">42</span><button onclick="bumpLA(1)">+</button></span>
         <button class="primary" onclick="loadCustom()">Translate</button>
       </div>
-      <div class="hint">Page size is fixed at 16 bytes, 8 pages, 8 frames. Edit the <b>frame</b> column in the table below to change the mapping — leave a cell blank to mark a page <b>invalid</b> (not in memory).</div>
+      <div class="hint">Page size is fixed at 16 bytes, 8 pages, 8 frames. Use the <b>+ / −</b> buttons in the <b>frame</b> column below to change the mapping — decrement past 0 to mark a page <b>invalid</b> (not in memory).</div>
       <div class="msg" id="builderMsg"></div>
     </div>
 
@@ -168,6 +180,7 @@ const EXAMPLES = [20, 100, 48, 16, 127];
 
 let mode = 'example';
 let curLA = 20;
+let cLA = 42;            // custom logical address (driven by +/- stepper)
 let step = 0;            // 0..5
 const MAXSTEP = 5;
 let playing = false, playTimer = null;
@@ -212,7 +225,7 @@ function renderTable(){
     const isFault = active && fr===null;
     const rowcls = active ? ('active'+(isFault?' faultrow':'')) : '';
     const frameCell = editable
-      ? '<input class="ptInput" type="number" min="0" max="7" value="'+(fr===null?'':fr)+'" onchange="editFrame('+i+',this.value)">'
+      ? '<span class="stepper sm"><button onclick="bumpFrame('+i+',-1)">−</button><span class="sval">'+(fr===null?'—':fr)+'</span><button onclick="bumpFrame('+i+',1)">+</button></span>'
       : (fr===null ? '—' : fr);
     const validCell = fr===null
       ? '<td class="invalid">invalid</td>'
@@ -314,17 +327,24 @@ function highlightExample(){
 }
 function loadExample(a){ mode='example'; curLA=a; step=0; stopPlay(); highlightExample(); render(); }
 function loadCustom(){
-  const v = parseInt(document.getElementById('customLA').value,10);
-  const msg = document.getElementById('builderMsg');
-  if(isNaN(v) || v<0 || v>127){ msg.textContent='Enter a logical address between 0 and 127.'; return; }
-  msg.textContent=''; curLA=v; step=0; stopPlay(); render();
+  curLA=cLA; step=0; stopPlay();
+  document.getElementById('builderMsg').textContent='';
+  render();
 }
-function editFrame(page, val){
-  const msg = document.getElementById('builderMsg');
-  if(val.trim()===''){ pageTable[page]=null; msg.textContent='Page '+page+' set to invalid.'; render(); return; }
-  const f = parseInt(val,10);
-  if(isNaN(f)||f<0||f>7){ msg.textContent='Frame must be 0–7 (or blank for invalid).'; return; }
-  pageTable[page]=f; msg.textContent=''; step=Math.min(step,2); render();
+function bumpLA(delta){
+  cLA=Math.min(127,Math.max(0,cLA+delta));
+  document.getElementById('customLA').textContent=cLA;
+  loadCustom();   // live re-translate
+}
+// Frame column stepper: 0..7, and decrementing below 0 marks the page invalid (null).
+function bumpFrame(page, delta){
+  const cur = pageTable[page];
+  let v;
+  if(cur===null){ v = delta>0 ? 0 : null; }
+  else { v = cur + delta; if(v<0) v=null; else if(v>7) v=7; }
+  pageTable[page]=v;
+  document.getElementById('builderMsg').textContent = v===null ? ('Page '+page+' set to invalid.') : '';
+  step=Math.min(step,2); render();
 }
 
 function setMode(m){
