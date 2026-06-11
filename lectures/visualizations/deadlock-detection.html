@@ -118,7 +118,7 @@
       <div class="hint">Use the <b>+ / −</b> buttons to add or remove resource types, processes, and resource <b>instances</b> — no typing needed there. Fill the <b>Allocation</b> and <b>Request</b> cells, then <b>Apply</b>. <b>Clear all</b> resets to one process and one resource so you can build from scratch.</div>
       <div id="editorGrid"></div>
       <div class="emsg" id="emsg"></div>
-      <button class="primary" onclick="applyCustom()">Apply &amp; Animate ▶</button>
+      <button class="primary" onclick="applyAndAnimate()">Apply &amp; Animate ▶</button>
     </div>
   </div>
 
@@ -141,7 +141,8 @@
 
     <div class="controls">
       <button id="prevBtn" onclick="prev()">◀ Prev</button>
-      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="nextBtn" onclick="next()">Next ▶</button>
+      <button id="animateBtn" class="primary" onclick="animateFromStart()">▶ Animate</button>
       <button id="playBtn" onclick="togglePlay()">▶ Play</button>
       <button onclick="reset()">↻ Reset</button>
       <span class="progress" id="progress"></span>
@@ -268,14 +269,29 @@ let mode='example', scenario='N';
 let DATA=clone(SCENARIOS.N.data), customDATA=defaultCustom();
 let trace=null, idx=0, playing=false, playTimer=null;
 
-function run(){ trace=buildDetectionTrace(DATA); idx=0; stopPlay(); drawGraph(); render(); }
+function run(){ trace=buildDetectionTrace(DATA); idx=0; stopPlay(); render(); }
 
 /* ================= rendering: graph ================= */
 const elNodes=document.getElementById('nodes'), elEdges=document.getElementById('edges');
 function mk(tag,a){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in a)e.setAttribute(k,a[k]);return e;}
-function drawGraph(){
+// Draw the graph for the CURRENT step. Finished processes have released their
+// resources, so we drop their edges and free their instances — the graph
+// reduces step by step in sync with the reduction trace.
+function drawGraph(f){
   const d=DATA; layout(d);
-  const edges=buildGraphEdges(d);
+  const finished = f ? f.finished : new Set();
+  const dead     = (f && f.dead) ? f.dead : new Set();
+  const testing  = (f && f.testing!=null) ? f.testing : -1;
+
+  // Edges only from processes still holding resources (not yet reduced).
+  const edges=[];
+  d.procs.forEach((p,i)=>{
+    if(finished.has(i)) return;
+    d.res.forEach((r,ri)=>{
+      if(d.alloc[i][ri]>0)   edges.push({from:'R'+ri, to:'P'+i, kind:'assign',  n:d.alloc[i][ri]});
+      if(d.request[i][ri]>0) edges.push({from:'P'+i, to:'R'+ri, kind:'request', n:d.request[i][ri]});
+    });
+  });
   const cyc=findCycle(d,edges);
   const cycSet=new Set(); if(cyc) for(let i=0;i<cyc.length-1;i++) cycSet.add(cyc[i]+'->'+cyc[i+1]);
 
@@ -291,20 +307,25 @@ function drawGraph(){
     if(e.n>1){ const mx=(p1.x+p2.x)/2, my=(p1.y+p2.y)/2; const t=mk('text',{x:mx,y:my-4,'font-size':11,fill:col,'text-anchor':'middle'}); t.textContent='×'+e.n; elEdges.appendChild(t); }
   });
 
-  // nodes
+  // process nodes — styled by their state in this step
   elNodes.innerHTML='';
   d.procs.forEach((p,i)=>{
     const n=nodePos['P'+i];
-    elNodes.appendChild(mk('circle',{cx:n.x,cy:n.y,r:PR,fill:'var(--proc)',stroke:'#1e3a8a','stroke-width':2}));
-    const t=mk('text',{x:n.x,y:n.y,class:'node-label'}); t.textContent=p; elNodes.appendChild(t);
+    let fill='var(--proc)', stroke='#1e3a8a', sw=2, op='1';
+    if(dead.has(i)){ fill='var(--bad)'; stroke='#7f1d1d'; sw=3; }
+    else if(finished.has(i)){ fill='#27323f'; stroke='#3a4d63'; op='0.4'; }
+    else if(testing===i){ stroke='var(--warn)'; sw=4; }
+    elNodes.appendChild(mk('circle',{cx:n.x,cy:n.y,r:PR,fill,stroke,'stroke-width':sw,opacity:op}));
+    const t=mk('text',{x:n.x,y:n.y,class:'node-label',opacity:op});
+    t.textContent=(finished.has(i)&&!dead.has(i))?p+' ✓':p; elNodes.appendChild(t);
   });
-  const allocPerRes=sumCols(d.alloc,d.total.length);
+  // resource nodes — instance dots filled by resources STILL held (by active procs)
   d.res.forEach((r,ri)=>{
     const n=nodePos['R'+ri]; const w=resWidth(d.total[ri]);
     elNodes.appendChild(mk('rect',{x:n.x-w/2,y:n.y-26,width:w,height:52,rx:8,fill:'var(--res)',stroke:'#065f46','stroke-width':2}));
     const t=mk('text',{x:n.x,y:n.y-13,class:'node-label','font-size':12}); t.textContent=r; elNodes.appendChild(t);
-    // instance dots
-    const inst=d.total[ri], used=allocPerRes[ri];
+    const inst=d.total[ri];
+    let used=0; d.procs.forEach((_,i)=>{ if(!finished.has(i)) used+=d.alloc[i][ri]; });
     const startX=n.x-(inst-1)*8;
     for(let k=0;k<inst;k++){
       elNodes.appendChild(mk('circle',{cx:startX+k*16,cy:n.y+9,r:5,fill:k<used?'#04261c':'none',stroke:'#04261c','stroke-width':2}));
@@ -312,9 +333,11 @@ function drawGraph(){
   });
 
   // legend
-  document.getElementById('graphLegend').innerHTML =
-    '<b class="a">green</b> assignment R→P (held by) · <b class="r">orange</b> request P→R (waiting) · '
-    + (cyc? '<b class="c">red</b> cycle: '+cyc.join(' → ') : 'no cycle in this graph');
+  let legend='<b class="a">green</b> assignment R→P · <b class="r">orange</b> request P→R · ';
+  if(dead.size>0) legend += '<b class="c">red</b> deadlock cycle: '+(cyc?cyc.join(' → '):'(remaining processes)');
+  else if(f && finished.size===d.procs.length) legend += 'all processes reduced — <b style="color:var(--ok)">no deadlock</b>';
+  else legend += (cyc? '<b class="c">red</b> cycle: '+cyc.join(' → ') : 'no cycle among the remaining processes');
+  document.getElementById('graphLegend').innerHTML=legend;
 }
 
 /* ================= rendering: matrices ================= */
@@ -329,6 +352,7 @@ function renderHeaders(){
 function render(){
   renderHeaders();
   const d=DATA, f=trace.frames[idx];
+  drawGraph(f);   // graph reflects the current step (animates with Prev/Next/Play)
   const body=document.getElementById('matrixBody'); body.innerHTML='';
   d.procs.forEach((p,i)=>{
     const tr=document.createElement('tr');
@@ -358,6 +382,7 @@ function render(){
 function next(){ if(idx<trace.frames.length-1){idx++;render();} if(idx>=trace.frames.length-1) stopPlay(); }
 function prev(){ if(idx>0){idx--;render();stopPlay();} }
 function reset(){ idx=0; stopPlay(); render(); }
+function animateFromStart(){ if(!trace) return; stopPlay(); idx=0; render(); startPlay(); }
 function loadScenario(s){ scenario=s; DATA=clone(SCENARIOS[s].data);
   document.getElementById('scN').classList.toggle('active',s==='N');
   document.getElementById('scD').classList.toggle('active',s==='D');
@@ -440,13 +465,16 @@ function syncEditor(){ const d=customDATA;
 function applyCustom(){
   syncEditor(); const d=customDATA; const msg=document.getElementById('emsg'); msg.className='emsg'; msg.textContent='';
   const av=availOf(d);
-  if(av.some(x=>x<0)){ msg.textContent='Σ Allocation exceeds Instances for some resource — Available would be negative.'; renderEditor(); return; }
+  if(av.some(x=>x<0)){ msg.textContent='Σ Allocation exceeds Instances for some resource — Available would be negative.'; renderEditor(); return false; }
   for(let i=0;i<d.procs.length;i++) for(let r=0;r<d.res.length;r++){
-    if(d.alloc[i][r]+d.request[i][r] > d.total[r]){ msg.textContent='For '+d.procs[i]+'/'+d.res[r]+', Allocation + Request exceeds total Instances.'; renderEditor(); return; }
+    if(d.alloc[i][r]+d.request[i][r] > d.total[r]){ msg.textContent='For '+d.procs[i]+'/'+d.res[r]+', Allocation + Request exceeds total Instances.'; renderEditor(); return false; }
   }
   msg.className='emsg ok'; msg.textContent='Applied. Running detection…';
   DATA=clone(d); renderEditor(); run();
+  return true;
 }
+// Editor button: apply the scenario, then animate the reduction from step 0.
+function applyAndAnimate(){ if(applyCustom()) animateFromStart(); }
 
 /* ================= init ================= */
 loadScenario('N');
