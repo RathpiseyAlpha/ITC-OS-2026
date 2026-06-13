@@ -679,8 +679,8 @@
     function adminExportButtons(kind) {
         return '<div class="admin-export-actions">'
             + '<button type="button" onclick="exportAdminGradeTable(\'' + kind + '\', \'csv\')">Export CSV</button>'
-            + '<button type="button" onclick="exportAdminGradeTable(\'' + kind + '\', \'excel\')">Export Excel</button>'
-            + '<span>includes late and file remarks</span>'
+            + '<button type="button" onclick="exportAdminGradeTable(\'' + kind + '\', \'xlsx\')">Export XLSX</button>'
+            + '<span>XLSX separates each lab/activity into its own sheet</span>'
             + '</div>';
     }
 
@@ -755,12 +755,12 @@
         return '"' + text.replace(/"/g, '""') + '"';
     }
 
-    function excelCell(value) {
-        return '<td>' + escapeHtml(value === undefined || value === null ? '' : String(value)) + '</td>';
-    }
-
     function downloadTextFile(filename, mimeType, content) {
         var blob = new Blob([content], { type: mimeType });
+        downloadBlob(filename, blob);
+    }
+
+    function downloadBlob(filename, blob) {
         var url = URL.createObjectURL(blob);
         var link = document.createElement('a');
         link.href = url;
@@ -769,6 +769,210 @@
         link.click();
         document.body.removeChild(link);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    function xmlEscape(value) {
+        return String(value === undefined || value === null ? '' : value)
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
+
+    function columnName(index) {
+        var name = '';
+        var n = index + 1;
+        while (n > 0) {
+            var rem = (n - 1) % 26;
+            name = String.fromCharCode(65 + rem) + name;
+            n = Math.floor((n - 1) / 26);
+        }
+        return name;
+    }
+
+    function safeSheetName(name, used) {
+        var cleaned = String(name || 'Sheet')
+            .replace(/[\[\]\:\*\?\/\\]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim() || 'Sheet';
+        cleaned = cleaned.slice(0, 31);
+        var base = cleaned;
+        var i = 2;
+        while (used[cleaned]) {
+            var suffix = ' ' + i;
+            cleaned = base.slice(0, 31 - suffix.length) + suffix;
+            i++;
+        }
+        used[cleaned] = true;
+        return cleaned;
+    }
+
+    function worksheetXml(headers, rows) {
+        var rowXml = [];
+        var allRows = [headers].concat(rows.map(function (row) {
+            return headers.map(function (h) { return row[h]; });
+        }));
+        allRows.forEach(function (row, rowIdx) {
+            var cells = row.map(function (value, colIdx) {
+                var ref = columnName(colIdx) + (rowIdx + 1);
+                if (typeof value === 'number' && isFinite(value)) {
+                    return '<c r="' + ref + '"><v>' + value + '</v></c>';
+                }
+                return '<c r="' + ref + '" t="inlineStr"><is><t>' + xmlEscape(value) + '</t></is></c>';
+            }).join('');
+            rowXml.push('<row r="' + (rowIdx + 1) + '">' + cells + '</row>');
+        });
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            + '<sheetData>' + rowXml.join('') + '</sheetData>'
+            + '</worksheet>';
+    }
+
+    function groupedExportSheets(kind, rows) {
+        var grouped = {};
+        rows.forEach(function (row) {
+            var key = row.Assignment || (kind === 'activities' ? 'Activities' : 'Labs');
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(row);
+        });
+        var used = {};
+        return Object.keys(grouped).sort(function (a, b) {
+            return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        }).map(function (key) {
+            return {
+                name: safeSheetName(key, used),
+                rows: grouped[key]
+            };
+        });
+    }
+
+    var crcTable = null;
+    function crc32(bytes) {
+        if (!crcTable) {
+            crcTable = [];
+            for (var n = 0; n < 256; n++) {
+                var c = n;
+                for (var k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                crcTable[n] = c >>> 0;
+            }
+        }
+        var crc = 0 ^ -1;
+        for (var i = 0; i < bytes.length; i++) {
+            crc = (crc >>> 8) ^ crcTable[(crc ^ bytes[i]) & 0xFF];
+        }
+        return (crc ^ -1) >>> 0;
+    }
+
+    function u16(value) {
+        return [value & 0xFF, (value >>> 8) & 0xFF];
+    }
+
+    function u32(value) {
+        return [value & 0xFF, (value >>> 8) & 0xFF, (value >>> 16) & 0xFF, (value >>> 24) & 0xFF];
+    }
+
+    function bytesFromParts(parts) {
+        var total = parts.reduce(function (sum, part) { return sum + part.length; }, 0);
+        var out = new Uint8Array(total);
+        var offset = 0;
+        parts.forEach(function (part) {
+            out.set(part, offset);
+            offset += part.length;
+        });
+        return out;
+    }
+
+    function zipBlob(files) {
+        var encoder = new TextEncoder();
+        var now = new Date();
+        var dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+        var dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+        var localParts = [];
+        var centralParts = [];
+        var offset = 0;
+
+        files.forEach(function (file) {
+            var nameBytes = encoder.encode(file.name);
+            var dataBytes = encoder.encode(file.content);
+            var crc = crc32(dataBytes);
+            var localHeader = new Uint8Array([]
+                .concat(u32(0x04034b50), u16(20), u16(0), u16(0), u16(dosTime), u16(dosDate), u32(crc),
+                    u32(dataBytes.length), u32(dataBytes.length), u16(nameBytes.length), u16(0)));
+            localParts.push(localHeader, nameBytes, dataBytes);
+
+            var centralHeader = new Uint8Array([]
+                .concat(u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(dosTime), u16(dosDate), u32(crc),
+                    u32(dataBytes.length), u32(dataBytes.length), u16(nameBytes.length), u16(0), u16(0),
+                    u16(0), u16(0), u32(0), u32(offset)));
+            centralParts.push(centralHeader, nameBytes);
+            offset += localHeader.length + nameBytes.length + dataBytes.length;
+        });
+
+        var localData = bytesFromParts(localParts);
+        var centralData = bytesFromParts(centralParts);
+        var endRecord = new Uint8Array([]
+            .concat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length),
+                u32(centralData.length), u32(localData.length), u16(0)));
+        return new Blob([localData, centralData, endRecord], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+    }
+
+    function xlsxBlobFromRows(kind, rows) {
+        var headers = Object.keys(rows[0]);
+        var sheets = groupedExportSheets(kind, rows);
+        var files = [];
+        var overrides = [
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        ];
+        var sheetDefs = [];
+        var relDefs = [];
+
+        sheets.forEach(function (sheet, idx) {
+            var sheetId = idx + 1;
+            var path = 'xl/worksheets/sheet' + sheetId + '.xml';
+            files.push({ name: path, content: worksheetXml(headers, sheet.rows) });
+            overrides.push('<Override PartName="/' + path + '" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>');
+            sheetDefs.push('<sheet name="' + xmlEscape(sheet.name) + '" sheetId="' + sheetId + '" r:id="rId' + sheetId + '"/>');
+            relDefs.push('<Relationship Id="rId' + sheetId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + sheetId + '.xml"/>');
+        });
+
+        files.push({
+            name: '[Content_Types].xml',
+            content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                + '<Default Extension="xml" ContentType="application/xml"/>'
+                + overrides.join('')
+                + '</Types>'
+        });
+        files.push({
+            name: '_rels/.rels',
+            content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+                + '</Relationships>'
+        });
+        files.push({
+            name: 'xl/workbook.xml',
+            content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                + '<sheets>' + sheetDefs.join('') + '</sheets>'
+                + '</workbook>'
+        });
+        files.push({
+            name: 'xl/_rels/workbook.xml.rels',
+            content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + relDefs.join('')
+                + '</Relationships>'
+        });
+
+        return zipBlob(files);
     }
 
     window.exportAdminGradeTable = function (kind, format) {
@@ -791,15 +995,7 @@
             return;
         }
 
-        var table = '<table><thead><tr>'
-            + headers.map(function (h) { return '<th>' + escapeHtml(h) + '</th>'; }).join('')
-            + '</tr></thead><tbody>'
-            + rows.map(function (row) {
-                return '<tr>' + headers.map(function (h) { return excelCell(row[h]); }).join('') + '</tr>';
-            }).join('')
-            + '</tbody></table>';
-        var excelHtml = '<html><head><meta charset="utf-8"></head><body>' + table + '</body></html>';
-        downloadTextFile(baseName + '.xls', 'application/vnd.ms-excel;charset=utf-8', excelHtml);
+        downloadBlob(baseName + '.xlsx', xlsxBlobFromRows(kind, rows));
     };
 
     window.adminScrollTable = function (tableId, direction) {
