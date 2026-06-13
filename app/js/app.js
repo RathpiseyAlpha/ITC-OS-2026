@@ -594,6 +594,124 @@
             + '</div>';
     }
 
+    function adminTableStart(tableId, extraClass) {
+        return '<div class="admin-table-tools" data-table="' + tableId + '">'
+            + '<button type="button" title="Scroll left" onclick="adminScrollTable(\'' + tableId + '\', -1)">&#x25C0;</button>'
+            + '<button type="button" title="Scroll right" onclick="adminScrollTable(\'' + tableId + '\', 1)">&#x25B6;</button>'
+            + '<button type="button" title="Toggle compact rows" onclick="adminToggleCompactTable(\'' + tableId + '\')">compact</button>'
+            + '<button type="button" title="Pin identifier columns" onclick="adminTogglePinnedColumns(\'' + tableId + '\')">pin</button>'
+            + '<button type="button" title="Show or hide columns" onclick="adminToggleColumnMenu(\'' + tableId + '\')">columns</button>'
+            + '<div class="admin-column-menu" id="' + tableId + '-columns"></div>'
+            + '</div>'
+            + '<div class="admin-table-wrap sticky-cols" id="' + tableId + '-wrap">'
+            + '<table id="' + tableId + '" class="admin-table' + (extraClass ? ' ' + extraClass : '') + '">';
+    }
+
+    function adminTableEnd() {
+        return '</table></div>';
+    }
+
+    function actualScore(g) {
+        return g && g.finalScore !== undefined ? g.finalScore : (g ? g.score : 0);
+    }
+
+    function scorePercent(score, total) {
+        return total ? Math.round((score / total) * 1000) / 10 : 0;
+    }
+
+    function gradeClass(pct) {
+        return pct >= 80 ? 'grade-a' : pct >= 50 ? 'grade-b' : 'grade-c';
+    }
+
+    function isLateGrade(g) {
+        return !!(g && ((g.lateInfo && g.lateInfo.late) || g.late));
+    }
+
+    function renderLateBadge(g) {
+        if (!isLateGrade(g)) return '<span class="admin-late-empty">-</span>';
+        var li = g.lateInfo || {};
+        var penalty = g.penalty !== undefined ? g.penalty : (li.penalty || 0);
+        var title = '';
+        if (li.lateFiles !== undefined) {
+            title = li.lateFiles + '/' + li.totalFiles + ' files late';
+            if (li.daysLate !== undefined) title += ', max ' + li.daysLate + 'd';
+        }
+        return '<span class="admin-late-badge" title="' + escapeHtml(title) + '">late -' + penalty + '</span>';
+    }
+
+    function renderScoreValue(g) {
+        var raw = g.score || 0;
+        var finalScore = actualScore(g);
+        var total = g.total || 0;
+        var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(finalScore, total);
+        var cls = gradeClass(pct);
+        var html = '<span class="' + cls + '">' + finalScore + '/' + total + '</span>';
+        if (finalScore < raw) {
+            html += ' <span class="score-raw"><s>' + raw + '</s></span>';
+        }
+        return html;
+    }
+
+    function renderScorePercent(g) {
+        var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+        return '<span class="' + gradeClass(pct) + '">' + pct + '%</span>';
+    }
+
+    function renderAggregateScore(s) {
+        var pctClass = gradeClass(s.totalPercentage || 0);
+        var html = '<span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span>';
+        if (s.totalRawScore !== undefined && s.totalRawScore > s.totalScore) {
+            html += ' <span class="score-raw"><s>' + s.totalRawScore + '</s></span>';
+        }
+        return html;
+    }
+
+    function renderAggregateLate(s) {
+        if (!s.lateCount) return '<span class="admin-late-empty">-</span>';
+        return '<span class="admin-late-badge" title="' + s.lateCount + ' late submissions">late x' + s.lateCount + ' -' + (s.totalPenalty || 0) + '</span>';
+    }
+
+    window.adminScrollTable = function (tableId, direction) {
+        var wrap = document.getElementById(tableId + '-wrap');
+        if (!wrap) return;
+        wrap.scrollBy({ left: direction * Math.max(220, Math.floor(wrap.clientWidth * 0.6)), behavior: 'smooth' });
+    };
+
+    window.adminToggleCompactTable = function (tableId) {
+        var wrap = document.getElementById(tableId + '-wrap');
+        if (wrap) wrap.classList.toggle('compact-table');
+    };
+
+    window.adminTogglePinnedColumns = function (tableId) {
+        var wrap = document.getElementById(tableId + '-wrap');
+        if (wrap) wrap.classList.toggle('sticky-cols');
+    };
+
+    window.adminToggleColumnMenu = function (tableId) {
+        var table = document.getElementById(tableId);
+        var menu = document.getElementById(tableId + '-columns');
+        if (!table || !menu) return;
+        if (!menu.dataset.ready) {
+            var headers = table.querySelectorAll('thead th');
+            var html = '';
+            for (var i = 0; i < headers.length; i++) {
+                var label = headers[i].textContent.trim() || ('Column ' + (i + 1));
+                html += '<label><input type="checkbox" checked onchange="adminToggleTableColumn(\'' + tableId + '\',' + i + ',this.checked)"> ' + escapeHtml(label) + '</label>';
+            }
+            menu.innerHTML = html;
+            menu.dataset.ready = '1';
+        }
+        menu.classList.toggle('open');
+    };
+
+    window.adminToggleTableColumn = function (tableId, colIdx, show) {
+        var table = document.getElementById(tableId);
+        if (!table) return;
+        table.querySelectorAll('tr').forEach(function (row) {
+            if (row.children[colIdx]) row.children[colIdx].style.display = show ? '' : 'none';
+        });
+    };
+
     function renderAdminRequestError(action, err) {
         var html = '<div class="error" style="padding:12px;">'
             + escapeHtml(action + ': ' + (err && err.message ? err.message : 'Request failed.'));
@@ -697,8 +815,8 @@
         rows.sort(function (a, b) {
             var cellA = a.children[colIdx];
             var cellB = b.children[colIdx];
-            var aText = cellA ? cellA.textContent.trim() : '';
-            var bText = cellB ? cellB.textContent.trim() : '';
+            var aText = cellA ? (cellA.getAttribute('data-sort') || cellA.textContent.trim()) : '';
+            var bText = cellB ? (cellB.getAttribute('data-sort') || cellB.textContent.trim()) : '';
 
             // Direct numeric check (handles plain numbers like "5", "100")
             var aNum = aText === '' ? NaN : Number(aText);
@@ -715,10 +833,10 @@
             }
 
             // Fraction match (e.g. "8/10")
-            var aFrac = aText.match(/^(\d+)\/(\d+)$/);
-            var bFrac = bText.match(/^(\d+)\/(\d+)$/);
+            var aFrac = aText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)/);
+            var bFrac = bText.match(/(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)/);
             if (aFrac && bFrac) {
-                return asc ? parseInt(aFrac[1], 10) - parseInt(bFrac[1], 10) : parseInt(bFrac[1], 10) - parseInt(aFrac[1], 10);
+                return asc ? parseFloat(aFrac[1]) - parseFloat(bFrac[1]) : parseFloat(bFrac[1]) - parseFloat(aFrac[1]);
             }
 
             // Fall back to locale-aware string comparison
@@ -759,8 +877,8 @@
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.length + '</span> total users</span>'
                 + '<span class="admin-stat"><span class="admin-stat-val">' + users.filter(function(u){return u.isOnline;}).length + '</span> online now</span>'
                 + '</div>'
-                + '<table class="admin-table">'
-                + '<thead><tr><th onclick="adminSortTable(this)">User</th><th onclick="adminSortTable(this)">Logins</th><th onclick="adminSortTable(this)">Last Login</th><th onclick="adminSortTable(this)">Duration</th><th onclick="adminSortTable(this)">Status</th></tr></thead>'
+                + adminTableStart('admin-users-table', '')
+                + '<thead><tr><th class="pin-col pin-id" onclick="adminSortTable(this)">User</th><th onclick="adminSortTable(this)">Logins</th><th onclick="adminSortTable(this)">Last Login</th><th onclick="adminSortTable(this)">Duration</th><th onclick="adminSortTable(this)">Status</th></tr></thead>'
                 + '<tbody>';
 
             if (users.length === 0) {
@@ -772,7 +890,7 @@
                         : '<span class="admin-offline">\u25CB offline</span>';
                     var lastLogin = u.lastLogin ? formatPhnomPenh(u.lastLogin) : '\u2014';
                     html += '<tr>'
-                        + '<td class="admin-user">' + escapeHtml(u.username) + '</td>'
+                        + '<td class="admin-user pin-col pin-id">' + escapeHtml(u.username) + '</td>'
                         + '<td>' + u.loginCount + '</td>'
                         + '<td>' + escapeHtml(lastLogin) + '</td>'
                         + '<td>' + escapeHtml(u.totalDuration || '0h 0m') + '</td>'
@@ -781,7 +899,7 @@
                 });
             }
 
-            html += '</tbody></table>';
+            html += '</tbody>' + adminTableEnd();
             container.innerHTML = html;
         })
         .catch(function (err) {
@@ -825,28 +943,27 @@
                 + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="switchAdminTab(\'total\')">&#x21BB; refresh</span>'
                 + adminSearchHtml('admin-search-total', '\uD83D\uDD0D Search students...')
                 + '</div>'
-                + '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th>';
+                + adminTableStart('admin-total-table', 'leaderboard-table')
+                + '<thead><tr><th class="pin-col pin-id" onclick="adminSortTable(this)">ID</th><th class="pin-col pin-name" onclick="adminSortTable(this)">Name</th>';
             labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
             activities.forEach(function (a) {
                 var label = a.replace('activity', 'A');
                 html += '<th onclick="adminSortTable(this)">' + escapeHtml(label) + '</th>';
             });
-            html += '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
+            html += '<th onclick="adminSortTable(this)">Late</th><th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="' + (labs.length + activities.length + 4) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="' + (labs.length + activities.length + 5) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
-                    var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
+                    var pctClass = gradeClass(s.totalPercentage || 0);
                     html += '<tr>'
-                        + '<td class="admin-user">' + escapeHtml(s.id || s.username) + '</td>'
-                        + '<td>' + escapeHtml(s.name || s.username) + '</td>';
+                        + '<td class="admin-user pin-col pin-id">' + escapeHtml(s.id || s.username) + '</td>'
+                        + '<td class="pin-col pin-name">' + escapeHtml(s.name || s.username) + '</td>';
                     labs.forEach(function (l) {
                         var labData = s.labs[l];
                         if (labData) {
-                            var lc = labData.percentage >= 80 ? 'grade-a' : labData.percentage >= 50 ? 'grade-b' : 'grade-c';
-                            html += '<td><span class="' + lc + '">' + labData.score + '/' + labData.total + '</span></td>';
+                            html += '<td>' + renderScoreValue(labData) + (isLateGrade(labData) ? ' ' + renderLateBadge(labData) : '') + '</td>';
                         } else {
                             html += '<td style="color:var(--comment);">\u2014</td>';
                         }
@@ -854,19 +971,19 @@
                     activities.forEach(function (a) {
                         var actData = s.activities ? s.activities[a] : null;
                         if (actData) {
-                            var ac = actData.percentage >= 80 ? 'grade-a' : actData.percentage >= 50 ? 'grade-b' : 'grade-c';
-                            html += '<td><span class="' + ac + '">' + actData.score + '/' + actData.total + '</span></td>';
+                            html += '<td>' + renderScoreValue(actData) + (isLateGrade(actData) ? ' ' + renderLateBadge(actData) : '') + '</td>';
                         } else {
                             html += '<td style="color:var(--comment);">\u2014</td>';
                         }
                     });
-                    html += '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
+                    html += '<td>' + renderAggregateLate(s) + '</td>'
+                        + '<td>' + renderAggregateScore(s) + '</td>'
                         + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
                         + '</tr>';
                 });
             }
 
-            html += '</tbody></table>';
+            html += '</tbody>' + adminTableEnd();
             container.innerHTML = html;
         })
         .catch(function (err) {
@@ -906,23 +1023,24 @@
             if (grades.length === 0) {
                 html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
             } else {
-                html += '<table class="admin-table">'
-                    + '<thead><tr><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">Lab</th><th onclick="adminSortTable(this)">Score</th><th onclick="adminSortTable(this)">%</th><th onclick="adminSortTable(this)">Status</th><th>Details</th></tr></thead>'
+                html += adminTableStart('admin-grades-table', '')
+                    + '<thead><tr><th class="pin-col pin-id" onclick="adminSortTable(this)">ID</th><th class="pin-col pin-name" onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">Lab</th><th onclick="adminSortTable(this)">Score</th><th onclick="adminSortTable(this)">%</th><th onclick="adminSortTable(this)">Late</th><th onclick="adminSortTable(this)">Status</th><th>Details</th></tr></thead>'
                     + '<tbody>';
                 grades.forEach(function (g) {
-                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+                    var statusIcon = g.found ? (pct === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
                     html += '<tr>'
-                        + '<td class="admin-user">' + escapeHtml(g.id || g.username) + '</td>'
-                        + '<td>' + escapeHtml(g.name || g.username) + '</td>'
+                        + '<td class="admin-user pin-col pin-id">' + escapeHtml(g.id || g.username) + '</td>'
+                        + '<td class="pin-col pin-name">' + escapeHtml(g.name || g.username) + '</td>'
                         + '<td>' + escapeHtml(g.lab) + '</td>'
-                        + '<td><span class="' + pctClass + '">' + g.score + '/' + g.total + '</span></td>'
-                        + '<td><span class="' + pctClass + '">' + g.percentage + '%</span></td>'
+                        + '<td>' + renderScoreValue(g) + '</td>'
+                        + '<td>' + renderScorePercent(g) + '</td>'
+                        + '<td>' + renderLateBadge(g) + '</td>'
                         + '<td>' + statusIcon + '</td>'
                         + '<td><span class="admin-detail-btn" onclick="showGradeDetail(\'' + escapeHtml(g.username) + '\',\'' + escapeHtml(g.lab) + '\')">view</span></td>'
                         + '</tr>';
                 });
-                html += '</tbody></table>';
+                html += '</tbody>' + adminTableEnd();
             }
             container.innerHTML = html;
         })
@@ -959,15 +1077,12 @@
             var g = results[0];
             var tree = results[1];
 
-            // Score header with finalScore if penalty applied
-            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
-            if (g.finalScore !== undefined && g.finalScore < g.score) {
-                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
-            }
+            var finalPct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+            var scoreDisplay = renderScoreValue(g) + ' (' + finalPct + '%)';
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchAdminTab(\'labs\')">\u2190 back</span> '
                 + escapeHtml(username) + ' / ' + escapeHtml(lab)
-                + ' \u2014 <span class="' + (g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c') + '">'
+                + ' \u2014 <span class="' + gradeClass(finalPct) + '">'
                 + scoreDisplay + '</span>'
                 + '</div>';
 
@@ -1126,30 +1241,29 @@
                 + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="switchAdminTab(\'leaderboard\')">&#x21BB; refresh</span>'
                 + adminSearchHtml('admin-search-leaderboard', '\uD83D\uDD0D Search students...')
                 + '</div>'
-                + '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th>';
+                + adminTableStart('admin-leaderboard-table', 'leaderboard-table')
+                + '<thead><tr><th class="pin-col pin-rank" onclick="adminSortTable(this)">#</th><th class="pin-col pin-id-after-rank" onclick="adminSortTable(this)">ID</th><th class="pin-col pin-name-after-rank" onclick="adminSortTable(this)">Name</th>';
             labs.forEach(function (l) { html += '<th onclick="adminSortTable(this)">' + escapeHtml(l) + '</th>'; });
             activities.forEach(function (a) {
                 var label = a.replace('activity', 'A');
                 html += '<th onclick="adminSortTable(this)">' + escapeHtml(label) + '</th>';
             });
-            html += '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
+            html += '<th onclick="adminSortTable(this)">Late</th><th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="' + (labs.length + activities.length + 5) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="' + (labs.length + activities.length + 6) + '" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
-                    var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
+                    var pctClass = gradeClass(s.totalPercentage || 0);
                     html += '<tr>'
-                        + '<td class="rank-cell">' + rankIcon + '</td>'
-                        + '<td class="admin-user">' + escapeHtml(s.id || s.username) + '</td>'
-                        + '<td>' + escapeHtml(s.name || s.username) + '</td>';
+                        + '<td class="rank-cell pin-col pin-rank">' + rankIcon + '</td>'
+                        + '<td class="admin-user pin-col pin-id-after-rank">' + escapeHtml(s.id || s.username) + '</td>'
+                        + '<td class="pin-col pin-name-after-rank">' + escapeHtml(s.name || s.username) + '</td>';
                     labs.forEach(function (l) {
                         var labData = s.labs[l];
                         if (labData) {
-                            var lc = labData.percentage >= 80 ? 'grade-a' : labData.percentage >= 50 ? 'grade-b' : 'grade-c';
-                            html += '<td><span class="' + lc + '">' + labData.score + '/' + labData.total + '</span></td>';
+                            html += '<td>' + renderScoreValue(labData) + (isLateGrade(labData) ? ' ' + renderLateBadge(labData) : '') + '</td>';
                         } else {
                             html += '<td style="color:var(--comment);">\u2014</td>';
                         }
@@ -1157,19 +1271,19 @@
                     activities.forEach(function (a) {
                         var actData = s.activities ? s.activities[a] : null;
                         if (actData) {
-                            var ac = actData.percentage >= 80 ? 'grade-a' : actData.percentage >= 50 ? 'grade-b' : 'grade-c';
-                            html += '<td><span class="' + ac + '">' + actData.score + '/' + actData.total + '</span></td>';
+                            html += '<td>' + renderScoreValue(actData) + (isLateGrade(actData) ? ' ' + renderLateBadge(actData) : '') + '</td>';
                         } else {
                             html += '<td style="color:var(--comment);">\u2014</td>';
                         }
                     });
-                    html += '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
+                    html += '<td>' + renderAggregateLate(s) + '</td>'
+                        + '<td>' + renderAggregateScore(s) + '</td>'
                         + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
                         + '</tr>';
                 });
             }
 
-            html += '</tbody></table>';
+            html += '</tbody>' + adminTableEnd();
             container.innerHTML = html;
         })
         .catch(function (err) {
@@ -1337,24 +1451,25 @@
             if (grades.length === 0) {
                 html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
             } else {
-                html += '<table class="admin-table">'
-                    + '<thead><tr><th onclick="adminSortTable(this)">ID</th><th onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">Activity</th><th onclick="adminSortTable(this)">Score</th><th onclick="adminSortTable(this)">%</th><th onclick="adminSortTable(this)">Status</th><th>Details</th></tr></thead>'
+                html += adminTableStart('admin-activities-table', '')
+                    + '<thead><tr><th class="pin-col pin-id" onclick="adminSortTable(this)">ID</th><th class="pin-col pin-name" onclick="adminSortTable(this)">Name</th><th onclick="adminSortTable(this)">Activity</th><th onclick="adminSortTable(this)">Score</th><th onclick="adminSortTable(this)">%</th><th onclick="adminSortTable(this)">Late</th><th onclick="adminSortTable(this)">Status</th><th>Details</th></tr></thead>'
                     + '<tbody>';
                 grades.forEach(function (g) {
-                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+                    var statusIcon = g.found ? (pct === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
                     var actLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
                     html += '<tr>'
-                        + '<td class="admin-user">' + escapeHtml(g.id || g.username) + '</td>'
-                        + '<td>' + escapeHtml(g.name || g.username) + '</td>'
+                        + '<td class="admin-user pin-col pin-id">' + escapeHtml(g.id || g.username) + '</td>'
+                        + '<td class="pin-col pin-name">' + escapeHtml(g.name || g.username) + '</td>'
                         + '<td>' + escapeHtml(actLabel) + '</td>'
-                        + '<td><span class="' + pctClass + '">' + g.score + '/' + g.total + '</span></td>'
-                        + '<td><span class="' + pctClass + '">' + g.percentage + '%</span></td>'
+                        + '<td>' + renderScoreValue(g) + '</td>'
+                        + '<td>' + renderScorePercent(g) + '</td>'
+                        + '<td>' + renderLateBadge(g) + '</td>'
                         + '<td>' + statusIcon + '</td>'
                         + '<td><span class="admin-detail-btn" onclick="showActivityGradeDetail(\'' + escapeHtml(g.username) + '\',\'' + escapeHtml(g.activity) + '\')">view</span></td>'
                         + '</tr>';
                 });
-                html += '</tbody></table>';
+                html += '</tbody>' + adminTableEnd();
             }
             container.innerHTML = html;
         })
@@ -1391,15 +1506,12 @@
             var g = results[0];
             var tree = results[1];
 
-            // Score header with finalScore if penalty applied
-            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
-            if (g.finalScore !== undefined && g.finalScore < g.score) {
-                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
-            }
+            var finalPct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+            var scoreDisplay = renderScoreValue(g) + ' (' + finalPct + '%)';
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchAdminTab(\'activities\')">' + '\u2190 back</span> '
                 + escapeHtml(username) + ' / ' + escapeHtml(actLabel)
-                + ' \u2014 <span class="' + (g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c') + '">'
+                + ' \u2014 <span class="' + gradeClass(finalPct) + '">'
                 + scoreDisplay + '</span>'
                 + '</div>';
 
@@ -1608,17 +1720,14 @@
             if (labGrades.length > 0) {
                 html += '<div style="color:var(--cyan);font-size:12px;margin-bottom:4px;border-bottom:1px solid var(--border);padding-bottom:4px;">Labs</div>';
                 labGrades.forEach(function (g) {
-                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
-                    var ds = g.finalScore !== undefined ? g.finalScore : g.score;
-                    var sl = g.finalScore !== undefined && g.finalScore < g.score
-                        ? '<s>' + g.score + '</s> ' + ds + '/' + g.total
-                        : ds + '/' + g.total;
+                    var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+                    var pctClass = gradeClass(pct);
+                    var statusIcon = g.found ? (pct === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
                     html += '<div class="student-lab-card" style="margin-bottom:6px;padding:6px 8px;">'
                         + '<div class="student-lab-header">'
                         + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
                         + statusIcon + ' '
-                        + '<span class="' + pctClass + '">' + sl + ' (' + g.percentage + '%)</span>'
+                        + '<span class="' + pctClass + '">' + renderScoreValue(g) + ' (' + pct + '%)</span>'
                         + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view</span>'
                         + '</div></div>';
                 });
@@ -1628,18 +1737,15 @@
             if (actGrades.length > 0) {
                 html += '<div style="color:var(--cyan);font-size:12px;margin:8px 0 4px;border-bottom:1px solid var(--border);padding-bottom:4px;">Class Activities</div>';
                 actGrades.forEach(function (g) {
-                    var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-                    var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                    var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+                    var pctClass = gradeClass(pct);
+                    var statusIcon = g.found ? (pct === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
                     var actLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
-                    var ds = g.finalScore !== undefined ? g.finalScore : g.score;
-                    var sl = g.finalScore !== undefined && g.finalScore < g.score
-                        ? '<s>' + g.score + '</s> ' + ds + '/' + g.total
-                        : ds + '/' + g.total;
                     html += '<div class="student-lab-card" style="margin-bottom:6px;padding:6px 8px;">'
                         + '<div class="student-lab-header">'
                         + '<span class="student-lab-name">' + escapeHtml(actLabel) + '</span> '
                         + statusIcon + ' '
-                        + '<span class="' + pctClass + '">' + sl + ' (' + g.percentage + '%)</span>'
+                        + '<span class="' + pctClass + '">' + renderScoreValue(g) + ' (' + pct + '%)</span>'
                         + ' <span class="admin-detail-btn" onclick="showStudentActivityDetail(\'' + escapeHtml(g.activity) + '\')">view</span>'
                         + '</div></div>';
                 });
@@ -1667,28 +1773,29 @@
             }
             var board = data.leaderboard || [];
 
-            var html = '<table class="admin-table leaderboard-table">'
-                + '<thead><tr><th onclick="adminSortTable(this)">#</th><th onclick="adminSortTable(this)">ID</th>'
-                + '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
+            var html = adminTableStart('student-leaderboard-table', 'leaderboard-table')
+                + '<thead><tr><th class="pin-col pin-rank" onclick="adminSortTable(this)">#</th><th class="pin-col pin-id-after-rank" onclick="adminSortTable(this)">ID</th>'
+                + '<th onclick="adminSortTable(this)">Late</th><th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="4" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="5" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
-                    var pctClass = s.totalPercentage >= 80 ? 'grade-a' : s.totalPercentage >= 50 ? 'grade-b' : 'grade-c';
+                    var pctClass = gradeClass(s.totalPercentage || 0);
                     var isMe = s.username === authUser;
                     var displayId = escapeHtml(s.id || '\u2014') + (isMe ? ' \u2B50' : '');
                     html += '<tr' + (isMe ? ' class="leaderboard-me"' : '') + '>'
-                        + '<td class="rank-cell">' + rankIcon + '</td>'
-                        + '<td class="admin-user">' + displayId + '</td>'
-                        + '<td><span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span></td>'
+                        + '<td class="rank-cell pin-col pin-rank">' + rankIcon + '</td>'
+                        + '<td class="admin-user pin-col pin-id-after-rank">' + displayId + '</td>'
+                        + '<td>' + renderAggregateLate(s) + '</td>'
+                        + '<td>' + renderAggregateScore(s) + '</td>'
                         + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
                         + '</tr>';
                 });
             }
 
-            html += '</tbody></table>';
+            html += '</tbody>' + adminTableEnd();
             container.innerHTML = html;
         })
         .catch(function (err) {
@@ -1722,8 +1829,9 @@
                 + '</div>';
 
             grades.forEach(function (g) {
-                var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-                var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+                var pctClass = gradeClass(pct);
+                var statusIcon = g.found ? (pct === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
 
                 // Deadline + submission date info
                 var deadlineHtml = '';
@@ -1775,18 +1883,12 @@
                     }
                 }
 
-                // Display finalScore (after penalty) if available
-                var displayScore = g.finalScore !== undefined ? g.finalScore : g.score;
-                var scoreLabel = g.finalScore !== undefined && g.finalScore < g.score
-                    ? '<s>' + g.score + '</s> ' + displayScore + '/' + g.total
-                    : displayScore + '/' + g.total;
-
                 html += '<div class="student-lab-card">'
                     + deadlineHtml
                     + '<div class="student-lab-header">'
                     + '<span class="student-lab-name">' + escapeHtml(g.lab) + '</span> '
                     + statusIcon + ' '
-                    + '<span class="' + pctClass + '">' + scoreLabel + ' (' + g.percentage + '%)</span>'
+                    + '<span class="' + pctClass + '">' + renderScoreValue(g) + ' (' + pct + '%)</span>'
                     + ' <span class="admin-detail-btn" onclick="showStudentLabDetail(\'' + escapeHtml(g.lab) + '\')">view details</span>'
                     + '</div>';
 
@@ -1841,8 +1943,9 @@
                 + '</div>';
 
             grades.forEach(function (g) {
-                var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-                var statusIcon = g.found ? (g.percentage === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
+                var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+                var pctClass = gradeClass(pct);
+                var statusIcon = g.found ? (pct === 100 ? '\u2705' : '\u26A0\uFE0F') : '\u274C';
 
                 // Deadline info for activities
                 var deadlineHtml = '';
@@ -1894,19 +1997,13 @@
                     }
                 }
 
-                // Display finalScore (after penalty) if available
-                var displayScore = g.finalScore !== undefined ? g.finalScore : g.score;
-                var scoreLabel = g.finalScore !== undefined && g.finalScore < g.score
-                    ? '<s>' + g.score + '</s> ' + displayScore + '/' + g.total
-                    : displayScore + '/' + g.total;
-
                 var activityLabel = g.activity ? g.activity.replace('activity', 'Activity ') : g.activity;
                 html += '<div class="student-lab-card">'
                     + deadlineHtml
                     + '<div class="student-lab-header">'
                     + '<span class="student-lab-name">' + escapeHtml(activityLabel) + '</span> '
                     + statusIcon + ' '
-                    + '<span class="' + pctClass + '">' + scoreLabel + ' (' + g.percentage + '%)</span>'
+                    + '<span class="' + pctClass + '">' + renderScoreValue(g) + ' (' + pct + '%)</span>'
                     + ' <span class="admin-detail-btn" onclick="showStudentActivityDetail(\'' + escapeHtml(g.activity) + '\')">view details</span>'
                     + '</div>';
 
@@ -1962,11 +2059,9 @@
                 return;
             }
 
-            var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
-            if (g.finalScore !== undefined && g.finalScore < g.score) {
-                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
-            }
+            var finalPct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+            var pctClass = gradeClass(finalPct);
+            var scoreDisplay = renderScoreValue(g) + ' (' + finalPct + '%)';
 
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-labs\')">\u2190 back</span> '
@@ -2060,11 +2155,9 @@
                 return;
             }
 
-            var pctClass = g.percentage >= 80 ? 'grade-a' : g.percentage >= 50 ? 'grade-b' : 'grade-c';
-            var scoreDisplay = g.score + '/' + g.total + ' (' + g.percentage + '%)';
-            if (g.finalScore !== undefined && g.finalScore < g.score) {
-                scoreDisplay = '<s>' + g.score + '</s> ' + g.finalScore + '/' + g.total + ' (' + g.percentage + '%)';
-            }
+            var finalPct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(actualScore(g), g.total || 0);
+            var pctClass = gradeClass(finalPct);
+            var scoreDisplay = renderScoreValue(g) + ' (' + finalPct + '%)';
 
             var html = '<div class="admin-section-header">'
                 + '<span class="admin-back-btn" onclick="switchStudentTab(\'my-activities\')">\u2190 back</span> '

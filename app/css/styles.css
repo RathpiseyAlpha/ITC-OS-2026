@@ -817,20 +817,133 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     border-collapse: collapse;
     font-size: 12px;
 }
+.admin-table-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 6px;
+    position: relative;
+    flex-wrap: wrap;
+}
+.admin-table-tools button {
+    background: rgba(0, 212, 255, 0.08);
+    border: 1px solid var(--border);
+    color: var(--cyan);
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.admin-table-tools button:hover {
+    border-color: var(--cyan);
+    color: var(--white);
+    background: rgba(0, 212, 255, 0.16);
+}
+.admin-column-menu {
+    display: none;
+    position: absolute;
+    top: 28px;
+    left: 0;
+    z-index: 20;
+    min-width: 190px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--terminal-bg);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}
+.admin-column-menu.open {
+    display: grid;
+    gap: 5px;
+}
+.admin-column-menu label {
+    color: var(--white);
+    font-size: 10px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.admin-column-menu input {
+    accent-color: var(--cyan);
+}
+.admin-table-wrap {
+    width: 100%;
+    max-height: calc(100vh - 230px);
+    overflow: auto;
+    border: 1px solid rgba(30,58,47,0.7);
+    background: rgba(10,14,20,0.25);
+}
+.admin-table-wrap .admin-table {
+    min-width: max-content;
+}
 .admin-table thead th {
     color: var(--yellow);
     text-align: left;
     padding: 8px 12px;
     border-bottom: 1px solid var(--green-dark);
     white-space: nowrap;
+    background: var(--terminal-bg);
+    position: sticky;
+    top: 0;
+    z-index: 3;
 }
 .admin-table tbody td {
     padding: 7px 12px;
     color: var(--white);
     border-bottom: 1px solid rgba(30,58,47,0.4);
+    background: rgba(13,17,23,0.96);
+    white-space: nowrap;
 }
 .admin-table tbody tr:hover td {
     background: rgba(0,255,65,0.03);
+}
+.admin-table-wrap.compact-table .admin-table {
+    font-size: 10px;
+}
+.admin-table-wrap.compact-table .admin-table thead th,
+.admin-table-wrap.compact-table .admin-table tbody td {
+    padding: 4px 7px;
+}
+.admin-table-wrap.sticky-cols .pin-col {
+    position: sticky;
+    background: var(--terminal-bg);
+    z-index: 4;
+    box-shadow: 1px 0 0 rgba(30,58,47,0.9);
+}
+.admin-table-wrap.sticky-cols td.pin-col {
+    background: #0d1117;
+}
+.admin-table-wrap.sticky-cols tr:hover td.pin-col {
+    background: #102018;
+}
+.admin-table-wrap.sticky-cols thead .pin-col {
+    z-index: 6;
+}
+.pin-rank {
+    left: 0;
+    min-width: 52px;
+    width: 52px;
+}
+.pin-id {
+    left: 0;
+    min-width: 100px;
+    width: 100px;
+}
+.pin-name {
+    left: 100px;
+    min-width: 190px;
+    width: 190px;
+}
+.pin-id-after-rank {
+    left: 52px;
+    min-width: 100px;
+    width: 100px;
+}
+.pin-name-after-rank {
+    left: 152px;
+    min-width: 190px;
+    width: 190px;
 }
 .admin-user {
     color: var(--cyan);
@@ -982,6 +1095,25 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
 .grade-a { color: var(--green); }
 .grade-b { color: var(--yellow); }
 .grade-c { color: var(--red); }
+.score-raw {
+    color: var(--comment);
+    font-size: 10px;
+    margin-left: 4px;
+}
+.admin-late-badge {
+    display: inline-block;
+    color: var(--red);
+    border: 1px solid rgba(255,62,62,0.45);
+    background: rgba(255,62,62,0.08);
+    padding: 1px 5px;
+    font-size: 10px;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.admin-late-empty {
+    color: var(--comment);
+    font-size: 10px;
+}
 
 /* ─── Grade Detail ─── */
 .grade-detail-columns {

@@ -1081,7 +1081,8 @@ def grade_student_lab(username, lab_name):
     if not lab_root:
         return {
             "username": username, "lab": lab_name, "score": 0,
-            "total": spec["total_points"], "percentage": 0,
+            "finalScore": 0, "total": spec["total_points"],
+            "percentage": 0, "finalPercentage": 0,
             "found": False, "labPath": None, "items": [],
             "feedback": [
                 f"Lab directory not found. Expected "
@@ -1180,6 +1181,7 @@ def grade_student_lab(username, lab_name):
         "score": score, "finalScore": final_score,
         "total": spec["total_points"],
         "percentage": round(score / spec["total_points"] * 100, 1),
+        "finalPercentage": round(final_score / spec["total_points"] * 100, 1),
         "found": True, "labPath": str(lab_root),
         "submissionDate": sub_date, "lateInfo": late_info,
         "fileDates": file_dates,
@@ -1204,8 +1206,10 @@ def grade_all_students(lab_name=None):
                 results.append({
                     "username": linux_user, "id": sid,
                     "name": info["name"], "lab": lab, "score": 0,
+                    "finalScore": 0,
                     "total": LAB_SPECS.get(lab, {}).get("total_points", 0),
-                    "percentage": 0, "found": False, "labPath": None,
+                    "percentage": 0, "finalPercentage": 0,
+                    "found": False, "labPath": None,
                     "items": [],
                     "feedback": [
                         "Permission denied: cannot access home directory."
@@ -1223,8 +1227,9 @@ def grade_student_activity(username, activity_name):
     if not act_root:
         return {
             "username": username, "activity": activity_name,
-            "score": 0, "total": spec["total_points"],
-            "percentage": 0, "found": False, "activityPath": None,
+            "score": 0, "finalScore": 0, "total": spec["total_points"],
+            "percentage": 0, "finalPercentage": 0,
+            "found": False, "activityPath": None,
             "items": [],
             "feedback": [
                 f"Activity directory not found. Expected "
@@ -1378,6 +1383,7 @@ def grade_student_activity(username, activity_name):
         "score": score, "finalScore": final_score,
         "total": spec["total_points"],
         "percentage": round(score / spec["total_points"] * 100, 1),
+        "finalPercentage": round(final_score / spec["total_points"] * 100, 1),
         "found": True, "activityPath": str(act_root),
         "submissionDate": sub_date, "lateInfo": late_info,
         "fileDates": file_dates,
@@ -1402,10 +1408,12 @@ def grade_all_activities(activity_name=None):
                 results.append({
                     "username": linux_user, "id": sid,
                     "name": info["name"], "activity": act, "score": 0,
+                    "finalScore": 0,
                     "total": ACTIVITY_SPECS.get(act, {}).get(
                         "total_points", 0
                     ),
-                    "percentage": 0, "found": False, "activityPath": None,
+                    "percentage": 0, "finalPercentage": 0,
+                    "found": False, "activityPath": None,
                     "items": [],
                     "feedback": [
                         "Permission denied: cannot access home directory."
@@ -1419,6 +1427,35 @@ def get_leaderboard():
     all_acts = grade_all_activities()
     per_student = {}
 
+    def add_grade(target, category, key, grade):
+        score = grade.get("score", 0) or 0
+        final_score = grade.get("finalScore", score)
+        total = grade.get("total", 0) or 0
+        late_info = grade.get("lateInfo") or {}
+        is_late = bool(late_info.get("late"))
+        penalty = round(max(0, score - final_score), 2)
+        percentage = round(final_score / total * 100, 1) if total else 0
+
+        target[category][key] = {
+            "score": final_score,
+            "rawScore": score,
+            "finalScore": final_score,
+            "total": total,
+            "percentage": percentage,
+            "rawPercentage": grade.get("percentage", percentage),
+            "finalPercentage": percentage,
+            "found": grade.get("found", False),
+            "late": is_late,
+            "lateInfo": late_info if late_info else None,
+            "penalty": penalty,
+        }
+        target["totalRawScore"] += score
+        target["totalScore"] += final_score
+        target["totalPossible"] += total
+        if is_late:
+            target["lateCount"] += 1
+            target["totalPenalty"] = round(target["totalPenalty"] + penalty, 2)
+
     for g in all_grades:
         sid = g.get("id", g["username"])
         if sid not in per_student:
@@ -1426,15 +1463,11 @@ def get_leaderboard():
                 "id": sid, "username": g["username"],
                 "name": g.get("name", sid),
                 "labs": {}, "activities": {},
-                "totalScore": 0, "totalPossible": 0,
+                "totalRawScore": 0, "totalScore": 0,
+                "totalPossible": 0, "lateCount": 0,
+                "totalPenalty": 0,
             }
-        per_student[sid]["labs"][g["lab"]] = {
-            "score": g["score"], "total": g["total"],
-            "percentage": g["percentage"],
-            "found": g.get("found", False),
-        }
-        per_student[sid]["totalScore"] += g["score"]
-        per_student[sid]["totalPossible"] += g["total"]
+        add_grade(per_student[sid], "labs", g["lab"], g)
 
     for g in all_acts:
         sid = g.get("id", g["username"])
@@ -1443,20 +1476,21 @@ def get_leaderboard():
                 "id": sid, "username": g["username"],
                 "name": g.get("name", sid),
                 "labs": {}, "activities": {},
-                "totalScore": 0, "totalPossible": 0,
+                "totalRawScore": 0, "totalScore": 0,
+                "totalPossible": 0, "lateCount": 0,
+                "totalPenalty": 0,
             }
-        per_student[sid]["activities"][g["activity"]] = {
-            "score": g["score"], "total": g["total"],
-            "percentage": g["percentage"],
-            "found": g.get("found", False),
-        }
-        per_student[sid]["totalScore"] += g["score"]
-        per_student[sid]["totalPossible"] += g["total"]
+        add_grade(per_student[sid], "activities", g["activity"], g)
 
     board = []
     for s in per_student.values():
         s["totalPercentage"] = (
             round(s["totalScore"] / s["totalPossible"] * 100, 1)
+            if s["totalPossible"] > 0
+            else 0
+        )
+        s["totalRawPercentage"] = (
+            round(s["totalRawScore"] / s["totalPossible"] * 100, 1)
             if s["totalPossible"] > 0
             else 0
         )
@@ -1829,9 +1863,10 @@ def route_my_grades():
         except (PermissionError, OSError):
             grades.append({
                 "username": linux_user, "id": sid, "name": info["name"],
-                "lab": lab, "score": 0,
+                "lab": lab, "score": 0, "finalScore": 0,
                 "total": LAB_SPECS[lab]["total_points"],
-                "percentage": 0, "found": False, "labPath": None,
+                "percentage": 0, "finalPercentage": 0,
+                "found": False, "labPath": None,
                 "items": [],
                 "feedback": ["Cannot access lab directory."],
             })
@@ -1882,8 +1917,10 @@ def route_my_activities():
             grades.append({
                 "username": linux_user, "id": sid or "",
                 "name": info["name"], "activity": act, "score": 0,
+                "finalScore": 0,
                 "total": ACTIVITY_SPECS[act]["total_points"],
-                "percentage": 0, "found": False, "activityPath": None,
+                "percentage": 0, "finalPercentage": 0,
+                "found": False, "activityPath": None,
                 "items": [],
                 "feedback": ["Cannot access activity directory."],
             })
