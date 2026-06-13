@@ -619,6 +619,19 @@
         return total ? Math.round((score / total) * 1000) / 10 : 0;
     }
 
+    function roundScore(value) {
+        var num = Number(value || 0);
+        return Math.round((num + Number.EPSILON) * 100) / 100;
+    }
+
+    function formatScore(value) {
+        return roundScore(value).toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+            useGrouping: false
+        });
+    }
+
     function gradeClass(pct) {
         return pct >= 80 ? 'grade-a' : pct >= 50 ? 'grade-b' : 'grade-c';
     }
@@ -636,7 +649,7 @@
             title = li.lateFiles + '/' + li.totalFiles + ' files late';
             if (li.daysLate !== undefined) title += ', max ' + li.daysLate + 'd';
         }
-        return '<span class="admin-late-badge" title="' + escapeHtml(title) + '">late -' + penalty + '</span>';
+        return '<span class="admin-late-badge" title="' + escapeHtml(title) + '">late -' + formatScore(penalty) + '</span>';
     }
 
     function renderScoreValue(g) {
@@ -645,9 +658,9 @@
         var total = g.total || 0;
         var pct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(finalScore, total);
         var cls = gradeClass(pct);
-        var html = '<span class="' + cls + '">' + finalScore + '/' + total + '</span>';
+        var html = '<span class="' + cls + '">' + formatScore(finalScore) + '/' + formatScore(total) + '</span>';
         if (finalScore < raw) {
-            html += ' <span class="score-raw"><s>' + raw + '</s></span>';
+            html += ' <span class="score-raw"><s>' + formatScore(raw) + '</s></span>';
         }
         return html;
     }
@@ -659,16 +672,16 @@
 
     function renderAggregateScore(s) {
         var pctClass = gradeClass(s.totalPercentage || 0);
-        var html = '<span class="' + pctClass + '">' + s.totalScore + '/' + s.totalPossible + '</span>';
+        var html = '<span class="' + pctClass + '">' + formatScore(s.totalScore) + '/' + formatScore(s.totalPossible) + '</span>';
         if (s.totalRawScore !== undefined && s.totalRawScore > s.totalScore) {
-            html += ' <span class="score-raw"><s>' + s.totalRawScore + '</s></span>';
+            html += ' <span class="score-raw"><s>' + formatScore(s.totalRawScore) + '</s></span>';
         }
         return html;
     }
 
     function renderAggregateLate(s) {
         if (!s.lateCount) return '<span class="admin-late-empty">-</span>';
-        return '<span class="admin-late-badge" title="' + s.lateCount + ' late submissions">late x' + s.lateCount + ' -' + (s.totalPenalty || 0) + '</span>';
+        return '<span class="admin-late-badge" title="' + s.lateCount + ' late submissions">late x' + s.lateCount + ' -' + formatScore(s.totalPenalty || 0) + '</span>';
     }
 
     var latestAdminGradeExports = {
@@ -697,7 +710,7 @@
         if (!li.late) return 'On time';
         return li.lateFiles + '/' + li.totalFiles + ' files late; max '
             + li.daysLate + ' day(s); weight ' + Math.round((li.weight || 0) * 100)
-            + '%; penalty -' + li.penalty + ' pts';
+            + '%; penalty -' + formatScore(li.penalty) + ' pts';
     }
 
     function fileIssueRemarks(g) {
@@ -732,9 +745,9 @@
                 'Username': g.username || '',
                 'Type': kind === 'activities' ? 'Activity' : 'Lab',
                 'Assignment': assignmentLabel(g, kind),
-                'Raw Score': g.score || 0,
-                'Final Score': finalScore,
-                'Total': g.total || 0,
+                'Raw Score': roundScore(g.score || 0),
+                'Final Score': roundScore(finalScore),
+                'Total': roundScore(g.total || 0),
                 'Final %': finalPct,
                 'Late Remark': lateRemark,
                 'Missing/Wrong File Remarks': missingWrong,
@@ -925,6 +938,29 @@
     function xlsxBlobFromRows(kind, rows) {
         var headers = Object.keys(rows[0]);
         var sheets = groupedExportSheets(kind, rows);
+        if (window.XLSX) {
+            var sheetjs = window.XLSX;
+            var workbook = sheetjs.utils.book_new();
+            sheets.forEach(function (sheet) {
+                var worksheet = sheetjs.utils.json_to_sheet(sheet.rows, { header: headers });
+                worksheet['!cols'] = headers.map(function (h) {
+                    var width = Math.max(h.length, 12);
+                    sheet.rows.forEach(function (row) {
+                        width = Math.max(width, String(row[h] === undefined || row[h] === null ? '' : row[h]).length);
+                    });
+                    return { wch: Math.min(width + 2, 60) };
+                });
+                sheetjs.utils.book_append_sheet(workbook, worksheet, sheet.name);
+            });
+            var data = sheetjs.write(workbook, { bookType: 'xlsx', type: 'array' });
+            return new Blob([data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+        }
+
+        alert('The XLSX export library did not load. Refresh the page and try again.');
+        return null;
+
         var files = [];
         var overrides = [
             '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
@@ -995,7 +1031,8 @@
             return;
         }
 
-        downloadBlob(baseName + '.xlsx', xlsxBlobFromRows(kind, rows));
+        var xlsxBlob = xlsxBlobFromRows(kind, rows);
+        if (xlsxBlob) downloadBlob(baseName + '.xlsx', xlsxBlob);
     };
 
     window.adminScrollTable = function (tableId, direction) {
@@ -1485,7 +1522,7 @@
                         + ' &mdash; penalty: <strong>-' + g.lateInfo.penalty + ' pts</strong>'
                         + '</div>';
                     if (g.finalScore !== undefined) {
-                        html += '<div style="color:var(--yellow);margin-top:2px;">Score: ' + g.score + ' &rarr; ' + g.finalScore + '/' + g.total + '</div>';
+                        html += '<div style="color:var(--yellow);margin-top:2px;">Score: ' + formatScore(g.score) + ' &rarr; ' + formatScore(g.finalScore) + '/' + formatScore(g.total) + '</div>';
                     }
                 } else {
                     html += '<div style="color:var(--green);margin-top:4px;">&#x2705; All files on time</div>';
@@ -2022,7 +2059,7 @@
 
             var html = '<div class="student-summary">'
                 + '<span class="student-summary-label">Overall Total:</span> '
-                + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
+                + '<span class="' + summaryClass + '">' + formatScore(totalScore) + '/' + formatScore(totalPossible) + ' (' + totalPct + '%)</span>'
                 + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh</button>'
                 + '</div>';
 
@@ -2037,11 +2074,11 @@
             html += '<div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">'
                 + '<div class="student-subtotal">'
                 + '<span style="color:var(--cyan);font-size:11px;">Labs:</span> '
-                + '<span class="' + (labPct >= 80 ? 'grade-a' : labPct >= 50 ? 'grade-b' : 'grade-c') + '">' + labScore + '/' + labPossible + ' (' + labPct + '%)</span>'
+                + '<span class="' + (labPct >= 80 ? 'grade-a' : labPct >= 50 ? 'grade-b' : 'grade-c') + '">' + formatScore(labScore) + '/' + formatScore(labPossible) + ' (' + labPct + '%)</span>'
                 + '</div>'
                 + '<div class="student-subtotal">'
                 + '<span style="color:var(--cyan);font-size:11px;">Activities:</span> '
-                + '<span class="' + (actPct >= 80 ? 'grade-a' : actPct >= 50 ? 'grade-b' : 'grade-c') + '">' + actScore + '/' + actPossible + ' (' + actPct + '%)</span>'
+                + '<span class="' + (actPct >= 80 ? 'grade-a' : actPct >= 50 ? 'grade-b' : 'grade-c') + '">' + formatScore(actScore) + '/' + formatScore(actPossible) + ' (' + actPct + '%)</span>'
                 + '</div>'
                 + '</div>';
 
@@ -2104,10 +2141,10 @@
 
             var html = adminTableStart('student-leaderboard-table', 'leaderboard-table')
                 + '<thead><tr><th class="pin-col pin-rank" onclick="adminSortTable(this)">#</th><th class="pin-col pin-id-after-rank" onclick="adminSortTable(this)">ID</th>'
-                + '<th onclick="adminSortTable(this)">Late</th><th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
+                + '<th onclick="adminSortTable(this)">Total</th><th onclick="adminSortTable(this)">%</th></tr></thead><tbody>';
 
             if (board.length === 0) {
-                html += '<tr><td colspan="5" style="color:var(--comment);text-align:center;">No students found</td></tr>';
+                html += '<tr><td colspan="4" style="color:var(--comment);text-align:center;">No students found</td></tr>';
             } else {
                 board.forEach(function (s) {
                     var rankIcon = s.rank === 1 ? '\uD83E\uDD47' : s.rank === 2 ? '\uD83E\uDD48' : s.rank === 3 ? '\uD83E\uDD49' : s.rank;
@@ -2117,7 +2154,6 @@
                     html += '<tr' + (isMe ? ' class="leaderboard-me"' : '') + '>'
                         + '<td class="rank-cell pin-col pin-rank">' + rankIcon + '</td>'
                         + '<td class="admin-user pin-col pin-id-after-rank">' + displayId + '</td>'
-                        + '<td>' + renderAggregateLate(s) + '</td>'
                         + '<td>' + renderAggregateScore(s) + '</td>'
                         + '<td><span class="' + pctClass + '">' + s.totalPercentage + '%</span></td>'
                         + '</tr>';
@@ -2153,7 +2189,7 @@
 
             var html = '<div class="student-summary">'
                 + '<span class="student-summary-label">Labs Overall:</span> '
-                + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
+                + '<span class="' + summaryClass + '">' + formatScore(totalScore) + '/' + formatScore(totalPossible) + ' (' + totalPct + '%)</span>'
                 + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh</button>'
                 + '</div>';
 
@@ -2198,7 +2234,7 @@
                         var penaltyStr = '';
                         if (li && li.late) {
                             penaltyStr = '&#x23F0; ' + li.lateFiles + '/' + li.totalFiles + ' files late (max '
-                                + li.daysLate + 'd) &mdash; penalty: -' + li.penalty + ' pts (weight ' + Math.round(li.weight * 100) + '%)';
+                                + li.daysLate + 'd) &mdash; penalty: -' + formatScore(li.penalty) + ' pts (weight ' + Math.round(li.weight * 100) + '%)';
                         } else {
                             var lateSec = Math.floor(-diff / 1000);
                             var lateDays = Math.ceil(lateSec / 86400);
@@ -2267,7 +2303,7 @@
 
             var html = '<div class="student-summary">'
                 + '<span class="student-summary-label">Activities Overall:</span> '
-                + '<span class="' + summaryClass + '">' + totalScore + '/' + totalPossible + ' (' + totalPct + '%)</span>'
+                + '<span class="' + summaryClass + '">' + formatScore(totalScore) + '/' + formatScore(totalPossible) + ' (' + totalPct + '%)</span>'
                 + '<button class="deadline-refresh-btn" onclick="refreshStudentDeadlines()" title="Refresh deadlines">&#x1F504; Refresh</button>'
                 + '</div>';
 
@@ -2312,7 +2348,7 @@
                         var penaltyStr = '';
                         if (li && li.late) {
                             penaltyStr = '&#x23F0; ' + li.lateFiles + '/' + li.totalFiles + ' files late (max '
-                                + li.daysLate + 'd) &mdash; penalty: -' + li.penalty + ' pts (weight ' + Math.round(li.weight * 100) + '%)';
+                                + li.daysLate + 'd) &mdash; penalty: -' + formatScore(li.penalty) + ' pts (weight ' + Math.round(li.weight * 100) + '%)';
                         } else {
                             var lateSec = Math.floor(-diff / 1000);
                             var lateDays = Math.ceil(lateSec / 86400);
