@@ -840,6 +840,32 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     color: var(--white);
     background: rgba(0, 212, 255, 0.16);
 }
+.admin-export-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -4px 0 10px;
+    flex-wrap: wrap;
+}
+.admin-export-actions button {
+    background: rgba(0, 255, 65, 0.07);
+    border: 1px solid var(--green-dark);
+    color: var(--green);
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.admin-export-actions button:hover {
+    border-color: var(--green);
+    color: var(--white);
+    background: rgba(0, 255, 65, 0.14);
+}
+.admin-export-actions span {
+    color: var(--comment);
+    font-size: 10px;
+}
 .admin-column-menu {
     display: none;
     position: absolute;

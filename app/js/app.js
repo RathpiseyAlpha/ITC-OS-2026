@@ -671,6 +671,137 @@
         return '<span class="admin-late-badge" title="' + s.lateCount + ' late submissions">late x' + s.lateCount + ' -' + (s.totalPenalty || 0) + '</span>';
     }
 
+    var latestAdminGradeExports = {
+        labs: [],
+        activities: []
+    };
+
+    function adminExportButtons(kind) {
+        return '<div class="admin-export-actions">'
+            + '<button type="button" onclick="exportAdminGradeTable(\'' + kind + '\', \'csv\')">Export CSV</button>'
+            + '<button type="button" onclick="exportAdminGradeTable(\'' + kind + '\', \'excel\')">Export Excel</button>'
+            + '<span>includes late and file remarks</span>'
+            + '</div>';
+    }
+
+    function assignmentLabel(g, kind) {
+        if (kind === 'activities') {
+            return g.activity ? g.activity.replace('activity', 'Activity ') : '';
+        }
+        return g.lab || '';
+    }
+
+    function lateExportRemark(g) {
+        var li = g.lateInfo;
+        if (!li) return 'No deadline data';
+        if (!li.late) return 'On time';
+        return li.lateFiles + '/' + li.totalFiles + ' files late; max '
+            + li.daysLate + ' day(s); weight ' + Math.round((li.weight || 0) * 100)
+            + '%; penalty -' + li.penalty + ' pts';
+    }
+
+    function fileIssueRemarks(g) {
+        var remarks = [];
+        (g.items || []).forEach(function (item) {
+            if (item.status === 'missing') {
+                remarks.push('Missing ' + (item.type || 'item') + ': ' + item.expected);
+            } else if (item.status === 'wrong_type') {
+                remarks.push('Wrong type: ' + item.expected + ' expected as ' + (item.type || 'item'));
+            } else if (item.status === 'case_mismatch') {
+                remarks.push('Naming mismatch: expected ' + item.expected + ', found ' + (item.actual || 'unknown'));
+            }
+        });
+        return remarks.length ? remarks.join('; ') : 'No missing or wrong files';
+    }
+
+    function gradeExportRows(kind) {
+        var grades = latestAdminGradeExports[kind] || [];
+        var searchId = kind === 'activities' ? 'admin-search-activities' : 'admin-search-grades';
+        var searchEl = document.getElementById(searchId);
+        var query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
+        var rows = grades.map(function (g) {
+            var finalScore = actualScore(g);
+            var finalPct = g.finalPercentage !== undefined ? g.finalPercentage : scorePercent(finalScore, g.total || 0);
+            var missingWrong = fileIssueRemarks(g);
+            var feedback = (g.feedback || []).join('; ');
+            var lateRemark = lateExportRemark(g);
+            return {
+                'ID': g.id || '',
+                'Name': g.name || '',
+                'Username': g.username || '',
+                'Type': kind === 'activities' ? 'Activity' : 'Lab',
+                'Assignment': assignmentLabel(g, kind),
+                'Raw Score': g.score || 0,
+                'Final Score': finalScore,
+                'Total': g.total || 0,
+                'Final %': finalPct,
+                'Late Remark': lateRemark,
+                'Missing/Wrong File Remarks': missingWrong,
+                'Feedback': feedback || lateRemark + '; ' + missingWrong
+            };
+        });
+
+        if (!query) return rows;
+        return rows.filter(function (row) {
+            return Object.keys(row).some(function (key) {
+                return String(row[key]).toLowerCase().indexOf(query) !== -1;
+            });
+        });
+    }
+
+    function csvCell(value) {
+        var text = value === undefined || value === null ? '' : String(value);
+        return '"' + text.replace(/"/g, '""') + '"';
+    }
+
+    function excelCell(value) {
+        return '<td>' + escapeHtml(value === undefined || value === null ? '' : String(value)) + '</td>';
+    }
+
+    function downloadTextFile(filename, mimeType, content) {
+        var blob = new Blob([content], { type: mimeType });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+
+    window.exportAdminGradeTable = function (kind, format) {
+        var rows = gradeExportRows(kind);
+        if (!rows.length) {
+            alert('No grade rows to export.');
+            return;
+        }
+        var headers = Object.keys(rows[0]);
+        var datePart = new Date().toISOString().slice(0, 10);
+        var filterPart = kind === 'activities' ? (activitiesFilter || 'all-activities') : (gradesLabFilter || 'all-labs');
+        var baseName = 'admin-' + kind + '-' + filterPart + '-' + datePart;
+
+        if (format === 'csv') {
+            var csv = '\uFEFF' + headers.map(csvCell).join(',') + '\r\n'
+                + rows.map(function (row) {
+                    return headers.map(function (h) { return csvCell(row[h]); }).join(',');
+                }).join('\r\n');
+            downloadTextFile(baseName + '.csv', 'text/csv;charset=utf-8', csv);
+            return;
+        }
+
+        var table = '<table><thead><tr>'
+            + headers.map(function (h) { return '<th>' + escapeHtml(h) + '</th>'; }).join('')
+            + '</tr></thead><tbody>'
+            + rows.map(function (row) {
+                return '<tr>' + headers.map(function (h) { return excelCell(row[h]); }).join('') + '</tr>';
+            }).join('')
+            + '</tbody></table>';
+        var excelHtml = '<html><head><meta charset="utf-8"></head><body>' + table + '</body></html>';
+        downloadTextFile(baseName + '.xls', 'application/vnd.ms-excel;charset=utf-8', excelHtml);
+    };
+
     window.adminScrollTable = function (tableId, direction) {
         var wrap = document.getElementById(tableId + '-wrap');
         if (!wrap) return;
@@ -1007,6 +1138,7 @@
         .then(function (data) {
             var grades = data.grades || [];
             var labs = data.labs || [];
+            latestAdminGradeExports.labs = grades;
 
             // Lab filter buttons
             var html = '<div class="admin-section-header">Lab Grading'
@@ -1018,7 +1150,7 @@
             labs.forEach(function (l) {
                 html += '<span class="admin-lab-btn' + (gradesLabFilter === l ? ' active' : '') + '" onclick="filterGrades(\'' + l + '\')">' + escapeHtml(l) + '</span>';
             });
-            html += '</div>';
+            html += '</div>' + adminExportButtons('labs');
 
             if (grades.length === 0) {
                 html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
@@ -1435,6 +1567,7 @@
         .then(function (data) {
             var grades = data.grades || [];
             var activities = data.activities || [];
+            latestAdminGradeExports.activities = grades;
 
             var html = '<div class="admin-section-header">Activity Grading'
                 + ' <span style="color:var(--cyan);cursor:pointer;font-size:11px;border-bottom:1px dashed var(--cyan);margin-left:12px;" onclick="fetchAdminActivities_refresh()">&#x21BB; refresh</span>'
@@ -1446,7 +1579,7 @@
                 var label = a.replace('activity', 'Activity ');
                 html += '<span class="admin-lab-btn' + (activitiesFilter === a ? ' active' : '') + '" onclick="filterActivities(\'' + escapeHtml(a) + '\')">' + escapeHtml(label) + '</span>';
             });
-            html += '</div>';
+            html += '</div>' + adminExportButtons('activities');
 
             if (grades.length === 0) {
                 html += '<div style="color:var(--comment);padding:12px;">No submissions found.</div>';
