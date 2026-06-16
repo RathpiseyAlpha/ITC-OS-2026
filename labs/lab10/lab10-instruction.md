@@ -519,16 +519,76 @@ Confirm both are installed:
 crontab -l
 ```
 
-### Step 3 - Install the checker script
+### Step 3 - Create the checker script
 
-A ready-made checker is provided with this lab as `check_cron_tasks.sh`. Copy it into your `~/bin` and make it executable:
+Create `check_cron_tasks` in `~/bin`. It inspects `~/os-lab-automation/cron_tasks/` and prints `PASS`/`FAIL` for each graded task, with an overall result:
 
 ```bash
-cp check_cron_tasks.sh ~/bin/check_cron_tasks
-chmod +x ~/bin/check_cron_tasks
+nano ~/bin/check_cron_tasks
 ```
 
-> If you do not have the file handy, recreate it from the contents in your lab repository (`labs/lab10/check_cron_tasks.sh`). It reads `~/os-lab-automation/cron_tasks/` and prints `PASS`/`FAIL` for each task.
+```bash
+#!/bin/bash
+# Verify the two graded Lab 10 cron tasks ran successfully.
+# Exit status: 0 if BOTH tasks passed, 1 otherwise.
+
+set -u
+
+base="${1:-$HOME/os-lab-automation}"
+outdir="$base/cron_tasks"
+
+pass=0
+fail=0
+
+check_one() {
+    local label="$1" file="$2" marker="$3"
+    echo "----------------------------------------"
+    echo "Task   : $label"
+    echo "Output : $file"
+    if [ ! -f "$file" ]; then
+        echo "Result : FAIL (output file not found - job never ran)"
+        fail=$((fail + 1)); return
+    fi
+    if [ ! -s "$file" ]; then
+        echo "Result : FAIL (output file is empty)"
+        fail=$((fail + 1)); return
+    fi
+    if ! grep -q "$marker" "$file"; then
+        echo "Result : FAIL (success marker '$marker' not found)"
+        fail=$((fail + 1)); return
+    fi
+    local runs last
+    runs=$(grep -c "$marker" "$file")
+    last=$(grep "$marker" "$file" | tail -n 1)
+    echo "Runs   : $runs"
+    echo "Last   : $last"
+    echo "Result : PASS"
+    pass=$((pass + 1))
+}
+
+echo "========================================"
+echo " Lab 10 - Graded Cron Task Checker"
+echo " Checked at : $(date '+%Y-%m-%d %H:%M:%S')"
+echo "========================================"
+
+check_one "Lab session job (2:30 PM, lab day)" "$outdir/session_job.out"  "SESSION_JOB_OK"
+check_one "Deadline job (before deadline)"     "$outdir/deadline_job.out" "DEADLINE_JOB_OK"
+
+echo "========================================"
+if [ "$fail" -eq 0 ] && [ "$pass" -eq 2 ]; then
+    echo "OVERALL: PASS - both cron tasks ran successfully."
+    exit 0
+else
+    echo "OVERALL: FAIL ($pass passed, $fail failed) - see details above."
+    exit 1
+fi
+```
+
+Make it executable:
+
+```bash
+chmod +x ~/bin/check_cron_tasks
+```
 
 ### Step 4 - Verify the session job (during the lab)
 
@@ -935,6 +995,8 @@ Answer these in your `README.md`:
 ---
 
 ## Final Submission
+
+> **README template:** A starter `README-template.md` is provided with this lab. Copy it into your `lab10/` folder as `README.md`, fill in every section, embed your screenshots, and answer the Lab Questions.
 
 ### Required Working Tree Outside the Repo
 
