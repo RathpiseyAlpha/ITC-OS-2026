@@ -49,7 +49,7 @@ After completing this lab, students will be able to:
 4. Build a file/folder backup script that produces timestamped archives and enforces a retention policy.
 5. Read and write the per-user `crontab`, interpret the five time fields, and use special strings such as `@daily`.
 6. Diagnose the classic "works in my shell but not in cron" failure and redirect job output to log files.
-7. Schedule one-time cron jobs that fire on a specific future date and time, and verify their output with a checker script.
+7. Schedule one-time cron jobs that fire on a specific future date and time, and verify they fired by inspecting their output files.
 8. Independently design a Bash automation script and write its crontab schedule from scratch, without a template.
 9. Automate routine maintenance and cleanly inventory and remove scheduled jobs during teardown without disturbing jobs that must still run.
 
@@ -65,7 +65,7 @@ After completing this lab, students will be able to:
 | **1** | Archiving & Compression | `tar -cf`, `tar -czf`, `gzip`, size comparison, extract | yes |
 | **2** | File & Folder Backup Script | timestamps, retention pruning, `ls -t` | yes |
 | **3** | Cron Fundamentals | `crontab -l/-e/-r`, five fields, `*/n`, `@daily` | yes |
-| **4** | Timed Graded Cron Tasks | dated cron fields, one-time future jobs, checker script | yes |
+| **4** | Timed Graded Cron Tasks | dated cron fields, one-time future jobs, output verification | yes |
 | **5** | Scheduling the Backup | cron environment, absolute paths, `>> log 2>&1` | yes |
 | **6** | Maintenance Automation | log rotation, `df`, `uptime`, threshold alert | yes |
 | **7** | Design Your Own Scheduled Job | student-authored script + self-written crontab line | yes |
@@ -519,88 +519,17 @@ Confirm both are installed:
 crontab -l
 ```
 
-### Step 3 - Create the checker script
+### Step 3 - Verify the session job (during the lab)
 
-Create `check_cron_tasks` in `~/bin`. It inspects `~/os-lab-automation/cron_tasks/` and prints `PASS`/`FAIL` for each graded task, with an overall result:
-
-```bash
-nano ~/bin/check_cron_tasks
-```
+Continue with the rest of the lab. At or shortly after **2:30 PM**, come back and check the session job's output file. When the job has fired you will see a `SESSION_JOB_OK` line stamped at about 14:30:
 
 ```bash
-#!/bin/bash
-# Verify the two graded Lab 10 cron tasks ran successfully.
-# Exit status: 0 if BOTH tasks passed, 1 otherwise.
-
-set -u
-
-base="${1:-$HOME/os-lab-automation}"
-outdir="$base/cron_tasks"
-
-pass=0
-fail=0
-
-check_one() {
-    local label="$1" file="$2" marker="$3"
-    echo "----------------------------------------"
-    echo "Task   : $label"
-    echo "Output : $file"
-    if [ ! -f "$file" ]; then
-        echo "Result : FAIL (output file not found - job never ran)"
-        fail=$((fail + 1)); return
-    fi
-    if [ ! -s "$file" ]; then
-        echo "Result : FAIL (output file is empty)"
-        fail=$((fail + 1)); return
-    fi
-    if ! grep -q "$marker" "$file"; then
-        echo "Result : FAIL (success marker '$marker' not found)"
-        fail=$((fail + 1)); return
-    fi
-    local runs last
-    runs=$(grep -c "$marker" "$file")
-    last=$(grep "$marker" "$file" | tail -n 1)
-    echo "Runs   : $runs"
-    echo "Last   : $last"
-    echo "Result : PASS"
-    pass=$((pass + 1))
-}
-
-echo "========================================"
-echo " Lab 10 - Graded Cron Task Checker"
-echo " Checked at : $(date '+%Y-%m-%d %H:%M:%S')"
-echo "========================================"
-
-check_one "Lab session job (2:30 PM, lab day)" "$outdir/session_job.out"  "SESSION_JOB_OK"
-check_one "Deadline job (before deadline)"     "$outdir/deadline_job.out" "DEADLINE_JOB_OK"
-
-echo "========================================"
-if [ "$fail" -eq 0 ] && [ "$pass" -eq 2 ]; then
-    echo "OVERALL: PASS - both cron tasks ran successfully."
-    exit 0
-else
-    echo "OVERALL: FAIL ($pass passed, $fail failed) - see details above."
-    exit 1
-fi
+cat ~/os-lab-automation/cron_tasks/session_job.out
 ```
 
-Make it executable:
+The **deadline job** will not have written anything yet - that is expected, because it does not fire until 2026-06-22. You will check it again then.
 
-```bash
-chmod +x ~/bin/check_cron_tasks
-```
-
-### Step 4 - Verify the session job (during the lab)
-
-Continue with the rest of the lab. At or shortly after **2:30 PM**, come back and run the checker:
-
-```bash
-check_cron_tasks
-```
-
-The **session job** should report `PASS`. The **deadline job** will still report `FAIL` - that is expected, because it does not fire until 2026-06-22. You will run the checker again then.
-
-### Step 5 - Save evidence
+### Step 4 - Save evidence
 
 ```bash
 {
@@ -610,15 +539,15 @@ The **session job** should report `PASS`. The **deadline job** will still report
     crontab -l | grep GRADED
     echo "=== session job output (filled at 2:30 PM) ==="
     cat ~/os-lab-automation/cron_tasks/session_job.out 2>/dev/null || echo "(not fired yet)"
-    echo "=== checker result ==="
-    check_cron_tasks || true
+    echo "=== deadline job output (empty until 2026-06-22) ==="
+    cat ~/os-lab-automation/cron_tasks/deadline_job.out 2>/dev/null || echo "(not fired yet)"
 } > ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab10/task4_timed_tasks.txt
 cat ~/os-se-<YourStudentID>/os-lab-<YourStudentID>/lab10/task4_timed_tasks.txt
 ```
 
-> **Required Screenshot 5:** Save as `images/level4_session_job.png` and embed it in `README.md`. Take it after 2:30 PM today; it must show the session job's output line and the checker reporting the session task as `PASS`.
+> **Required Screenshot 5:** Save as `images/level4_session_job.png` and embed it in `README.md`. Take it after 2:30 PM today; it must show the `SESSION_JOB_OK` line in `session_job.out` with a timestamp around 14:30.
 >
-> **Required Screenshot 6:** Save as `images/level4_deadline_job.png` and embed it in `README.md`. Take this **after 2026-06-22 14:30 but before the deadline**; it must show `check_cron_tasks` reporting **both** tasks as `PASS`.
+> **Required Screenshot 6:** Save as `images/level4_deadline_job.png` and embed it in `README.md`. Take this **after 2026-06-22 14:30 but before the deadline**; it must show the `DEADLINE_JOB_OK` line in `deadline_job.out`.
 
 ---
 
@@ -941,7 +870,6 @@ cp ~/bin/maintenance      scripts/
 cp ~/bin/lab_session_job  scripts/
 cp ~/bin/deadline_job     scripts/
 cp ~/bin/my_automation    scripts/
-cp ~/bin/check_cron_tasks scripts/check_cron_tasks.sh
 ```
 
 Also save a small operational README in the working folder:
@@ -985,8 +913,8 @@ Answer these in your `README.md`:
 | 2 | `level1_archive.png` | 1 | `.tar` vs `.tar.gz` size difference and successful extract |
 | 3 | `level2_backup.png` | 2 | Exactly three retained archives and the backup log |
 | 4 | `level3_cron_basics.png` | 3 | `crontab -l` and the per-minute heartbeat log |
-| 5 | `level4_session_job.png` | 4 | Session job output + checker showing session task `PASS` (after 2:30 PM lab day) |
-| 6 | `level4_deadline_job.png` | 4 | Checker showing **both** tasks `PASS` (after 2026-06-22, before deadline) |
+| 5 | `level4_session_job.png` | 4 | `SESSION_JOB_OK` line in `session_job.out` (after 2:30 PM lab day) |
+| 6 | `level4_deadline_job.png` | 4 | `DEADLINE_JOB_OK` line in `deadline_job.out` (after 2026-06-22, before deadline) |
 | 7 | `level5_schedule.png` | 5 | Backup archives created by cron, unattended |
 | 8 | `level6_maintenance.png` | 6 | Health report with multiple scheduled entries |
 | 9 | `level7_own_job.png` | 7 | Your own script, your crontab line, and the log it produced |
@@ -996,7 +924,7 @@ Answer these in your `README.md`:
 
 ## Final Submission
 
-> **README template:** A starter `README-template.md` is provided with this lab. Copy it into your `lab10/` folder as `README.md`, fill in every section, embed your screenshots, and answer the Lab Questions.
+> **README template:** A starter README (`labs/lab10/README.md`) is provided with this lab. Copy it into your own `lab10/` submission folder, fill in every section, embed your screenshots, and answer the Lab Questions.
 
 ### Required Working Tree Outside the Repo
 
@@ -1008,8 +936,7 @@ Answer these in your `README.md`:
 |   |-- maintenance
 |   |-- lab_session_job
 |   |-- deadline_job
-|   |-- my_automation
-|   `-- check_cron_tasks
+|   `-- my_automation
 `-- os-lab-automation/
     |-- README.md
     |-- project/
@@ -1058,8 +985,7 @@ os-se-<YourStudentID>/
         |   |-- maintenance
         |   |-- lab_session_job
         |   |-- deadline_job
-        |   |-- my_automation
-        |   `-- check_cron_tasks.sh
+        |   `-- my_automation
         `-- images/
             |-- level0_warmup.png
             |-- level1_archive.png
@@ -1092,7 +1018,7 @@ git push origin main
 | **Level 1: Archiving & compression** | 12 | Creates `.tar` and `.tar.gz`, shows the size difference, and verifies an extract. |
 | **Level 2: File & folder backup script** | 12 | `backup_project` produces timestamped archives and keeps only the 3 newest. |
 | **Level 3: Cron fundamentals** | 8 | Installs a per-minute heartbeat job and reads it back with `crontab -l`. |
-| **Level 4: Timed graded cron tasks** | 16 | Session job fires at 2:30 PM live (8) and deadline job fires before the deadline (8); both verified by the checker. |
+| **Level 4: Timed graded cron tasks** | 16 | Session job fires at 2:30 PM live (8) and deadline job fires before the deadline (8); both verified from their output files. |
 | **Level 5: Scheduling the backup** | 12 | Schedules the backup with an absolute path and redirected output; proves cron ran it. |
 | **Level 6: Maintenance automation** | 8 | `maintenance` rotates logs and writes a threshold health report on a schedule. |
 | **Level 7: Design your own scheduled job** | 12 | Student-authored script and a self-written crontab line that runs on schedule, explained in the README. |
@@ -1109,7 +1035,7 @@ git push origin main
 - `tar` archives, `gzip` compresses; `tar -czf` does both. Use `tar -tzf` to peek inside before extracting.
 - cron's smallest interval is one minute. Use `*/1` or `*/2` for testing, then switch to realistic times (`@daily`, `30 2 * * *`) in production.
 - **Install the Level 4 timed jobs as soon as you reach that level.** The 2:30 PM session job cannot be earned if it is scheduled after 2:30 PM.
-- Use `check_cron_tasks` to confirm a job actually ran. A `FAIL` for the deadline job before 2026-06-22 is expected, not a mistake.
+- Confirm a timed job ran by reading its output file in `~/os-lab-automation/cron_tasks/`. An empty `deadline_job.out` before 2026-06-22 is expected, not a mistake.
 - In Level 8, never use `crontab -r` while the graded deadline job is still pending - filter the practice lines out instead, or you will delete the job you still need.
 - Remember to run Level 8 teardown. Leaving `*/2` test jobs running will keep writing to logs forever.
 - Do not use `sudo` and do not edit `/etc/crontab`. This lab runs entirely from your personal account.

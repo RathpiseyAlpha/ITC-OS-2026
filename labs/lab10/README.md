@@ -62,13 +62,13 @@ The two graded schedules I installed:
 | Session job | `30 14 16 6 *` | 2:30 PM 2026-06-16 |
 | Deadline job | `30 14 22 6 *` | 2:30 PM 2026-06-22 |
 
-Session job verified during the lab:
+Session job fired during the lab (`SESSION_JOB_OK` line in `session_job.out`):
 
-![Level 4 - session job PASS](images/level4_session_job.png)
+![Level 4 - session job fired](images/level4_session_job.png)
 
-Deadline job verified before the deadline (both PASS):
+Deadline job fired before the deadline (`DEADLINE_JOB_OK` line in `deadline_job.out`):
 
-![Level 4 - deadline job PASS](images/level4_deadline_job.png)
+![Level 4 - deadline job fired](images/level4_deadline_job.png)
 
 ---
 
