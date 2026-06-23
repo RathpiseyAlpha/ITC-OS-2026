@@ -56,6 +56,30 @@
   .msg{font-size:12px;color:var(--evict);min-height:16px;margin-top:4px}
   label.lbl{font-size:13px;color:var(--muted)}
 
+  /* ---- CPU <-> RAM <-> Disk swap scene ---- */
+  .memscene{position:relative;display:flex;align-items:stretch;gap:6px;margin-bottom:18px;min-height:150px}
+  .unit{flex:0 0 auto;border:1px solid var(--border);border-radius:10px;padding:10px 8px;background:#0c141d;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center}
+  .unit-title{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center}
+  .cpu{width:92px}
+  .cpu .reg{width:56px;height:42px;border-radius:8px;background:#13233f;border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#cfe0ff}
+  .cpu .reglbl{font-size:10px;color:var(--muted)}
+  .ram{flex:1 1 auto;min-width:150px}
+  .frames{display:flex;flex-direction:column;gap:6px;width:100%}
+  .fr{height:30px;border-radius:7px;border:1px solid var(--border);background:#0e1826;display:flex;align-items:center;justify-content:center;font-weight:700;color:#9fb4cc;position:relative;transition:background .2s,border-color .2s,box-shadow .25s}
+  .fr .fnum{position:absolute;left:7px;font-size:10px;color:var(--muted);font-weight:600}
+  .fr.filled{background:#1c2940;color:#e7eef7}
+  .fr.flashHit{border-color:var(--hit);box-shadow:0 0 0 2px var(--hit),0 0 14px rgba(34,197,94,.55)}
+  .fr.flashNew{border-color:var(--new);box-shadow:0 0 0 2px var(--new),0 0 14px rgba(168,85,247,.55)}
+  .conn{flex:0 0 24px;align-self:center;color:var(--muted);font-size:18px;text-align:center;line-height:1.1}
+  .disk{width:92px}
+  .disk .platters{display:flex;flex-direction:column;gap:4px;width:56px}
+  .disk .pl{height:10px;border-radius:3px;background:#1a2735;border:1px solid #2c3e54}
+  .flyer{position:absolute;left:0;top:0;transform:translate(-50%,-50%);min-width:30px;height:30px;padding:0 9px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;opacity:0;pointer-events:none;z-index:6;transition:opacity .12s}
+  .flyer.show{opacity:1}
+  .flyer.hit{background:var(--hit);color:#06210f;box-shadow:0 4px 16px rgba(34,197,94,.55)}
+  .flyer.new{background:var(--new);color:#1a0830;box-shadow:0 4px 16px rgba(168,85,247,.55)}
+  .flyer.evict{background:var(--evict);color:#2a1c00;box-shadow:0 4px 16px rgba(245,158,11,.55)}
+
   /* trace matrix */
   .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
   table.tr{border-collapse:separate;border-spacing:4px}
@@ -97,6 +121,26 @@
 
 <div class="wrap">
   <div class="stage">
+    <p class="blockTitle">Memory swap — CPU requests a page, RAM loads it, the victim goes to disk</p>
+    <div class="memscene" id="scene">
+      <div class="unit cpu">
+        <div class="unit-title">CPU</div>
+        <div class="reg" id="cpuReg">—</div>
+        <div class="reglbl">page ref</div>
+      </div>
+      <div class="conn">→</div>
+      <div class="unit ram">
+        <div class="unit-title">RAM — physical frames</div>
+        <div class="frames" id="ramFrames"></div>
+      </div>
+      <div class="conn">⇄</div>
+      <div class="unit disk">
+        <div class="unit-title">Disk<br>(backing store)</div>
+        <div class="platters"><div class="pl"></div><div class="pl"></div><div class="pl"></div><div class="pl"></div></div>
+      </div>
+      <div class="flyer" id="flyer"></div>
+    </div>
+
     <p class="blockTitle" id="cfgLine">Reference string · 3 frames</p>
     <table class="tr" id="matrix"></table>
 
@@ -232,6 +276,96 @@ function simulate(refs, nf, algo){
 }
 function totalFaults(refs, nf, algo){ const t=simulate(refs,nf,algo); return t.length?t[t.length-1].faults:0; }
 
+/* ---------- swap scene (CPU <-> RAM <-> Disk) ---------- */
+let animToken=0;   // bumped to cancel an in-flight animation
+function frameValsAt(s){ return s>0 ? trace[s-1].slots : Array(numFrames).fill(null); }
+
+function buildFrames(slots){
+  const c=document.getElementById('ramFrames');
+  let html='';
+  for(let f=0; f<numFrames; f++){
+    const v=slots[f];
+    html+='<div class="fr'+(v!==null?' filled':'')+'" id="fr'+f+'"><span class="fnum">F'+(f+1)+'</span>'+(v!==null?v:'')+'</div>';
+  }
+  c.innerHTML=html;
+}
+function setFrame(f,val){
+  const el=document.getElementById('fr'+f); if(!el) return;
+  el.classList.toggle('filled', val!==null && val!=='');
+  el.innerHTML='<span class="fnum">F'+(f+1)+'</span>'+(val!=null&&val!==''?val:'');
+}
+function flash(f,cls){
+  const el=document.getElementById('fr'+f); if(!el) return;
+  el.classList.add(cls);
+  setTimeout(()=>el.classList.remove(cls),650);
+}
+function hideFlyer(){ const fl=document.getElementById('flyer'); fl.className='flyer'; }
+
+function center(el,sr){ const r=el.getBoundingClientRect(); return [r.left-sr.left+r.width/2, r.top-sr.top+r.height/2]; }
+function fly(fromEl,toEl,label,cls,ms,my){
+  return new Promise(res=>{
+    const scene=document.getElementById('scene'), fl=document.getElementById('flyer');
+    if(!fromEl||!toEl){ res(); return; }
+    const sr=scene.getBoundingClientRect();
+    const [x0,y0]=center(fromEl,sr), [x1,y1]=center(toEl,sr);
+    fl.textContent=label; fl.className='flyer show '+cls;
+    fl.style.left=x0+'px'; fl.style.top=y0+'px';
+    const t0=performance.now();
+    (function f(now){
+      if(my!==animToken){ res(); return; }
+      let k=Math.min(1,(now-t0)/ms);
+      const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;   // easeInOut
+      fl.style.left=(x0+(x1-x0)*e)+'px';
+      fl.style.top =(y0+(y1-y0)*e)+'px';
+      if(k<1) requestAnimationFrame(f); else res();
+    })(performance.now());
+  });
+}
+
+async function swapAnimate(t){
+  const my=++animToken;
+  const cpu=document.getElementById('cpuReg');
+  const disk=document.querySelector('.disk');
+  const dur=playing?340:460;
+  const cur=frameValsAt(step);
+
+  if(t.hit){
+    const idx=cur.indexOf(t.page);
+    await fly(cpu, document.getElementById('fr'+idx), t.page, 'hit', dur, my);
+    if(my!==animToken) return;
+    flash(idx,'flashHit'); hideFlyer();
+  } else if(t.victim===null){
+    const idx=t.slotIdx;
+    await fly(cpu, document.getElementById('fr'+idx), t.page, 'new', dur, my);
+    if(my!==animToken) return;
+    setFrame(idx,t.page); flash(idx,'flashNew'); hideFlyer();
+  } else {
+    const idx=t.slotIdx;
+    // 1) swap victim out of RAM to disk
+    await fly(document.getElementById('fr'+idx), disk, t.victim, 'evict', dur, my);
+    if(my!==animToken) return;
+    setFrame(idx,'');
+    // 2) load requested page from CPU into the freed frame
+    await fly(cpu, document.getElementById('fr'+idx), t.page, 'new', dur, my);
+    if(my!==animToken) return;
+    setFrame(idx,t.page); flash(idx,'flashNew'); hideFlyer();
+  }
+}
+
+function renderScene(animate){
+  // cancel any running animation; static renders show the final state
+  animToken++;
+  document.getElementById('cpuReg').textContent = step>0 ? trace[step-1].page : '—';
+  if(animate && step>0){
+    buildFrames(frameValsAt(step-1));   // start from the pre-step layout
+    hideFlyer();
+    swapAnimate(trace[step-1]);
+  } else {
+    buildFrames(frameValsAt(step));     // jump straight to current state
+    hideFlyer();
+  }
+}
+
 /* ---------- render ---------- */
 function renderMatrix(){
   const m=document.getElementById('matrix');
@@ -273,8 +407,9 @@ function renderMatrix(){
   m.innerHTML=html;
 }
 
-function render(){
+function render(animate){
   renderMatrix();
+  renderScene(animate);
   const done = step>0 ? trace[step-1].faults : 0;
   const hits = step - done;
   document.getElementById('faultCount').textContent=done;
@@ -358,7 +493,7 @@ function setMode(m){
 }
 
 /* ---------- controls ---------- */
-function next(){ if(step<refs.length){ step++; render(); } if(step>=refs.length) stopPlay(); }
+function next(){ if(step<refs.length){ step++; render(true); } if(step>=refs.length) stopPlay(); }
 function prev(){ if(step>0){ step--; render(); stopPlay(); } }
 function reset(){ step=0; stopPlay(); render(); }
 function togglePlay(){ playing?stopPlay():startPlay(); }

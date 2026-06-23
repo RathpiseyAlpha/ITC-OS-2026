@@ -51,6 +51,47 @@
   .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
   .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
   .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto}
+
+  /* ---- paging hardware animation ---- */
+  .pagesec{margin:0 24px 24px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
+  .pagesec h2{margin:0 0 2px;font-size:17px}
+  .pagesec .sub2{color:var(--muted);font-size:13px;margin-bottom:14px}
+  .pagewrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .pagestage{flex:1 1 560px;min-width:340px}
+  .pagectrl{flex:0 0 300px;min-width:260px}
+  .pagectrl .btns{display:flex;flex-direction:column;gap:8px}
+  .pagectrl button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:11px 12px;font-size:14px;cursor:pointer;text-align:left;transition:background .15s}
+  .pagectrl button:hover:not(:disabled){background:#2e4459}
+  .pagectrl button:disabled{opacity:.5;cursor:default}
+  .pagectrl button.hit{border-color:#2c6b43}
+  .pagectrl button.miss{border-color:#7a3636}
+  .pagectrl button.auto{border-color:#3a5170}
+  .speed{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:12px}
+  .speed input{flex:1;accent-color:var(--accent)}
+  .caption{margin-top:14px;min-height:62px;background:#0c141d;border:1px solid var(--border);border-left:4px solid var(--line);border-radius:8px;padding:11px 13px;font-size:14px;line-height:1.5}
+  .caption .step{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:4px}
+  .caption.isHit{border-left-color:var(--ok)}
+  .caption.isMiss{border-left-color:var(--bad)}
+  .counts{display:flex;gap:10px;margin-top:12px}
+  .counts .c{flex:1;background:#0c141d;border:1px solid var(--border);border-radius:8px;padding:9px;text-align:center}
+  .counts .c .big{font-size:22px;font-weight:800}
+  .counts .c .lab{font-size:11px;color:var(--muted)}
+  .counts .c.h .big{color:var(--ok)} .counts .c.m .big{color:var(--bad)} .counts .c.a .big{color:var(--tlb)}
+
+  /* svg diagram */
+  #paging .box{fill:#16314a;stroke:#4a6c8e;stroke-width:1.5}
+  #paging .cell{fill:#cfe3f5;stroke:#2b3f55;stroke-width:1.2}
+  #paging .ctext{fill:#0c1722;font-weight:700;font-size:15px;font-family:Consolas,monospace}
+  #paging .lbl{fill:#8aa0b6;font-size:12px;font-family:"Segoe UI",sans-serif}
+  #paging .lbl.dark{fill:#0c1722}
+  #paging .grid{stroke:#4a6c8e;stroke-width:1;opacity:.6}
+  #paging .hl{fill:#f59e0b;opacity:0;transition:opacity .2s}
+  #paging .hl.onHit{fill:#22c55e;opacity:.55}
+  #paging .hl.onMiss{fill:#ef4444;opacity:.55}
+  #paging .arr{fill:none;stroke:#5b6f86;stroke-width:1.7;opacity:.4;transition:stroke .2s,opacity .2s,stroke-width .2s}
+  #paging .arr.on{opacity:1;stroke-width:3.2}
+  #paging .box.on,#paging .cell.on{stroke:#fbbf24;stroke-width:2.6;filter:drop-shadow(0 0 7px rgba(251,191,36,.85))}
+  #paging #token{filter:drop-shadow(0 0 7px #fbbf24)}
 </style>
 </head>
 <body>
@@ -106,6 +147,99 @@
       <div class="row"><span class="sq" style="background:var(--tlb)"></span> EAT — actual average with the TLB at this hit ratio</div>
       <div class="row"><span class="sq" style="background:var(--bad)"></span> No TLB — every access needs two (page table + data)</div>
       <div class="row" style="color:var(--muted);margin-top:8px">EAT = α·(t<sub>tlb</sub>+t<sub>mem</sub>) + (1−α)·(t<sub>tlb</sub>+2·t<sub>mem</sub>)</div>
+    </div>
+  </div>
+</div>
+
+<div class="pagesec">
+  <h2>Paging Hardware With TLB — how the CPU reaches memory</h2>
+  <div class="sub2">Run a memory access and watch the address flow. A <b style="color:var(--ok)">TLB hit</b> needs one memory access; a <b style="color:var(--bad)">TLB miss</b> needs a second access to read the page table — that extra access is exactly what the EAT formula above charges.</div>
+
+  <div class="pagewrap">
+    <div class="pagestage">
+      <svg id="paging" viewBox="0 0 780 520" aria-label="Paging hardware with TLB animation">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+          </marker>
+        </defs>
+
+        <!-- arrows first so nodes sit on top -->
+        <polyline id="arrCPU"  class="arr" points="110,162 148,161"                marker-end="url(#ah)"/>
+        <polyline id="arrD"    class="arr" points="204,146 204,72 524,72 524,300"  marker-end="url(#ah)"/>
+        <polyline id="arrP"    class="arr" points="168,176 168,295 168,295"        marker-end="url(#ah)"/>
+        <polyline id="arrHit"  class="arr" points="370,295 450,295 466,312"        marker-end="url(#ah)"/>
+        <polyline id="arrMiss" class="arr" points="176,176 176,446 408,446"        marker-end="url(#ah)"/>
+        <polyline id="arrPT"   class="arr" points="452,392 452,340 488,340 488,332" marker-end="url(#ah)"/>
+        <polyline id="arrMem"  class="arr" points="544,315 600,315 648,278"        marker-end="url(#ah)"/>
+
+        <!-- CPU -->
+        <rect id="nCPU" class="box" x="24" y="128" width="86" height="64" rx="6"/>
+        <text class="lbl dark" x="67" y="166" text-anchor="middle" font-size="15" font-weight="700">CPU</text>
+
+        <!-- logical address -->
+        <text class="lbl" x="186" y="124" text-anchor="middle">logical address</text>
+        <rect id="cellP"  class="cell" x="150" y="146" width="36" height="30"/>
+        <rect id="cellLd" class="cell" x="186" y="146" width="36" height="30"/>
+        <text class="ctext" x="168" y="167" text-anchor="middle">p</text>
+        <text class="ctext" x="204" y="167" text-anchor="middle">d</text>
+
+        <!-- TLB -->
+        <text class="lbl" x="220" y="232" text-anchor="middle">page #</text>
+        <text class="lbl" x="320" y="232" text-anchor="middle">frame #</text>
+        <rect id="hitRow" class="hl" x="170" y="284" width="200" height="22"/>
+        <rect id="nTLB" class="box" x="170" y="240" width="200" height="132"/>
+        <line class="grid" x1="270" y1="240" x2="270" y2="372"/>
+        <line class="grid" x1="170" y1="262" x2="370" y2="262"/>
+        <line class="grid" x1="170" y1="284" x2="370" y2="284"/>
+        <line class="grid" x1="170" y1="306" x2="370" y2="306"/>
+        <line class="grid" x1="170" y1="328" x2="370" y2="328"/>
+        <line class="grid" x1="170" y1="350" x2="370" y2="350"/>
+        <text class="lbl" x="270" y="390" text-anchor="middle" font-weight="700">TLB</text>
+        <text id="tlbHitLbl" class="lbl" x="408" y="288" text-anchor="middle">TLB hit</text>
+        <text id="tlbMissLbl" class="lbl" x="270" y="440" text-anchor="middle">TLB miss</text>
+
+        <!-- page table -->
+        <rect id="ptRow" class="hl" x="410" y="435" width="84" height="22"/>
+        <rect id="nPT" class="box" x="410" y="392" width="84" height="86"/>
+        <line class="grid" x1="410" y1="413" x2="494" y2="413"/>
+        <line class="grid" x1="410" y1="435" x2="494" y2="435"/>
+        <line class="grid" x1="410" y1="457" x2="494" y2="457"/>
+        <text class="ctext" x="452" y="451" text-anchor="middle" font-size="13">f</text>
+        <text class="lbl" x="452" y="496" text-anchor="middle" font-weight="700">page table</text>
+
+        <!-- physical address -->
+        <text class="lbl" x="512" y="290" text-anchor="middle">physical address</text>
+        <rect id="cellF"  class="cell" x="470" y="300" width="36" height="32"/>
+        <rect id="cellPd" class="cell" x="506" y="300" width="36" height="32"/>
+        <text class="ctext" x="488" y="322" text-anchor="middle">f</text>
+        <text class="ctext" x="524" y="322" text-anchor="middle">d</text>
+
+        <!-- physical memory -->
+        <rect id="nMem" class="box" x="650" y="120" width="96" height="300" rx="4"/>
+        <text class="lbl" x="698" y="438" text-anchor="middle" font-weight="700">physical memory</text>
+
+        <!-- moving token -->
+        <circle id="token" r="7" fill="#fde68a" opacity="0"/>
+      </svg>
+    </div>
+
+    <div class="pagectrl">
+      <div class="btns">
+        <button class="hit"  id="bHit"  onclick="runAccess('hit')">▶ Simulate a TLB <b>hit</b> (fast path)</button>
+        <button class="miss" id="bMiss" onclick="runAccess('miss')">▶ Simulate a TLB <b>miss</b> (page-table path)</button>
+        <button class="auto" id="bAuto" onclick="runAccess('auto')">▶ Random access — use current α</button>
+        <button id="bReset" onclick="resetPaging()">↺ Reset</button>
+      </div>
+      <div class="speed"><span>Speed</span><input type="range" id="pSpeed" min="1" max="5" value="3"><span>fast</span></div>
+
+      <div class="caption" id="pCap"><span class="step">Ready</span>Pick a button to send one logical address through the paging hardware.</div>
+
+      <div class="counts">
+        <div class="c h"><div class="big" id="cHit">0</div><div class="lab">hits</div></div>
+        <div class="c m"><div class="big" id="cMiss">0</div><div class="lab">misses</div></div>
+        <div class="c a"><div class="big" id="cAcc">0</div><div class="lab">mem accesses</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -221,6 +355,99 @@ function drawChart(tmem,ttlb,a,eat,ideal,noTlb,yMax,hitP){
 }
 
 update();
+
+/* ============ Paging hardware animation ============ */
+const $=id=>document.getElementById(id);
+const token=$('token');
+let pgRunning=false, hits=0, misses=0, accesses=0;
+
+function polyLen(pts){let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);return L;}
+function polyAt(pts,t){
+  const total=polyLen(pts); let d=t*total;
+  for(let i=1;i<pts.length;i++){
+    const seg=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+    if(d<=seg||i===pts.length-1){const r=seg?Math.min(1,d/seg):0;return [pts[i-1][0]+(pts[i][0]-pts[i-1][0])*r,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*r];}
+    d-=seg;
+  }
+  return pts[pts.length-1];
+}
+function tween(ms,cb){return new Promise(res=>{const t0=performance.now();(function f(now){let k=ms<=0?1:Math.min(1,(now-t0)/ms);cb(k);k<1?requestAnimationFrame(f):res();})(performance.now());});}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function speedFactor(){return +$('pSpeed').value;}  // 1 slow .. 5 fast
+
+function cap(stepLabel,text,kind){
+  const c=$('pCap');
+  c.className='caption'+(kind==='hit'?' isHit':kind==='miss'?' isMiss':'');
+  c.innerHTML='<span class="step">'+stepLabel+'</span>'+text;
+}
+
+function clearPaging(){
+  ['arrCPU','arrD','arrP','arrHit','arrMiss','arrPT','arrMem'].forEach(a=>$(a).classList.remove('on'));
+  ['nCPU','cellP','cellLd','nTLB','cellF','cellPd','nMem','nPT'].forEach(n=>$(n).classList.remove('on'));
+  $('hitRow').className='hl'; $('ptRow').className='hl';
+  token.setAttribute('opacity','0');
+}
+function resetPaging(){ if(pgRunning) return; clearPaging(); cap('Ready','Pick a button to send one logical address through the paging hardware.'); }
+
+function lightNodes(ids){ids.forEach(n=>$(n).classList.add('on'));}
+
+/* animate token along an arrow's points, lighting the arrow + target nodes */
+async function flow(arrId, pts, nodes, kind){
+  const arr=$(arrId); arr.classList.add('on');
+  if(kind) arr.style.stroke = kind==='hit'?'#22c55e':kind==='miss'?'#ef4444':'#60a5fa';
+  const dur=Math.max(260, polyLen(pts)*5/speedFactor());
+  token.setAttribute('opacity','1');
+  await tween(dur,k=>{const [x,y]=polyAt(pts,k);token.setAttribute('cx',x);token.setAttribute('cy',y);});
+  if(nodes) lightNodes(nodes);
+}
+
+const buttons=['bHit','bMiss','bAuto','bReset'];
+function setBusy(b){pgRunning=b;buttons.forEach(id=>$(id).disabled=b);}
+
+async function runAccess(mode){
+  if(pgRunning) return;
+  let hit = mode==='hit' ? true : mode==='miss' ? false : (Math.random() < (+$('sHit').value)/100);
+  setBusy(true); clearPaging();
+
+  // 1. CPU issues logical address
+  cap('Step 1 · CPU','The CPU issues a <b>logical address</b> split into page number <b>p</b> and offset <b>d</b>.');
+  lightNodes(['nCPU']);
+  await flow('arrCPU',[[110,162],[148,161]],['cellP','cellLd']);
+  await wait(250/speedFactor());
+
+  // 2. offset d copied straight to physical address
+  cap('Step 2 · offset','The offset <b>d</b> never changes — it is copied straight to the physical address.');
+  await flow('arrD',[[204,146],[204,72],[524,72],[524,300]],['cellPd']);
+
+  // 3. look up p in the TLB
+  cap('Step 3 · TLB lookup','Page number <b>p</b> is compared against every TLB entry at once (associative search).');
+  await flow('arrP',[[168,176],[168,295]],['nTLB']);
+
+  if(hit){
+    $('hitRow').className='hl onHit';
+    cap('Step 4 · TLB HIT','<b style="color:var(--ok)">TLB HIT</b> — the frame number <b>f</b> is already in the TLB. No page-table lookup needed.','hit');
+    await flow('arrHit',[[370,295],[450,295],[466,312]],['cellF'],'hit');
+    accesses+=1; hits++;
+    cap('Step 5 · access memory','Physical address ⟨<b>f, d</b>⟩ reads memory. <b>Total cost: 1 memory access.</b>','hit');
+    await flow('arrMem',[[544,315],[600,315],[648,278]],['nMem'],'hit');
+  } else {
+    $('hitRow').className='hl onMiss';
+    cap('Step 4 · TLB MISS','<b style="color:var(--bad)">TLB MISS</b> — <b>p</b> is not in the TLB. We must read the page table, which lives in memory.','miss');
+    await flow('arrMiss',[[176,176],[176,446],[408,446]],['nPT'],'miss');
+    $('ptRow').className='hl onMiss'; accesses+=1;  // 1st access: read page table
+    cap('Step 5 · page table','The page table is indexed by <b>p</b> and returns frame <b>f</b>. <b>(This was the 1st memory access.)</b>','miss');
+    await flow('arrPT',[[452,392],[452,340],[488,340],[488,332]],['cellF'],'miss');
+    accesses+=1; misses++;  // 2nd access: read the data
+    cap('Step 6 · access memory','Now physical address ⟨<b>f, d</b>⟩ reads the data. <b>Total cost: 2 memory accesses.</b>','miss');
+    await flow('arrMem',[[544,315],[600,315],[648,278]],['nMem'],'miss');
+  }
+
+  $('cHit').textContent=hits; $('cMiss').textContent=misses; $('cAcc').textContent=accesses;
+  // reset arrow inline colors so CSS controls them next run
+  ['arrCPU','arrD','arrP','arrHit','arrMiss','arrPT','arrMem'].forEach(a=>$(a).style.stroke='');
+  setBusy(false);
+}
 </script>
 </body>
 </html>
