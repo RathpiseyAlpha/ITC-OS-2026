@@ -1,453 +1,1948 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Effective Access Time (EAT) &amp; the TLB</title>
-<style>
-  :root{
-    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
-    --accent:#60a5fa; --border:#233042; --tlb:#f59e0b; --ok:#22c55e; --bad:#ef4444; --line:#60a5fa;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
-  header{padding:18px 24px;border-bottom:1px solid var(--border)}
-  h1{margin:0;font-size:20px}
-  .sub{color:var(--muted);font-size:13px;margin-top:4px}
-  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
-  .stage{flex:1 1 540px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
-  .side{flex:0 0 360px;min-width:300px;position:sticky;top:16px;align-self:flex-start}
-  svg{width:100%;height:auto;display:block}
-  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Effective Access Time (EAT) &amp; the TLB</title>
+  <style>
+    :root {
+      --bg: #0f1722;
+      --panel: #16212f;
+      --ink: #e7eef7;
+      --muted: #8aa0b6;
+      --accent: #60a5fa;
+      --border: #233042;
+      --tlb: #f59e0b;
+      --ok: #22c55e;
+      --bad: #ef4444;
+      --line: #60a5fa;
+    }
 
-  .sliders{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
-  .srow{margin-bottom:16px}
-  .srow:last-child{margin-bottom:0}
-  .slabel{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin-bottom:6px}
-  .slabel .val{font-weight:700;font-size:16px;color:var(--accent)}
-  input[type=range]{width:100%;accent-color:var(--accent)}
-  .hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.4}
+    * {
+      box-sizing: border-box
+    }
 
-  .result{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
-  .eatBig{font-size:38px;font-weight:800;color:var(--tlb)}
-  .eatUnit{font-size:16px;color:var(--muted);font-weight:500}
-  .formula{font-family:"Consolas",monospace;font-size:13px;background:#0c141d;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:12px;line-height:1.7;white-space:pre-wrap}
-  .interp{font-size:14px;line-height:1.55;margin-top:12px}
-  .interp b{color:var(--ok)}
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column
+    }
 
-  .presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-  .presets button{flex:1 1 100px;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 8px;font-size:13px;cursor:pointer}
-  .presets button:hover{background:#2e4459}
+    header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border)
+    }
 
-  /* breakdown bars */
-  .bars{margin-top:14px}
-  .bar{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px}
-  .bar .name{width:120px;color:var(--muted);flex:0 0 auto}
-  .bar .track{flex:1;height:20px;background:#0c141d;border:1px solid var(--border);border-radius:5px;overflow:hidden}
-  .bar .fill{height:100%;border-radius:4px}
-  .bar .num{width:64px;text-align:right;font-weight:700;flex:0 0 auto}
-  .fill.ideal{background:var(--ok)} .fill.eat{background:var(--tlb)} .fill.notlb{background:var(--bad)}
+    /* page tab bar styles */
+    .page-tabs {
+      display: flex;
+      max-width: 440px;
+      margin: 20px auto 0;
+      background: rgba(0, 0, 0, .28);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 4px
+    }
+    .page-tabs button {
+      flex: 1;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 14px;
+      transition: .15s;
+      text-align: center;
+      box-shadow: none;
+    }
+    .page-tabs button:hover:not(.active) {
+      background: rgba(255, 255, 255, .06);
+      color: var(--ink)
+    }
+    .page-tabs button.active {
+      background: linear-gradient(135deg, #6db1ff, #2f74d6);
+      color: #07121f;
+      border-color: transparent;
+      font-weight: 700;
+      box-shadow: 0 2px 7px rgba(47, 116, 214, .45)
+    }
 
-  .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
-  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
-  .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto}
+    /* dashboard layout - side-by-side on wide screens */
+    .dashboard {
+      display: flex;
+      gap: 24px;
+      padding: 20px 24px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      width: 100%
+    }
 
-  /* ---- paging hardware animation ---- */
-  .pagesec{margin:0 24px 24px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px}
-  .pagesec h2{margin:0 0 2px;font-size:17px}
-  .pagesec .sub2{color:var(--muted);font-size:13px;margin-bottom:14px}
-  .pagewrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
-  .pagestage{flex:1 1 560px;min-width:340px}
-  .pagectrl{flex:0 0 300px;min-width:260px}
-  .pagectrl .btns{display:flex;flex-direction:column;gap:8px}
-  .pagectrl button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:11px 12px;font-size:14px;cursor:pointer;text-align:left;transition:background .15s}
-  .pagectrl button:hover:not(:disabled){background:#2e4459}
-  .pagectrl button:disabled{opacity:.5;cursor:default}
-  .pagectrl button.hit{border-color:#2c6b43}
-  .pagectrl button.miss{border-color:#7a3636}
-  .pagectrl button.auto{border-color:#3a5170}
-  .speed{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:12px}
-  .speed input{flex:1;accent-color:var(--accent)}
-  .caption{margin-top:14px;min-height:62px;background:#0c141d;border:1px solid var(--border);border-left:4px solid var(--line);border-radius:8px;padding:11px 13px;font-size:14px;line-height:1.5}
-  .caption .step{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:block;margin-bottom:4px}
-  .caption.isHit{border-left-color:var(--ok)}
-  .caption.isMiss{border-left-color:var(--bad)}
-  .counts{display:flex;gap:10px;margin-top:12px}
-  .counts .c{flex:1;background:#0c141d;border:1px solid var(--border);border-radius:8px;padding:9px;text-align:center}
-  .counts .c .big{font-size:22px;font-weight:800}
-  .counts .c .lab{font-size:11px;color:var(--muted)}
-  .counts .c.h .big{color:var(--ok)} .counts .c.m .big{color:var(--bad)} .counts .c.a .big{color:var(--tlb)}
+    .pagesec {
+      flex: 1 1 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px
+    }
 
-  /* svg diagram */
-  #paging .box{fill:#16314a;stroke:#4a6c8e;stroke-width:1.5}
-  #paging .cell{fill:#cfe3f5;stroke:#2b3f55;stroke-width:1.2}
-  #paging .ctext{fill:#0c1722;font-weight:700;font-size:15px;font-family:Consolas,monospace}
-  #paging .lbl{fill:#8aa0b6;font-size:12px;font-family:"Segoe UI",sans-serif}
-  #paging .lbl.dark{fill:#0c1722}
-  #paging .grid{stroke:#4a6c8e;stroke-width:1;opacity:.6}
-  #paging .hl{fill:#f59e0b;opacity:0;transition:opacity .2s}
-  #paging .hl.onHit{fill:#22c55e;opacity:.55}
-  #paging .hl.onMiss{fill:#ef4444;opacity:.55}
-  #paging .arr{fill:none;stroke:#5b6f86;stroke-width:1.7;opacity:.4;transition:stroke .2s,opacity .2s,stroke-width .2s}
-  #paging .arr.on{opacity:1;stroke-width:3.2}
-  #paging .box.on,#paging .cell.on{stroke:#fbbf24;stroke-width:2.6;filter:drop-shadow(0 0 7px rgba(251,191,36,.85))}
-  #paging #token{filter:drop-shadow(0 0 7px #fbbf24)}
-</style>
+    .wrap {
+      flex: 1 1 100%;
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap
+    }
+
+    .stage {
+      flex: 1 1 540px;
+      min-width: 340px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px
+    }
+
+    .side {
+      flex: 1 1 340px;
+      min-width: 300px
+    }
+
+    /* shared explanation blocks */
+    .explain {
+      margin-top: 0
+    }
+
+    .explain h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--accent)
+    }
+
+    .explain ul {
+      margin: 0 0 8px;
+      padding-left: 18px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cdd9e6
+    }
+
+    .explain li {
+      margin: 4px 0
+    }
+
+    .explain .cols {
+      display: flex;
+      gap: 26px;
+      flex-wrap: wrap
+    }
+
+    .explain .col {
+      flex: 1 1 300px
+    }
+
+    .keysq {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 4px
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px
+    }
+
+    .sub {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 4px
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block
+    }
+
+    .blockTitle {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin: 0 0 10px
+    }
+
+    .sliders {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px
+    }
+
+    .srow {
+      margin-bottom: 16px
+    }
+
+    .srow:last-child {
+      margin-bottom: 0
+    }
+
+    .slabel {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 14px;
+      margin-bottom: 6px
+    }
+
+    .slabel .val {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--accent)
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent)
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4
+    }
+
+    .result {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px
+    }
+
+    .eatBig {
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--tlb)
+    }
+
+    .eatUnit {
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 500
+    }
+
+    .formula {
+      font-family: "Consolas", monospace;
+      font-size: 13px;
+      background: #0c141d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap
+    }
+
+    .interp {
+      font-size: 14px;
+      line-height: 1.55;
+      margin-top: 12px
+    }
+
+    .interp b {
+      color: var(--ok)
+    }
+
+    .presets {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px
+    }
+
+    .presets button {
+      flex: 1 1 100px;
+      background: #243446;
+      color: var(--ink);
+      border: 1px solid #33485f;
+      border-radius: 8px;
+      padding: 9px 8px;
+      font-size: 13px;
+      cursor: pointer
+    }
+
+    .presets button:hover {
+      background: #2e4459
+    }
+
+    /* breakdown bars */
+    .bars {
+      margin-top: 14px
+    }
+
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+      font-size: 13px
+    }
+
+    .bar .name {
+      width: 120px;
+      color: var(--muted);
+      flex: 0 0 auto
+    }
+
+    .bar .track {
+      flex: 1;
+      height: 20px;
+      background: #0c141d;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      overflow: hidden
+    }
+
+    .bar .fill {
+      height: 100%;
+      border-radius: 4px
+    }
+
+    .bar .num {
+      width: 64px;
+      text-align: right;
+      font-weight: 700;
+      flex: 0 0 auto
+    }
+
+    .fill.ideal {
+      background: var(--ok)
+    }
+
+    .fill.eat {
+      background: var(--tlb)
+    }
+
+    .fill.notlb {
+      background: var(--bad)
+    }
+
+    .legend {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 14px;
+      font-size: 13px
+    }
+
+    .legend .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 7px 0
+    }
+
+    .sq {
+      width: 15px;
+      height: 15px;
+      border-radius: 3px;
+      flex: 0 0 auto
+    }
+
+    /* ---- paging hardware animation ---- */
+    .pagesec h2 {
+      margin: 0 0 2px;
+      font-size: 17px
+    }
+
+    .pagesec .sub2 {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px
+    }
+
+    .pagewrap {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: flex-start
+    }
+
+    .pagestage {
+      flex: 1 1 560px;
+      min-width: 340px
+    }
+
+    .pagectrl {
+      flex: 0 0 300px;
+      min-width: 260px
+    }
+
+    .pagectrl .btns {
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .pagectrl button {
+      background: #243446;
+      color: var(--ink);
+      border: 1px solid #33485f;
+      border-radius: 8px;
+      padding: 11px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: background .15s
+    }
+
+    .pagectrl button:hover:not(:disabled) {
+      background: #2e4459
+    }
+
+    .pagectrl button:disabled {
+      opacity: .5;
+      cursor: default
+    }
+
+    .pdash {
+      background: #0c141d;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px
+    }
+
+    .pdash .pdttl {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: 4px
+    }
+
+    .pdrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 7px 0;
+      font-size: 13px
+    }
+
+    .pdrow label {
+      flex: 0 0 138px;
+      color: var(--muted)
+    }
+
+    .pdrow label .pv {
+      color: var(--accent);
+      font-weight: 700
+    }
+
+    .pdrow input {
+      flex: 1;
+      accent-color: var(--accent)
+    }
+
+    .pmodes {
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, .28);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 12px
+    }
+
+    .pmodes button {
+      flex: 1;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 9px 8px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      text-align: center
+    }
+
+    .pmodes button:hover:not(.active) {
+      background: rgba(255, 255, 255, .06);
+      color: var(--ink)
+    }
+
+    .pmodes button.active {
+      background: linear-gradient(135deg, #6db1ff, #2f74d6);
+      color: #07121f;
+      border-color: transparent;
+      font-weight: 700;
+      box-shadow: 0 2px 7px rgba(47, 116, 214, .45)
+    }
+
+    .pane {
+      margin-bottom: 6px
+    }
+
+    .paneNote {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0 0 10px
+    }
+
+    .pagectrl input#seqInput {
+      width: 100%;
+      background: #0c141d;
+      color: var(--ink);
+      border: 1px solid #33485f;
+      border-radius: 7px;
+      padding: 9px;
+      font-size: 14px;
+      font-family: Consolas, monospace;
+      margin-bottom: 8px
+    }
+
+    .pagectrl button.primary2 {
+      background: var(--accent);
+      color: #06121f;
+      border-color: var(--accent);
+      font-weight: 700;
+      text-align: center;
+      width: 100%
+    }
+
+    .pagectrl button.primary2:hover:not(:disabled) {
+      background: #7ab6fb
+    }
+
+    .seqline {
+      margin-top: 12px;
+      background: #0c141d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      line-height: 1.5
+    }
+
+    .seqline b {
+      color: #fbbf24
+    }
+
+    .seqline .seqrefs {
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      margin-top: 4px;
+      word-spacing: 2px
+    }
+
+    .seqline .seqrefs .cur {
+      background: var(--accent);
+      color: #06121f;
+      border-radius: 3px;
+      padding: 0 3px;
+      font-weight: 700
+    }
+
+    .seqline .seqrefs .hit {
+      color: #7ee2a4
+    }
+
+    .seqline .seqrefs .miss {
+      color: #ff9d9d
+    }
+
+    .pagectrl button.ideal {
+      border-color: #2c6b43
+    }
+
+    .pagectrl button.notlb {
+      border-color: #7a3636
+    }
+
+    .pagectrl button.eat {
+      border-color: #7a5a1a
+    }
+
+    .pagectrl button .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 5px;
+      margin-right: 6px;
+      vertical-align: middle
+    }
+
+    .pagectrl button.ideal .tag {
+      background: #163a25;
+      color: #7ee2a4
+    }
+
+    .pagectrl button.notlb .tag {
+      background: #3a1818;
+      color: #ff9d9d
+    }
+
+    .pagectrl button.eat .tag {
+      background: #3a2c10;
+      color: #f6c873
+    }
+
+    .speed {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 12px
+    }
+
+    .speed input {
+      flex: 1;
+      accent-color: var(--accent)
+    }
+
+    .stepbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 10px
+    }
+
+    .stepbar button {
+      flex: 0 0 auto;
+      text-align: center;
+      padding: 9px 13px
+    }
+
+    .stepbar button#bNext {
+      background: var(--accent);
+      color: #06121f;
+      border-color: var(--accent);
+      font-weight: 700
+    }
+
+    .stepbar button#bNext:hover:not(:disabled) {
+      background: #7ab6fb
+    }
+
+    .stepbar button:disabled {
+      opacity: .4;
+      cursor: default
+    }
+
+    .pprog {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: auto;
+      font-variant-numeric: tabular-nums
+    }
+
+    .why2 {
+      margin-top: 18px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px
+    }
+
+    .why2 h3 {
+      margin: 0 0 12px;
+      font-size: 15px
+    }
+
+    .why2grid {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap
+    }
+
+    .why2 .trip {
+      flex: 1 1 280px;
+      background: #0c141d;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px
+    }
+
+    .why2 .tnum {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 6px
+    }
+
+    .why2 .tbody {
+      font-size: 13.5px;
+      line-height: 1.55
+    }
+
+    .why2 .t1,
+    .why2 .t2 {
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: #111c28;
+      border-left: 3px solid var(--bad)
+    }
+
+    .why2foot {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 12px 0 0
+    }
+
+    .caption {
+      margin-top: 14px;
+      min-height: 62px;
+      background: #0c141d;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 13px;
+      font-size: 14px;
+      line-height: 1.5
+    }
+
+    .caption .step {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px
+    }
+
+    .caption.isHit {
+      border-left-color: var(--ok)
+    }
+
+    .caption.isMiss {
+      border-left-color: var(--bad)
+    }
+
+    .counts {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px
+    }
+
+    .counts .c {
+      flex: 1;
+      background: #0c141d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px;
+      text-align: center
+    }
+
+    .counts .c .big {
+      font-size: 22px;
+      font-weight: 800
+    }
+
+    .counts .c .lab {
+      font-size: 11px;
+      color: var(--muted)
+    }
+
+    .counts .c.h .big {
+      color: var(--ok)
+    }
+
+    .counts .c.m .big {
+      color: var(--bad)
+    }
+
+    .counts .c.a .big {
+      color: var(--tlb)
+    }
+
+    .counts .c.t .big {
+      color: #fbbf24
+    }
+
+    /* svg diagram */
+    #paging .box {
+      fill: #16314a;
+      stroke: #4a6c8e;
+      stroke-width: 1.5
+    }
+
+    #paging .cell {
+      fill: #cfe3f5;
+      stroke: #2b3f55;
+      stroke-width: 1.2
+    }
+
+    #paging .ctext {
+      fill: #0c1722;
+      font-weight: 700;
+      font-size: 15px;
+      font-family: Consolas, monospace
+    }
+
+    #paging .lbl {
+      fill: #8aa0b6;
+      font-size: 12px;
+      font-family: "Segoe UI", sans-serif
+    }
+
+    #paging .lbl.dark {
+      fill: #0c1722
+    }
+
+    #paging .grid {
+      stroke: #4a6c8e;
+      stroke-width: 1;
+      opacity: .6
+    }
+
+    #paging .hl {
+      fill: #f59e0b;
+      opacity: 0;
+      transition: opacity .2s
+    }
+
+    #paging .hl.onHit {
+      fill: #22c55e;
+      opacity: .55
+    }
+
+    #paging .hl.onMiss {
+      fill: #ef4444;
+      opacity: .55
+    }
+
+    #paging .arr {
+      fill: none;
+      stroke: #5b6f86;
+      stroke-width: 1.4;
+      opacity: .4;
+      transition: stroke .2s, opacity .2s, stroke-width .2s
+    }
+
+    #paging .arr.on {
+      opacity: 1;
+      stroke-width: 2.4
+    }
+
+    #paging .box.on,
+    #paging .cell.on {
+      stroke: #fbbf24;
+      stroke-width: 2.6;
+      filter: drop-shadow(0 0 7px rgba(251, 191, 36, .85))
+    }
+
+    #paging .boxoutline {
+      fill: none;
+      stroke: #4a6c8e;
+      stroke-width: 1.5
+    }
+
+    #paging .boxoutline.on {
+      stroke: #fbbf24;
+      stroke-width: 2.4;
+      filter: drop-shadow(0 0 7px rgba(251, 191, 36, .85))
+    }
+
+    #paging #token {
+      filter: drop-shadow(0 0 7px #fbbf24)
+    }
+
+    /* table entries */
+    #paging .ent {
+      fill: #dbe9fb;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      font-weight: 600
+    }
+
+    #paging .ent.frame {
+      fill: #a7f3d0
+    }
+
+    #paging .rowhl {
+      opacity: 0;
+      transition: opacity .2s
+    }
+
+    #paging .rowhl.onHit {
+      fill: #22c55e;
+      opacity: .30
+    }
+
+    #paging .rowhl.onMiss {
+      fill: #ef4444;
+      opacity: .30
+    }
+
+    #paging .rowhl.onLoad {
+      fill: #a855f7;
+      opacity: .32
+    }
+
+    #paging .memcell {
+      fill: #16314a;
+      stroke: #3a5a78;
+      stroke-width: .8
+    }
+
+    #paging .memcell.onHit {
+      fill: #1e5236
+    }
+
+    #paging .memcell.onMiss {
+      fill: #5a2530
+    }
+
+    #paging .flag {
+      font-family: Consolas, monospace;
+      font-size: 10px;
+      fill: #8aa0b6
+    }
+
+    #paging .costlbl {
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      font-weight: 700;
+      fill: #fbbf24;
+      paint-order: stroke;
+      stroke: #0f1722;
+      stroke-width: 2.5px;
+      stroke-linejoin: round
+    }
+
+    #paging .costlbl.hit {
+      fill: #7ee2a4
+    }
+
+    #paging .costlbl.miss {
+      fill: #ff9d9d
+    }
+
+    #paging .arrlbl {
+      font-family: "Segoe UI", sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      fill: #dbe9fb;
+      opacity: 0;
+      transition: opacity .18s;
+      pointer-events: none;
+      paint-order: stroke;
+      stroke: #0c141d;
+      stroke-width: 2.5px;
+      stroke-linejoin: round
+    }
+
+    #paging .arrlbl.on {
+      opacity: 1
+    }
+
+    #paging .arrlbl.on.hit {
+      fill: #7ee2a4
+    }
+
+    #paging .arrlbl.on.miss {
+      fill: #ff9d9d
+    }
+
+    #paging .mmubox {
+      fill: rgba(96, 165, 250, .06);
+      stroke: #3f6286;
+      stroke-width: 1.4;
+      stroke-dasharray: 7 5
+    }
+
+    #paging .rambox {
+      fill: rgba(34, 197, 94, .05);
+      stroke: #3f7a58;
+      stroke-width: 1.4
+    }
+
+    #paging .regionlbl {
+      fill: #c3d4e6;
+      font-size: 12.5px;
+      font-weight: 700;
+      font-family: "Segoe UI", sans-serif
+    }
+
+    .ramnote {
+      fill: #86c9a3;
+      font-size: 10.5px;
+      font-style: italic;
+      font-family: "Segoe UI", sans-serif
+    }
+
+    /* info section at bottom */
+    .info-section {
+      display: flex;
+      gap: 24px;
+      padding: 0 24px 24px;
+      flex-wrap: wrap;
+      width: 100%
+    }
+
+    .info-card {
+      flex: 1 1 500px;
+      min-width: 320px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px
+    }
+
+    .info-card.full-width {
+      flex: 1 1 100%
+    }
+
+    .info-card h3 {
+      margin-top: 0
+    }
+  </style>
 </head>
+
 <body>
-<header>
-  <h1>Effective Access Time (EAT) &amp; why the TLB matters</h1>
-  <div class="sub">Chapter 9 — drag the hit ratio and watch effective memory-access time fall. A TLB miss costs an extra memory access to read the page table.</div>
-</header>
+  <header>
+    <h1>Effective Access Time (EAT) &amp; why the TLB matters</h1>
+    <div class="sub">Chapter 9 — first walk a memory access through the paging hardware (diagram), then see how the
+      average access time (EAT) depends on the TLB hit ratio (graph at the bottom). A TLB miss costs an extra memory
+      access to read the page table.</div>
+  </header>
 
-<div class="wrap">
-  <div class="stage">
-    <p class="blockTitle">EAT vs TLB hit ratio</p>
-    <svg id="chart" viewBox="0 0 540 320" aria-label="EAT versus hit ratio graph"></svg>
+  <!-- tab bar selector -->
+  <div class="page-tabs">
+    <button id="tabSim" class="active" onclick="switchPageTab('sim')">Paging Simulator</button>
+    <button id="tabGraph" onclick="switchPageTab('graph')">EAT Graph Calculator</button>
+  </div>
 
-    <div class="bars">
-      <p class="blockTitle" style="margin-top:6px">How one average access splits</p>
-      <div class="bar"><span class="name">Ideal (1 access)</span><div class="track"><div class="fill ideal" id="barIdeal"></div></div><span class="num" id="numIdeal">—</span></div>
-      <div class="bar"><span class="name">EAT (with TLB)</span><div class="track"><div class="fill eat" id="barEat"></div></div><span class="num" id="numEat">—</span></div>
-      <div class="bar"><span class="name">No TLB (2 access)</span><div class="track"><div class="fill notlb" id="barNoTlb"></div></div><span class="num" id="numNoTlb">—</span></div>
+  <div class="dashboard">
+    <div class="wrap">
+      <div class="stage">
+        <p class="blockTitle">EAT vs TLB hit ratio</p>
+        <svg id="chart" viewBox="0 0 540 320" aria-label="EAT versus hit ratio graph"></svg>
+
+        <div class="bars">
+          <p class="blockTitle" style="margin-top:6px">How one average access splits</p>
+          <div class="bar"><span class="name">Ideal (1 access)</span>
+            <div class="track">
+              <div class="fill ideal" id="barIdeal"></div>
+            </div><span class="num" id="numIdeal">—</span>
+          </div>
+          <div class="bar"><span class="name">EAT (with TLB)</span>
+            <div class="track">
+              <div class="fill eat" id="barEat"></div>
+            </div><span class="num" id="numEat">—</span>
+          </div>
+          <div class="bar"><span class="name">No TLB (2 access)</span>
+            <div class="track">
+              <div class="fill notlb" id="barNoTlb"></div>
+            </div><span class="num" id="numNoTlb">—</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="side">
+        <div class="presets">
+          <button onclick="preset(10,0,80)">Lecture: 80% hit</button>
+          <button onclick="preset(10,0,99)">Lecture: 99% hit</button>
+          <button onclick="preset(100,10,98)">Realistic</button>
+        </div>
+
+        <div class="sliders">
+          <div class="srow">
+            <div class="slabel"><span>Memory access time (t<sub>mem</sub>)</span><span class="val"><span
+                  id="vMem">10</span> ns</span></div>
+            <input type="range" id="sMem" min="1" max="200" value="10" oninput="update()">
+          </div>
+          <div class="srow">
+            <div class="slabel"><span>TLB search time (t<sub>tlb</sub>)</span><span class="val"><span id="vTlb">0</span>
+                ns</span></div>
+            <input type="range" id="sTlb" min="0" max="50" value="0" oninput="update()">
+            <div class="hint">Time to search the associative TLB. Often treated as ~0 (negligible) in textbook examples.
+            </div>
+          </div>
+          <div class="srow">
+            <div class="slabel"><span>TLB hit ratio (α)</span><span class="val"><span id="vHit">80</span> %</span></div>
+            <input type="range" id="sHit" min="0" max="100" value="80" oninput="update()">
+          </div>
+        </div>
+
+        <div class="result">
+          <div><span class="eatBig" id="eatVal">—</span> <span class="eatUnit">ns&nbsp; effective access time</span>
+          </div>
+          <div class="formula" id="formula"></div>
+          <div class="interp" id="interp"></div>
+        </div>
+
+        <div class="legend">
+          <div class="row"><span class="sq" style="background:var(--ok)"></span> Ideal — one memory access
+            (t<sub>mem</sub>), the best possible</div>
+          <div class="row"><span class="sq" style="background:var(--tlb)"></span> EAT — actual average with the TLB at
+            this hit ratio</div>
+          <div class="row"><span class="sq" style="background:var(--bad)"></span> No TLB — every access needs two (page
+            table + data)</div>
+          <div class="row" style="color:var(--muted);margin-top:8px">EAT = α·(t<sub>tlb</sub>+t<sub>mem</sub>) +
+            (1−α)·(t<sub>tlb</sub>+2·t<sub>mem</sub>)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pagesec">
+      <h2>Paging Hardware With TLB — follow one memory access through the hardware</h2>
+      <div class="sub2">The <b>CPU</b> sends a logical address to the <b>MMU</b>. If the page is cached in the
+        <b>TLB</b> it is a fast <b style="color:#7ee2a4">hit</b>; otherwise the MMU reads the <b>page table</b> in
+        <b>RAM</b> — a <b style="color:#ff9d9d">miss</b>. Pages 0–7 map to frames via the page table; the TLB caches 4
+        translations. Use the tabs to send a single access, a miss-then-hit pair, or a whole reference string. The
+        <b>graph at the bottom</b> plots the average time of many such accesses (EAT).</div>
+
+      <div class="pagewrap">
+        <div class="pagestage">
+          <svg id="paging" viewBox="0 0 860 600" aria-label="Paging hardware with TLB animation">
+            <defs>
+              <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5"
+                orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="context-stroke" />
+              </marker>
+            </defs>
+
+            <!-- region containers (behind everything) -->
+            <rect id="nMMU" class="mmubox" x="108" y="230" width="356" height="326" rx="8" />
+            <text class="regionlbl" x="124" y="252">MMU (memory-management unit)</text>
+            <text class="ramnote" x="124" y="267">holds the TLB + page-table base register</text>
+            <rect id="nRAM" class="rambox" x="596" y="150" width="250" height="410" rx="8" />
+            <text class="regionlbl" x="721" y="172" text-anchor="middle">RAM — physical memory</text>
+            <text class="ramnote" x="721" y="188" text-anchor="middle">the page table is stored in RAM, like all
+              data</text>
+
+            <!-- arrows -->
+            <path id="arrCPU" class="arr" d="" fill="none" marker-end="url(#ah)" />
+            <path id="arrD" class="arr" d="" fill="none" marker-end="url(#ah)" />
+            <path id="arrP" class="arr" d="" fill="none" marker-end="url(#ah)" />
+            <path id="arrHit" class="arr" d="" fill="none" marker-end="url(#ah)" />
+            <path id="arrMiss" class="arr" d="" fill="none" marker-end="url(#ah)" />
+            <path id="arrPT" class="arr" d="" fill="none" marker-end="url(#ah)" />
+            <path id="arrMem" class="arr" d="" fill="none" marker-end="url(#ah)" />
+
+            <!-- dynamic table contents (drawn by JS) -->
+            <g id="tlbRows"></g>
+            <g id="ptRows"></g>
+            <g id="memRows"></g>
+
+            <!-- CPU -->
+            <rect id="nCPU" class="box" x="16" y="276" width="74" height="58" rx="6" />
+            <text class="lbl dark" x="53" y="310" text-anchor="middle" font-size="15" font-weight="700">CPU</text>
+
+            <!-- logical address (input to MMU) -->
+            <text class="lbl" x="190" y="282" text-anchor="middle">logical address ⟨p, d⟩</text>
+            <rect id="cellP" class="cell" x="150" y="290" width="40" height="30" />
+            <rect id="cellLd" class="cell" x="190" y="290" width="40" height="30" />
+            <text id="valP" class="ctext" x="170" y="311" text-anchor="middle">p</text>
+            <text id="valD" class="ctext" x="210" y="311" text-anchor="middle">d</text>
+
+            <!-- TLB (inside MMU) -->
+            <text class="lbl" x="205" y="352" text-anchor="middle">page</text>
+            <text class="lbl" x="315" y="352" text-anchor="middle">frame</text>
+            <rect id="nTLB" class="boxoutline" x="150" y="358" width="220" height="120" />
+            <line class="grid" x1="260" y1="358" x2="260" y2="478" />
+            <text class="lbl" x="260" y="496" text-anchor="middle" font-weight="700">TLB · cache of recent
+              translations</text>
+
+            <!-- physical address (MMU output) -->
+            <text class="lbl" x="512" y="360" text-anchor="middle">physical address ⟨f, d⟩</text>
+            <rect id="cellF" class="cell" x="474" y="372" width="42" height="30" />
+            <rect id="cellPd" class="cell" x="516" y="372" width="42" height="30" />
+            <text id="valF" class="ctext" x="495" y="393" text-anchor="middle">f</text>
+            <text id="valPd" class="ctext" x="537" y="393" text-anchor="middle">d</text>
+
+            <!-- page table (inside RAM, LEFT) -->
+            <text class="lbl" x="658" y="210" text-anchor="middle" font-weight="700">page table</text>
+            <text class="lbl" x="631" y="223" text-anchor="middle" font-size="10">page</text>
+            <text class="lbl" x="685" y="223" text-anchor="middle" font-size="10">frame</text>
+            <rect id="nPT" class="boxoutline" x="604" y="230" width="108" height="136" />
+            <line class="grid" x1="658" y1="230" x2="658" y2="366" />
+
+            <!-- data frames (inside RAM, RIGHT) -->
+            <text class="lbl" x="786" y="210" text-anchor="middle" font-weight="700">frames (RAM data)</text>
+            <text class="lbl" x="786" y="223" text-anchor="middle" font-size="10">frame · page</text>
+            <rect id="nMem" class="boxoutline" x="732" y="230" width="108" height="170" />
+
+            <!-- arrow descriptions (only the active arrow's label shows) -->
+            <text id="lblCPU" class="arrlbl" x="119" y="296" text-anchor="middle">issue address</text>
+            <text id="lblD" class="arrlbl" x="373" y="198" text-anchor="middle">offset d — not translated</text>
+            <text id="lblP" class="arrlbl" x="182" y="344" text-anchor="start">search TLB for p</text>
+            <text id="lblHit" class="arrlbl" x="420" y="365" text-anchor="middle">hit → frame f</text>
+            <text id="lblMiss" class="arrlbl" x="322" y="514" text-anchor="middle">miss → read page table</text>
+            <text id="lblPT" class="arrlbl" x="510" y="342" text-anchor="middle">table → frame f</text>
+            <text id="lblMem" class="arrlbl" x="640" y="380" text-anchor="middle">read data in frame</text>
+
+            <!-- moving token + per-step time label -->
+            <circle id="token" r="5.5" fill="#fde68a" opacity="0" />
+            <text id="costLbl" class="costlbl" x="0" y="0" opacity="0"></text>
+          </svg>
+        </div>
+
+        <div class="pagectrl">
+          <div class="pdash">
+            <div class="pdttl">Timing (shared with the graph below)</div>
+            <div class="pdrow"><label>memory access t<sub>mem</sub> = <span class="pv" id="vMem2">10</span>
+                ns</label><input type="range" id="sMem2" min="1" max="200" value="10" oninput="setTmem(this.value)">
+            </div>
+            <div class="pdrow"><label>TLB search t<sub>tlb</sub> = <span class="pv" id="vTlb2">0</span> ns</label><input
+                type="range" id="sTlb2" min="0" max="50" value="0" oninput="setTtlb(this.value)"></div>
+          </div>
+
+          <div class="pmodes">
+            <button id="mSingle" class="active" onclick="setPMode('single')">Single access</button>
+            <button id="mDemo" onclick="setPMode('demo')">Miss → Hit</button>
+            <button id="mCustom" onclick="setPMode('custom')">Custom sequence</button>
+          </div>
+
+          <div id="paneSingle" class="pane">
+            <div class="btns">
+              <button class="ideal" id="bHit" onclick="startSingle('hit')"><span class="tag">HIT</span><b>TLB hit</b> ·
+                best case — 1 trip</button>
+              <button class="eat" id="bRand" onclick="startSingle('random')"><span class="tag">RANDOM</span>Random page
+                · may hit or miss</button>
+              <button class="notlb" id="bMiss" onclick="startSingle('miss')"><span class="tag">MISS</span><b>TLB
+                  miss</b> · worst case — 2 trips</button>
+            </div>
+          </div>
+
+          <div id="paneDemo" class="pane" style="display:none">
+            <p class="paneNote">Access the <b>same page twice</b>. The 1st access <b style="color:var(--bad)">misses</b>
+              and warms the TLB; the 2nd <b style="color:var(--ok)">hits</b> — the whole reason a TLB pays off (locality
+              of reference).</p>
+            <button class="primary2" id="bDemo" onclick="startDemo()">▶ Run miss → hit demo</button>
+          </div>
+
+          <div id="paneCustom" class="pane" style="display:none">
+            <p class="paneNote">Type a page-reference string (pages <b>0–7</b>, space/comma separated). Repeats warm the
+              TLB; watch <b>α</b> and the average access time emerge. TLB starts <b>empty</b> (cold).</p>
+            <input type="text" id="seqInput" value="5 5 2 5 7 5 2 2">
+            <button class="primary2" id="bCustom" onclick="startCustom()">▶ Run sequence</button>
+            <div class="msg" id="seqMsg"></div>
+          </div>
+
+          <div class="stepbar">
+            <button id="bPrev" onclick="prevStep()">◀ Prev</button>
+            <button id="bNext" onclick="nextStep()">Next step ▶</button>
+            <button id="bAuto" onclick="autoRun()">▶ Auto</button>
+            <button id="bReset" onclick="resetPaging()">↺ Reset</button>
+            <span class="pprog" id="pProg"></span>
+          </div>
+          <div class="speed"><span>Step speed</span><input type="range" id="pSpeed" min="1" max="5"
+              value="3"><span>fast</span></div>
+
+          <div class="caption" id="pCap"><span class="step">Ready</span>Pick a button to send one logical address
+            through the paging hardware.</div>
+
+          <div class="seqline" id="seqLine" style="display:none"></div>
+
+          <div class="counts">
+            <div class="c h">
+              <div class="big" id="cHit">0</div>
+              <div class="lab">hits</div>
+            </div>
+            <div class="c m">
+              <div class="big" id="cMiss">0</div>
+              <div class="lab">misses</div>
+            </div>
+            <div class="c a">
+              <div class="big" id="cAcc">0</div>
+              <div class="lab">mem accesses</div>
+            </div>
+            <div class="c t">
+              <div class="big" id="cTime">0</div>
+              <div class="lab">this access (ns)</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="side">
-    <div class="presets">
-      <button onclick="preset(10,0,80)">Lecture: 80% hit</button>
-      <button onclick="preset(10,0,99)">Lecture: 99% hit</button>
-      <button onclick="preset(100,10,98)">Realistic</button>
-    </div>
-
-    <div class="sliders">
-      <div class="srow">
-        <div class="slabel"><span>Memory access time (t<sub>mem</sub>)</span><span class="val"><span id="vMem">10</span> ns</span></div>
-        <input type="range" id="sMem" min="1" max="200" value="10" oninput="update()">
+  <div class="info-section">
+    <!-- EAT Chart Explanations -->
+    <div class="info-card" id="infoEAT">
+      <div class="explain">
+        <h3>How to read the EAT Graph</h3>
+        <ul>
+          <li>The <b style="color:var(--line)">blue line</b> is <b>EAT</b> — the average time per memory access — as the
+            <b>TLB hit ratio α</b> (x-axis) changes.</li>
+          <li><span class="keysq" style="background:var(--ok)"></span><b>Ideal</b> (lower dashed line) — every access
+            hits the TLB → <b>1 memory access</b> = t<sub>tlb</sub> + t<sub>mem</sub>. This is the diagram's <b
+              style="color:#7ee2a4">green hit path</b> (1 trip).</li>
+          <li><span class="keysq" style="background:var(--bad)"></span><b>No&nbsp;TLB</b> (upper dashed line) — every
+            access misses → <b>2 memory accesses</b> = t<sub>tlb</sub> + 2·t<sub>mem</sub>. This is the diagram's <b
+              style="color:#ff9d9d">red miss path</b> (2 trips).</li>
+          <li><span class="keysq" style="background:var(--tlb)"></span><b>EAT</b> is the weighted average of those two
+            by α — it always sits between them. As α → 100%, EAT slides down toward Ideal.</li>
+          <li>Drag <b>α</b> (or the t<sub>mem</sub>/t<sub>tlb</sub> sliders) and watch the point move. The bars above
+            show the same three numbers for the current settings; run the <b>Custom sequence</b> tab in the diagram to
+            see a real α emerge from actual hits and misses.</li>
+        </ul>
       </div>
-      <div class="srow">
-        <div class="slabel"><span>TLB search time (t<sub>tlb</sub>)</span><span class="val"><span id="vTlb">0</span> ns</span></div>
-        <input type="range" id="sTlb" min="0" max="50" value="0" oninput="update()">
-        <div class="hint">Time to search the associative TLB. Often treated as ~0 (negligible) in textbook examples.</div>
+    </div>
+
+    <!-- Paging Hardware Explanations -->
+    <div class="info-card" id="infoPaging">
+      <div class="explain">
+        <div class="cols">
+          <div class="col">
+            <h3>What each part of the diagram means</h3>
+            <ul>
+              <li><b>CPU</b> — runs the program and issues a <b>logical (virtual) address</b> for every memory
+                reference.</li>
+              <li><b>logical address ⟨p, d⟩</b> — split into <b>page number p</b> (which page) and <b>offset d</b> (how
+                far into the page). Only <b>p</b> is translated; <b>d</b> passes straight through.</li>
+              <li><b>MMU</b> — memory-management unit: the hardware that translates p → frame. It holds the TLB and the
+                page-table base register.</li>
+              <li><b>TLB</b> — a tiny, fast cache of recent ⟨page → frame⟩ translations (4 entries here). Searching it
+                costs ≈ <b>t<sub>tlb</sub></b> and touches no RAM.</li>
+              <li><b>page table</b> — the full page → frame map, stored <b>in RAM</b>. Reading it is a real memory
+                access (<b>t<sub>mem</sub></b>); needed only on a miss.</li>
+              <li><b>physical address ⟨f, d⟩</b> — the real RAM address: <b>frame f</b> from translation + the unchanged
+                offset <b>d</b>.</li>
+              <li><b>frames (RAM data)</b> — physical memory in fixed-size frames; each row shows which page currently
+                lives there.</li>
+              <li>Arrows: <span class="keysq" style="background:#22c55e"></span><b>green</b> = hit path, <span
+                  class="keysq" style="background:#ef4444"></span><b>red</b> = miss path, and the <span class="keysq"
+                  style="background:#fbbf24"></span><b>amber token</b> carries the running <b>+ns time cost</b>.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h3>The three simulation tabs</h3>
+            <ul>
+              <li><b>Single access</b> — send <i>one</i> address through the hardware. Pick <b style="color:#7ee2a4">TLB
+                  hit</b> (1 trip), <b style="color:#f6c873">Random</b>, or <b style="color:#ff9d9d">TLB miss</b> (2
+                trips), then step through it.</li>
+              <li><b>Miss → Hit</b> — access the <i>same page twice</i>: the 1st <b style="color:#ff9d9d">misses</b> and
+                loads the TLB, the 2nd <b style="color:#7ee2a4">hits</b>. Shows why repeated accesses (locality) make a
+                TLB pay off.</li>
+              <li><b>Custom sequence</b> — type your own reference string (pages 0–7). The TLB starts empty and warms
+                up; the running <b>hit ratio α</b> and <b>average access time</b> appear — that average <i>is</i> the
+                EAT.</li>
+            </ul>
+            <p class="why2foot" style="margin-top:2px"><b>Controls:</b> <b>Next ▶</b> / <b>◀ Prev</b> move one step;
+              <b>Auto</b> plays; <b>Reset</b> clears; <b>Step speed</b> sets the pace. Counters track hits, misses,
+              total memory accesses, and the current access's ns.</p>
+          </div>
+        </div>
       </div>
-      <div class="srow">
-        <div class="slabel"><span>TLB hit ratio (α)</span><span class="val"><span id="vHit">80</span> %</span></div>
-        <input type="range" id="sHit" min="0" max="100" value="80" oninput="update()">
-      </div>
     </div>
 
-    <div class="result">
-      <div><span class="eatBig" id="eatVal">—</span> <span class="eatUnit">ns&nbsp; effective access time</span></div>
-      <div class="formula" id="formula"></div>
-      <div class="interp" id="interp"></div>
-    </div>
-
-    <div class="legend">
-      <div class="row"><span class="sq" style="background:var(--ok)"></span> Ideal — one memory access (t<sub>mem</sub>), the best possible</div>
-      <div class="row"><span class="sq" style="background:var(--tlb)"></span> EAT — actual average with the TLB at this hit ratio</div>
-      <div class="row"><span class="sq" style="background:var(--bad)"></span> No TLB — every access needs two (page table + data)</div>
-      <div class="row" style="color:var(--muted);margin-top:8px">EAT = α·(t<sub>tlb</sub>+t<sub>mem</sub>) + (1−α)·(t<sub>tlb</sub>+2·t<sub>mem</sub>)</div>
-    </div>
-  </div>
-</div>
-
-<div class="pagesec">
-  <h2>Paging Hardware With TLB — how the CPU reaches memory</h2>
-  <div class="sub2">Run a memory access and watch the address flow. A <b style="color:var(--ok)">TLB hit</b> needs one memory access; a <b style="color:var(--bad)">TLB miss</b> needs a second access to read the page table — that extra access is exactly what the EAT formula above charges.</div>
-
-  <div class="pagewrap">
-    <div class="pagestage">
-      <svg id="paging" viewBox="0 0 780 520" aria-label="Paging hardware with TLB animation">
-        <defs>
-          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
-          </marker>
-        </defs>
-
-        <!-- arrows first so nodes sit on top -->
-        <polyline id="arrCPU"  class="arr" points="110,162 148,161"                marker-end="url(#ah)"/>
-        <polyline id="arrD"    class="arr" points="204,146 204,72 524,72 524,300"  marker-end="url(#ah)"/>
-        <polyline id="arrP"    class="arr" points="168,176 168,295 168,295"        marker-end="url(#ah)"/>
-        <polyline id="arrHit"  class="arr" points="370,295 450,295 466,312"        marker-end="url(#ah)"/>
-        <polyline id="arrMiss" class="arr" points="176,176 176,446 408,446"        marker-end="url(#ah)"/>
-        <polyline id="arrPT"   class="arr" points="452,392 452,340 488,340 488,332" marker-end="url(#ah)"/>
-        <polyline id="arrMem"  class="arr" points="544,315 600,315 648,278"        marker-end="url(#ah)"/>
-
-        <!-- CPU -->
-        <rect id="nCPU" class="box" x="24" y="128" width="86" height="64" rx="6"/>
-        <text class="lbl dark" x="67" y="166" text-anchor="middle" font-size="15" font-weight="700">CPU</text>
-
-        <!-- logical address -->
-        <text class="lbl" x="186" y="124" text-anchor="middle">logical address</text>
-        <rect id="cellP"  class="cell" x="150" y="146" width="36" height="30"/>
-        <rect id="cellLd" class="cell" x="186" y="146" width="36" height="30"/>
-        <text class="ctext" x="168" y="167" text-anchor="middle">p</text>
-        <text class="ctext" x="204" y="167" text-anchor="middle">d</text>
-
-        <!-- TLB -->
-        <text class="lbl" x="220" y="232" text-anchor="middle">page #</text>
-        <text class="lbl" x="320" y="232" text-anchor="middle">frame #</text>
-        <rect id="hitRow" class="hl" x="170" y="284" width="200" height="22"/>
-        <rect id="nTLB" class="box" x="170" y="240" width="200" height="132"/>
-        <line class="grid" x1="270" y1="240" x2="270" y2="372"/>
-        <line class="grid" x1="170" y1="262" x2="370" y2="262"/>
-        <line class="grid" x1="170" y1="284" x2="370" y2="284"/>
-        <line class="grid" x1="170" y1="306" x2="370" y2="306"/>
-        <line class="grid" x1="170" y1="328" x2="370" y2="328"/>
-        <line class="grid" x1="170" y1="350" x2="370" y2="350"/>
-        <text class="lbl" x="270" y="390" text-anchor="middle" font-weight="700">TLB</text>
-        <text id="tlbHitLbl" class="lbl" x="408" y="288" text-anchor="middle">TLB hit</text>
-        <text id="tlbMissLbl" class="lbl" x="270" y="440" text-anchor="middle">TLB miss</text>
-
-        <!-- page table -->
-        <rect id="ptRow" class="hl" x="410" y="435" width="84" height="22"/>
-        <rect id="nPT" class="box" x="410" y="392" width="84" height="86"/>
-        <line class="grid" x1="410" y1="413" x2="494" y2="413"/>
-        <line class="grid" x1="410" y1="435" x2="494" y2="435"/>
-        <line class="grid" x1="410" y1="457" x2="494" y2="457"/>
-        <text class="ctext" x="452" y="451" text-anchor="middle" font-size="13">f</text>
-        <text class="lbl" x="452" y="496" text-anchor="middle" font-weight="700">page table</text>
-
-        <!-- physical address -->
-        <text class="lbl" x="512" y="290" text-anchor="middle">physical address</text>
-        <rect id="cellF"  class="cell" x="470" y="300" width="36" height="32"/>
-        <rect id="cellPd" class="cell" x="506" y="300" width="36" height="32"/>
-        <text class="ctext" x="488" y="322" text-anchor="middle">f</text>
-        <text class="ctext" x="524" y="322" text-anchor="middle">d</text>
-
-        <!-- physical memory -->
-        <rect id="nMem" class="box" x="650" y="120" width="96" height="300" rx="4"/>
-        <text class="lbl" x="698" y="438" text-anchor="middle" font-weight="700">physical memory</text>
-
-        <!-- moving token -->
-        <circle id="token" r="7" fill="#fde68a" opacity="0"/>
-      </svg>
-    </div>
-
-    <div class="pagectrl">
-      <div class="btns">
-        <button class="hit"  id="bHit"  onclick="runAccess('hit')">▶ Simulate a TLB <b>hit</b> (fast path)</button>
-        <button class="miss" id="bMiss" onclick="runAccess('miss')">▶ Simulate a TLB <b>miss</b> (page-table path)</button>
-        <button class="auto" id="bAuto" onclick="runAccess('auto')">▶ Random access — use current α</button>
-        <button id="bReset" onclick="resetPaging()">↺ Reset</button>
-      </div>
-      <div class="speed"><span>Speed</span><input type="range" id="pSpeed" min="1" max="5" value="3"><span>fast</span></div>
-
-      <div class="caption" id="pCap"><span class="step">Ready</span>Pick a button to send one logical address through the paging hardware.</div>
-
-      <div class="counts">
-        <div class="c h"><div class="big" id="cHit">0</div><div class="lab">hits</div></div>
-        <div class="c m"><div class="big" id="cMiss">0</div><div class="lab">misses</div></div>
-        <div class="c a"><div class="big" id="cAcc">0</div><div class="lab">mem accesses</div></div>
+    <!-- Why 2 trips explanation -->
+    <div class="info-card full-width" id="infoWhy2">
+      <div class="why2">
+        <h3>Why does a TLB miss cost <u>two</u> trips to memory?</h3>
+        <div class="why2grid">
+          <div class="trip">
+            <div class="tnum" style="color:var(--ok)">1 trip</div>
+            <div class="tbody"><b style="color:var(--ok)">TLB hit:</b> the TLB already stores ⟨page → frame⟩, so the
+              hardware gets the frame number <i>without</i> touching RAM. The only memory access is reading the actual
+              <b>data</b>. → <b>t<sub>tlb</sub> + t<sub>mem</sub></b></div>
+          </div>
+          <div class="trip">
+            <div class="tnum" style="color:var(--bad)">2 trips</div>
+            <div class="tbody"><b style="color:var(--bad)">TLB miss:</b> the frame number is unknown, so:
+              <div class="t1"><b>Trip 1</b> — read the <b>page table</b> to look up the frame. The page table lives
+                <i>in RAM</i>, so this is a full memory access.</div>
+              <div class="t2"><b>Trip 2</b> — only now, with the frame known, read the actual <b>data</b> at ⟨frame,
+                offset⟩ — a second memory access.</div>
+              → <b>t<sub>tlb</sub> + 2·t<sub>mem</sub></b>
+            </div>
+          </div>
+        </div>
+        <p class="why2foot">The page table is data in memory just like everything else — there is no magic shortcut to
+          it. That extra page-table read is the whole reason a miss is slower, and exactly the <b>+t<sub>mem</sub></b>
+          penalty the EAT formula charges for the <b>(1−α)</b> fraction of accesses that miss.</p>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-const SVGNS='http://www.w3.org/2000/svg';
-function el(tag,attrs,text){ const e=document.createElementNS(SVGNS,tag); for(const k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; return e; }
+  <script>
+    const SVGNS = 'http://www.w3.org/2000/svg';
+    function el(tag, attrs, text) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; }
 
-/* EAT model:
-   hit  path = t_tlb + t_mem           (TLB gives frame, then 1 access for data)
-   miss path = t_tlb + 2*t_mem         (search TLB, read page table in memory, then data)
-   EAT = a*(t_tlb+t_mem) + (1-a)*(t_tlb+2*t_mem) = t_tlb + t_mem + (1-a)*t_mem  */
-function eatOf(tmem, ttlb, a){ return ttlb + tmem + (1-a)*tmem; }
+    /* EAT model:
+       hit  path = t_tlb + t_mem           (TLB gives frame, then 1 access for data)
+       miss path = t_tlb + 2*t_mem         (search TLB, read page table in memory, then data)
+       EAT = a*(t_tlb+t_mem) + (1-a)*(t_tlb+2*t_mem) = t_tlb + t_mem + (1-a)*t_mem  */
+    function eatOf(tmem, ttlb, a) { return ttlb + tmem + (1 - a) * tmem; }
 
-/* chart geometry */
-const W=540,H=320, padL=54,padR=18,padT=18,padB=46;
-const plotW=W-padL-padR, plotH=H-padT-padB;
+    /* chart geometry */
+    const W = 540, H = 320, padL = 54, padR = 18, padT = 18, padB = 46;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
 
-function preset(mem,tlb,hit){
-  document.getElementById('sMem').value=mem;
-  document.getElementById('sTlb').value=tlb;
-  document.getElementById('sHit').value=hit;
-  update();
-}
+    function preset(mem, tlb, hit) {
+      document.getElementById('sMem').value = mem;
+      document.getElementById('sTlb').value = tlb;
+      document.getElementById('sHit').value = hit;
+      update();
+    }
 
-function update(){
-  const tmem=+document.getElementById('sMem').value;
-  const ttlb=+document.getElementById('sTlb').value;
-  const hitP=+document.getElementById('sHit').value;
-  const a=hitP/100;
-  document.getElementById('vMem').textContent=tmem;
-  document.getElementById('vTlb').textContent=ttlb;
-  document.getElementById('vHit').textContent=hitP;
+    /* diagram timing dashboard — mirrors the bottom t_mem / t_tlb sliders */
+    function syncDash() {
+      const m = +document.getElementById('sMem').value, t = +document.getElementById('sTlb').value;
+      const ms = document.getElementById('sMem2'), ts = document.getElementById('sTlb2');
+      if (ms) { ms.value = m; document.getElementById('vMem2').textContent = m; }
+      if (ts) { ts.value = t; document.getElementById('vTlb2').textContent = t; }
+    }
+    function setTmem(v) { document.getElementById('sMem').value = v; update(); if (!pgRunning && !autoBusy) resetPaging(); }
+    function setTtlb(v) { document.getElementById('sTlb').value = v; update(); if (!pgRunning && !autoBusy) resetPaging(); }
 
-  const eat=eatOf(tmem,ttlb,a);
-  const ideal=ttlb+tmem;          // best case (h=100%)
-  const noTlb=ttlb+2*tmem;        // worst case (h=0)
-  const yMax=noTlb;               // top of chart
+    function update() {
+      const tmem = +document.getElementById('sMem').value;
+      const ttlb = +document.getElementById('sTlb').value;
+      const hitP = +document.getElementById('sHit').value;
+      const a = hitP / 100;
+      document.getElementById('vMem').textContent = tmem;
+      document.getElementById('vTlb').textContent = ttlb;
+      document.getElementById('vHit').textContent = hitP;
+      syncDash();
 
-  document.getElementById('eatVal').textContent=eat.toFixed(2);
+      const eat = eatOf(tmem, ttlb, a);
+      const ideal = ttlb + tmem;          // best case (h=100%)
+      const noTlb = ttlb + 2 * tmem;        // worst case (h=0)
+      const yMax = noTlb;               // top of chart
 
-  // formula box
-  document.getElementById('formula').textContent =
-    'EAT = α·(t_tlb + t_mem) + (1−α)·(t_tlb + 2·t_mem)\n'+
-    '    = '+a.toFixed(2)+'·('+ttlb+'+'+tmem+') + '+(1-a).toFixed(2)+'·('+ttlb+'+'+(2*tmem)+')\n'+
-    '    = '+eat.toFixed(2)+' ns';
+      document.getElementById('eatVal').textContent = eat.toFixed(2);
 
-  // interpretation
-  const slow=((eat-ideal)/ideal*100);
-  document.getElementById('interp').innerHTML =
-    'At a <b>'+hitP+'%</b> hit ratio, the average access is <b>'+eat.toFixed(2)+' ns</b> — only <b>'+slow.toFixed(1)+'%</b> slower than the ideal single access ('+ideal+' ns). '+
-    'Without a TLB every access would take <b>'+noTlb+' ns</b> (two accesses).';
+      // formula box
+      document.getElementById('formula').textContent =
+        'EAT = α·(t_tlb + t_mem) + (1−α)·(t_tlb + 2·t_mem)\n' +
+        '    = ' + a.toFixed(2) + '·(' + ttlb + '+' + tmem + ') + ' + (1 - a).toFixed(2) + '·(' + ttlb + '+' + (2 * tmem) + ')\n' +
+        '    = ' + eat.toFixed(2) + ' ns';
 
-  // breakdown bars (scaled to noTlb)
-  const pct=v=>(v/yMax*100).toFixed(1)+'%';
-  document.getElementById('barIdeal').style.width=pct(ideal);
-  document.getElementById('barEat').style.width=pct(eat);
-  document.getElementById('barNoTlb').style.width=pct(noTlb);
-  document.getElementById('numIdeal').textContent=ideal+' ns';
-  document.getElementById('numEat').textContent=eat.toFixed(2)+' ns';
-  document.getElementById('numNoTlb').textContent=noTlb+' ns';
+      // interpretation
+      const slow = ((eat - ideal) / ideal * 100);
+      document.getElementById('interp').innerHTML =
+        'At a <b>' + hitP + '%</b> hit ratio, the average access is <b>' + eat.toFixed(2) + ' ns</b> — only <b>' + slow.toFixed(1) + '%</b> slower than the ideal single access (' + ideal + ' ns). ' +
+        'Without a TLB every access would take <b>' + noTlb + ' ns</b> (two accesses).';
 
-  drawChart(tmem,ttlb,a,eat,ideal,noTlb,yMax,hitP);
-}
+      // breakdown bars (scaled to noTlb)
+      const pct = v => (v / yMax * 100).toFixed(1) + '%';
+      document.getElementById('barIdeal').style.width = pct(ideal);
+      document.getElementById('barEat').style.width = pct(eat);
+      document.getElementById('barNoTlb').style.width = pct(noTlb);
+      document.getElementById('numIdeal').textContent = ideal + ' ns';
+      document.getElementById('numEat').textContent = eat.toFixed(2) + ' ns';
+      document.getElementById('numNoTlb').textContent = noTlb + ' ns';
 
-function xOf(hp){ return padL + (hp/100)*plotW; }
-function yOf(v,yMax){ return padT + plotH*(1 - v/yMax); }
+      drawChart(tmem, ttlb, a, eat, ideal, noTlb, yMax, hitP);
+    }
 
-function drawChart(tmem,ttlb,a,eat,ideal,noTlb,yMax,hitP){
-  const svg=document.getElementById('chart');
-  svg.innerHTML='';
+    function xOf(hp) { return padL + (hp / 100) * plotW; }
+    function yOf(v, yMax) { return padT + plotH * (1 - v / yMax); }
 
-  // axes
-  svg.appendChild(el('line',{x1:padL,y1:padT,x2:padL,y2:padT+plotH,stroke:'#33485f','stroke-width':1.5}));
-  svg.appendChild(el('line',{x1:padL,y1:padT+plotH,x2:padL+plotW,y2:padT+plotH,stroke:'#33485f','stroke-width':1.5}));
+    function drawChart(tmem, ttlb, a, eat, ideal, noTlb, yMax, hitP) {
+      const svg = document.getElementById('chart');
+      svg.innerHTML = '';
 
-  // y ticks (0, yMax/2, yMax)
-  [0,0.5,1].forEach(f=>{
-    const v=yMax*f, y=yOf(v,yMax);
-    svg.appendChild(el('line',{x1:padL-4,y1:y,x2:padL,y2:y,stroke:'#33485f'}));
-    svg.appendChild(el('text',{x:padL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#8aa0b6'}, v.toFixed(0)));
-    if(f>0) svg.appendChild(el('line',{x1:padL,y1:y,x2:padL+plotW,y2:y,stroke:'#1c2a3a','stroke-dasharray':'2 4'}));
-  });
-  svg.appendChild(el('text',{x:14,y:padT+plotH/2,'font-size':11,fill:'#8aa0b6',transform:'rotate(-90 14 '+(padT+plotH/2)+')','text-anchor':'middle'},'EAT (ns)'));
+      // axes
+      svg.appendChild(el('line', { x1: padL, y1: padT, x2: padL, y2: padT + plotH, stroke: '#33485f', 'stroke-width': 1.5 }));
+      svg.appendChild(el('line', { x1: padL, y1: padT + plotH, x2: padL + plotW, y2: padT + plotH, stroke: '#33485f', 'stroke-width': 1.5 }));
 
-  // x ticks
-  [0,25,50,75,100].forEach(hp=>{
-    const x=xOf(hp);
-    svg.appendChild(el('line',{x1:x,y1:padT+plotH,x2:x,y2:padT+plotH+4,stroke:'#33485f'}));
-    svg.appendChild(el('text',{x:x,y:padT+plotH+18,'text-anchor':'middle','font-size':11,fill:'#8aa0b6'},hp+'%'));
-  });
-  svg.appendChild(el('text',{x:padL+plotW/2,y:H-6,'text-anchor':'middle','font-size':11,fill:'#8aa0b6'},'TLB hit ratio (α)'));
+      // y ticks (0, yMax/2, yMax)
+      [0, 0.5, 1].forEach(f => {
+        const v = yMax * f, y = yOf(v, yMax);
+        svg.appendChild(el('line', { x1: padL - 4, y1: y, x2: padL, y2: y, stroke: '#33485f' }));
+        svg.appendChild(el('text', { x: padL - 8, y: y + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#8aa0b6' }, v.toFixed(0)));
+        if (f > 0) svg.appendChild(el('line', { x1: padL, y1: y, x2: padL + plotW, y2: y, stroke: '#1c2a3a', 'stroke-dasharray': '2 4' }));
+      });
+      svg.appendChild(el('text', { x: 14, y: padT + plotH / 2, 'font-size': 11, fill: '#8aa0b6', transform: 'rotate(-90 14 ' + (padT + plotH / 2) + ')', 'text-anchor': 'middle' }, 'EAT (ns)'));
 
-  // reference dashed lines: ideal (t_mem+t_tlb) and no-TLB (2t_mem+t_tlb)
-  const yIdeal=yOf(ideal,yMax), yNo=yOf(noTlb,yMax);
-  svg.appendChild(el('line',{x1:padL,y1:yIdeal,x2:padL+plotW,y2:yIdeal,stroke:'#22c55e','stroke-width':1,'stroke-dasharray':'5 4',opacity:.6}));
-  svg.appendChild(el('text',{x:padL+plotW-4,y:yIdeal-5,'text-anchor':'end','font-size':10,fill:'#22c55e'},'ideal '+ideal+' ns'));
-  svg.appendChild(el('line',{x1:padL,y1:yNo,x2:padL+plotW,y2:yNo,stroke:'#ef4444','stroke-width':1,'stroke-dasharray':'5 4',opacity:.5}));
-  svg.appendChild(el('text',{x:padL+4,y:yNo+14,'font-size':10,fill:'#ef4444'},'no TLB '+noTlb+' ns'));
+      // x ticks
+      [0, 25, 50, 75, 100].forEach(hp => {
+        const x = xOf(hp);
+        svg.appendChild(el('line', { x1: x, y1: padT + plotH, x2: x, y2: padT + plotH + 4, stroke: '#33485f' }));
+        svg.appendChild(el('text', { x: x, y: padT + plotH + 18, 'text-anchor': 'middle', 'font-size': 11, fill: '#8aa0b6' }, hp + '%'));
+      });
+      svg.appendChild(el('text', { x: padL + plotW / 2, y: H - 6, 'text-anchor': 'middle', 'font-size': 11, fill: '#8aa0b6' }, 'TLB hit ratio (α)'));
 
-  // EAT line across all hit ratios (linear)
-  const x0=xOf(0), y0=yOf(eatOf(tmem,ttlb,0),yMax);
-  const x1=xOf(100), y1=yOf(eatOf(tmem,ttlb,1),yMax);
-  svg.appendChild(el('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'var(--line)','stroke-width':2.5}));
+      // reference dashed lines: ideal (t_mem+t_tlb) and no-TLB (2t_mem+t_tlb)
+      const yIdeal = yOf(ideal, yMax), yNo = yOf(noTlb, yMax);
+      svg.appendChild(el('line', { x1: padL, y1: yIdeal, x2: padL + plotW, y2: yIdeal, stroke: '#22c55e', 'stroke-width': 1, 'stroke-dasharray': '5 4', opacity: .6 }));
+      svg.appendChild(el('text', { x: padL + plotW - 4, y: yIdeal - 5, 'text-anchor': 'end', 'font-size': 10, fill: '#22c55e' }, 'ideal ' + ideal + ' ns'));
+      svg.appendChild(el('line', { x1: padL, y1: yNo, x2: padL + plotW, y2: yNo, stroke: '#ef4444', 'stroke-width': 1, 'stroke-dasharray': '5 4', opacity: .5 }));
+      svg.appendChild(el('text', { x: padL + 4, y: yNo + 14, 'font-size': 10, fill: '#ef4444' }, 'no TLB ' + noTlb + ' ns'));
 
-  // current point
-  const cx=xOf(hitP), cy=yOf(eat,yMax);
-  svg.appendChild(el('line',{x1:cx,y1:padT+plotH,x2:cx,y2:cy,stroke:'#f59e0b','stroke-width':1,'stroke-dasharray':'3 3',opacity:.7}));
-  svg.appendChild(el('circle',{cx:cx,cy:cy,r:6,fill:'#f59e0b',stroke:'#06121f','stroke-width':2}));
-  const lx = cx>padL+plotW-90 ? cx-10 : cx+10;
-  const anchor = cx>padL+plotW-90 ? 'end':'start';
-  svg.appendChild(el('text',{x:lx,y:cy-8,'font-size':12,fill:'#f6c873','font-weight':700,'text-anchor':anchor}, eat.toFixed(2)+' ns @ '+hitP+'%'));
-}
+      // EAT line across all hit ratios (linear)
+      const x0 = xOf(0), y0 = yOf(eatOf(tmem, ttlb, 0), yMax);
+      const x1 = xOf(100), y1 = yOf(eatOf(tmem, ttlb, 1), yMax);
+      svg.appendChild(el('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'var(--line)', 'stroke-width': 2.5 }));
 
-update();
+      // current point
+      const cx = xOf(hitP), cy = yOf(eat, yMax);
+      svg.appendChild(el('line', { x1: cx, y1: padT + plotH, x2: cx, y2: cy, stroke: '#f59e0b', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: .7 }));
+      svg.appendChild(el('circle', { cx: cx, cy: cy, r: 6, fill: '#f59e0b', stroke: '#06121f', 'stroke-width': 2 }));
+      const lx = cx > padL + plotW - 90 ? cx - 10 : cx + 10;
+      const anchor = cx > padL + plotW - 90 ? 'end' : 'start';
+      svg.appendChild(el('text', { x: lx, y: cy - 8, 'font-size': 12, fill: '#f6c873', 'font-weight': 700, 'text-anchor': anchor }, eat.toFixed(2) + ' ns @ ' + hitP + '%'));
+    }
 
-/* ============ Paging hardware animation ============ */
-const $=id=>document.getElementById(id);
-const token=$('token');
-let pgRunning=false, hits=0, misses=0, accesses=0;
+    update();
 
-function polyLen(pts){let L=0;for(let i=1;i<pts.length;i++)L+=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);return L;}
-function polyAt(pts,t){
-  const total=polyLen(pts); let d=t*total;
-  for(let i=1;i<pts.length;i++){
-    const seg=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
-    if(d<=seg||i===pts.length-1){const r=seg?Math.min(1,d/seg):0;return [pts[i-1][0]+(pts[i][0]-pts[i-1][0])*r,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*r];}
-    d-=seg;
-  }
-  return pts[pts.length-1];
-}
-function tween(ms,cb){return new Promise(res=>{const t0=performance.now();(function f(now){let k=ms<=0?1:Math.min(1,(now-t0)/ms);cb(k);k<1?requestAnimationFrame(f):res();})(performance.now());});}
-function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+    /* ============ Paging hardware: worked example ============ */
+    const $ = id => document.getElementById(id);
+    const token = $('token');
+    let pgRunning = false, hits = 0, misses = 0, accesses = 0;
+    let frames = [], stepIdx = 0, autoBusy = false, elapsed = 0;
+    let seqPages = [], seqResults = [], pmode = 'single';
 
-function speedFactor(){return +$('pSpeed').value;}  // 1 slow .. 5 fast
+    /* --- example data: a process with pages 0..7 --- */
+    const PAGE_TABLE = [5, 2, 9, 0, 7, 3, 1, 6];               // page index -> frame
+    const MEMN = 10;                                     // physical frames 0..9
+    const FRAME_PAGE = Array(MEMN).fill(null);           // frame -> resident page
+    PAGE_TABLE.forEach((fr, pg) => { FRAME_PAGE[fr] = pg; });
+    const TLB_CAP = 4;
+    const TLB_INIT = [{ p: 4, f: 7 }, { p: 2, f: 9 }, { p: 0, f: 5 }, { p: 7, f: 6 }];
+    let TLB = [], tlbNext = 0;                              // tlbNext = round-robin victim
 
-function cap(stepLabel,text,kind){
-  const c=$('pCap');
-  c.className='caption'+(kind==='hit'?' isHit':kind==='miss'?' isMiss':'');
-  c.innerHTML='<span class="step">'+stepLabel+'</span>'+text;
-}
+    /* --- geometry (kept in sync with the SVG) --- */
+    const TX = 150, TY = 358, TW = 220, TDIV = 260, TRH = 30;
+    const PX = 604, PY = 230, PW = 108, PDIV = 658, PRH = 17;   // page table — left half of RAM
+    const MX = 732, MY = 230, MW = 108, MRH = 17;            // data frames — right half of RAM (20px channel between)
+    const tCx = (TX + TDIV) / 2, tFx = (TDIV + TX + TW) / 2;
+    const pCx = (PX + PDIV) / 2, pFx = (PDIV + PX + PW) / 2;
+    const tRowY = i => TY + i * TRH + TRH / 2, pRowY = i => PY + i * PRH + PRH / 2, mRowY = i => MY + i * MRH + MRH / 2;
 
-function clearPaging(){
-  ['arrCPU','arrD','arrP','arrHit','arrMiss','arrPT','arrMem'].forEach(a=>$(a).classList.remove('on'));
-  ['nCPU','cellP','cellLd','nTLB','cellF','cellPd','nMem','nPT'].forEach(n=>$(n).classList.remove('on'));
-  $('hitRow').className='hl'; $('ptRow').className='hl';
-  token.setAttribute('opacity','0');
-}
-function resetPaging(){ if(pgRunning) return; clearPaging(); cap('Ready','Pick a button to send one logical address through the paging hardware.'); }
+    function svgClear(id) { const g = $(id); while (g.firstChild) g.removeChild(g.firstChild); return g; }
 
-function lightNodes(ids){ids.forEach(n=>$(n).classList.add('on'));}
+    /* draw TLB, page table and physical memory; hl optionally highlights rows */
+    function drawTables(hl) {
+      hl = hl || {};
+      let g = svgClear('tlbRows');
+      g.appendChild(el('rect', { x: TX, y: TY, width: TW, height: TLB_CAP * TRH, fill: '#16314a' }));
+      if (hl.tlbRow != null) g.appendChild(el('rect', { x: TX, y: TY + hl.tlbRow * TRH, width: TW, height: TRH, 'class': 'rowhl ' + (hl.tlbKind || '') }));
+      for (let i = 1; i < TLB_CAP; i++) g.appendChild(el('line', { 'class': 'grid', x1: TX, y1: TY + i * TRH, x2: TX + TW, y2: TY + i * TRH }));
+      TLB.forEach((e, i) => {
+        g.appendChild(el('text', { 'class': 'ent', x: tCx, y: tRowY(i) + 4, 'text-anchor': 'middle' }, e.p));
+        g.appendChild(el('text', { 'class': 'ent frame', x: tFx, y: tRowY(i) + 4, 'text-anchor': 'middle' }, e.f));
+      });
+      g = svgClear('ptRows');
+      g.appendChild(el('rect', { x: PX, y: PY, width: PW, height: 8 * PRH, fill: '#13202e' }));
+      if (hl.ptPage != null) g.appendChild(el('rect', { x: PX, y: PY + hl.ptPage * PRH, width: PW, height: PRH, 'class': 'rowhl ' + (hl.ptKind || '') }));
+      for (let i = 1; i < 8; i++) g.appendChild(el('line', { 'class': 'grid', x1: PX, y1: PY + i * PRH, x2: PX + PW, y2: PY + i * PRH }));
+      PAGE_TABLE.forEach((f, i) => {
+        g.appendChild(el('text', { 'class': 'ent', x: pCx, y: pRowY(i) + 4, 'text-anchor': 'middle', 'font-size': 11 }, i));
+        g.appendChild(el('text', { 'class': 'ent frame', x: pFx, y: pRowY(i) + 4, 'text-anchor': 'middle', 'font-size': 11 }, f));
+      });
+      g = svgClear('memRows');
+      for (let i = 0; i < MEMN; i++) {
+        g.appendChild(el('rect', { 'class': 'memcell' + (hl.memFrame === i ? ' ' + (hl.memKind || '') : ''), x: MX, y: MY + i * MRH, width: MW, height: MRH }));
+        g.appendChild(el('text', { 'class': 'flag', x: MX + 8, y: mRowY(i) + 4 }, 'fr' + i));
+        const pg = FRAME_PAGE[i];
+        g.appendChild(el('text', { 'class': (pg == null ? 'flag' : 'ent frame'), x: MX + MW - 9, y: mRowY(i) + 4, 'text-anchor': 'end' }, pg == null ? 'free' : ('p' + pg)));
+      }
+    }
 
-/* animate token along an arrow's points, lighting the arrow + target nodes */
-async function flow(arrId, pts, nodes, kind){
-  const arr=$(arrId); arr.classList.add('on');
-  if(kind) arr.style.stroke = kind==='hit'?'#22c55e':kind==='miss'?'#ef4444':'#60a5fa';
-  const dur=Math.max(260, polyLen(pts)*5/speedFactor());
-  token.setAttribute('opacity','1');
-  await tween(dur,k=>{const [x,y]=polyAt(pts,k);token.setAttribute('cx',x);token.setAttribute('cy',y);});
-  if(nodes) lightNodes(nodes);
-}
+    function ptsStr(pts) { return pts.map(p => p[0] + ',' + p[1]).join(' '); }
+    function getRoundedPath(pts, r) {
+      if (pts.length === 0) return "";
+      if (pts.length === 1) return `M ${pts[0][0]} ${pts[0][1]}`;
+      let d = `M ${pts[0][0]} ${pts[0][1]}`;
+      for (let i = 1; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const dx1 = p1[0] - p0[0];
+        const dy1 = p1[1] - p0[1];
+        const dx2 = p2[0] - p1[0];
+        const dy2 = p2[1] - p1[1];
+        const len1 = Math.hypot(dx1, dy1);
+        const len2 = Math.hypot(dx2, dy2);
+        const actualR = Math.min(r, len1 / 2, len2 / 2);
+        if (actualR > 0) {
+          const startX = p1[0] - (dx1 / len1) * actualR;
+          const startY = p1[1] - (dy1 / len1) * actualR;
+          const endX = p1[0] + (dx2 / len2) * actualR;
+          const endY = p1[1] + (dy2 / len2) * actualR;
+          d += ` L ${startX} ${startY} Q ${p1[0]} ${p1[1]} ${endX} ${endY}`;
+        } else {
+          d += ` L ${p1[0]} ${p1[1]}`;
+        }
+      }
+      d += ` L ${pts[pts.length - 1][0]} ${pts[pts.length - 1][1]}`;
+      return d;
+    }
+    function polyLen(pts) { let L = 0; for (let i = 1; i < pts.length; i++)L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; }
+    function polyAt(pts, t) {
+      const total = polyLen(pts); let d = t * total;
+      for (let i = 1; i < pts.length; i++) {
+        const seg = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        if (d <= seg || i === pts.length - 1) { const r = seg ? Math.min(1, d / seg) : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * r, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * r]; }
+        d -= seg;
+      }
+      return pts[pts.length - 1];
+    }
+    function tween(ms, cb) { return new Promise(res => { const t0 = performance.now(); (function f(now) { let k = ms <= 0 ? 1 : Math.min(1, (now - t0) / ms); cb(k); k < 1 ? requestAnimationFrame(f) : res(); })(performance.now()); }); }
+    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function speedFactor() { return +$('pSpeed').value; }
 
-const buttons=['bHit','bMiss','bAuto','bReset'];
-function setBusy(b){pgRunning=b;buttons.forEach(id=>$(id).disabled=b);}
+    function cap(stepLabel, text, kind) {
+      const c = $('pCap');
+      c.className = 'caption' + (kind === 'hit' ? ' isHit' : kind === 'miss' ? ' isMiss' : '');
+      c.innerHTML = '<span class="step">' + stepLabel + '</span>' + text;
+    }
 
-async function runAccess(mode){
-  if(pgRunning) return;
-  let hit = mode==='hit' ? true : mode==='miss' ? false : (Math.random() < (+$('sHit').value)/100);
-  setBusy(true); clearPaging();
+    function clearPaging() {
+      ['arrCPU', 'arrD', 'arrP', 'arrHit', 'arrMiss', 'arrPT', 'arrMem'].forEach(a => { $(a).classList.remove('on'); $(a).style.stroke = ''; });
+      ['nCPU', 'cellP', 'cellLd', 'nTLB', 'cellF', 'cellPd', 'nMem', 'nPT'].forEach(n => { const e = $(n); if (e) e.classList.remove('on'); });
+      token.setAttribute('opacity', '0');
+      $('costLbl').setAttribute('opacity', '0'); setLabel(null);
+      $('valP').textContent = 'p'; $('valD').textContent = 'd'; $('valF').textContent = 'f'; $('valPd').textContent = 'd';
 
-  // 1. CPU issues logical address
-  cap('Step 1 · CPU','The CPU issues a <b>logical address</b> split into page number <b>p</b> and offset <b>d</b>.');
-  lightNodes(['nCPU']);
-  await flow('arrCPU',[[110,162],[148,161]],['cellP','cellLd']);
-  await wait(250/speedFactor());
+      $('arrCPU').setAttribute('d', getRoundedPath([[90, 305], [148, 305]], 8));
+      $('arrD').setAttribute('d', getRoundedPath([[210, 290], [210, 205], [537, 205], [537, 372]], 8));
+      $('arrP').setAttribute('d', getRoundedPath([[170, 320], [170, 358]], 8));
+      $('arrHit').setAttribute('d', getRoundedPath([[370, 433], [472, 387]], 8));
+      $('arrMiss').setAttribute('d', getRoundedPath([[260, 478], [260, 500], [385, 500], [385, 301.5], [602, 301.5]], 8));
+      $('arrPT').setAttribute('d', getRoundedPath([[604, 311.5], [580, 311.5], [580, 350], [495, 350], [495, 372]], 8));
+      $('arrMem').setAttribute('d', getRoundedPath([[558, 387], [722, 387], [722, 300], [732, 300]], 8));
 
-  // 2. offset d copied straight to physical address
-  cap('Step 2 · offset','The offset <b>d</b> never changes — it is copied straight to the physical address.');
-  await flow('arrD',[[204,146],[204,72],[524,72],[524,300]],['cellPd']);
+      drawTables();
+    }
+    function resetPaging() {
+      if (pgRunning || autoBusy) return;
+      TLB = TLB_INIT.map(e => ({ ...e })); tlbNext = 0;
+      hits = misses = accesses = 0; elapsed = 0;
+      $('cHit').textContent = 0; $('cMiss').textContent = 0; $('cAcc').textContent = 0; $('cTime').textContent = 0;
+      frames = []; stepIdx = 0; seqPages = []; seqResults = [];
+      $('seqLine').style.display = 'none';
+      clearPaging();
+      const msg = pmode === 'single' ? 'Pick <b>TLB hit</b>, <b>Random</b>, or <b>TLB miss</b>, then walk it with <b>Next ▶</b> / <b>◀ Prev</b>.'
+        : pmode === 'demo' ? 'Click <b>Run miss → hit demo</b> to access one page twice and compare 2 trips vs 1 trip.'
+          : 'Type a page-reference string and click <b>Run sequence</b> to watch the TLB warm up.';
+      cap('Ready', msg);
+      updateStepBtns();
+    }
 
-  // 3. look up p in the TLB
-  cap('Step 3 · TLB lookup','Page number <b>p</b> is compared against every TLB entry at once (associative search).');
-  await flow('arrP',[[168,176],[168,295]],['nTLB']);
 
-  if(hit){
-    $('hitRow').className='hl onHit';
-    cap('Step 4 · TLB HIT','<b style="color:var(--ok)">TLB HIT</b> — the frame number <b>f</b> is already in the TLB. No page-table lookup needed.','hit');
-    await flow('arrHit',[[370,295],[450,295],[466,312]],['cellF'],'hit');
-    accesses+=1; hits++;
-    cap('Step 5 · access memory','Physical address ⟨<b>f, d</b>⟩ reads memory. <b>Total cost: 1 memory access.</b>','hit');
-    await flow('arrMem',[[544,315],[600,315],[648,278]],['nMem'],'hit');
-  } else {
-    $('hitRow').className='hl onMiss';
-    cap('Step 4 · TLB MISS','<b style="color:var(--bad)">TLB MISS</b> — <b>p</b> is not in the TLB. We must read the page table, which lives in memory.','miss');
-    await flow('arrMiss',[[176,176],[176,446],[408,446]],['nPT'],'miss');
-    $('ptRow').className='hl onMiss'; accesses+=1;  // 1st access: read page table
-    cap('Step 5 · page table','The page table is indexed by <b>p</b> and returns frame <b>f</b>. <b>(This was the 1st memory access.)</b>','miss');
-    await flow('arrPT',[[452,392],[452,340],[488,340],[488,332]],['cellF'],'miss');
-    accesses+=1; misses++;  // 2nd access: read the data
-    cap('Step 6 · access memory','Now physical address ⟨<b>f, d</b>⟩ reads the data. <b>Total cost: 2 memory accesses.</b>','miss');
-    await flow('arrMem',[[544,315],[600,315],[648,278]],['nMem'],'miss');
-  }
+    const ALL_ARROWS = ['arrCPU', 'arrD', 'arrP', 'arrHit', 'arrMiss', 'arrPT', 'arrMem'];
+    const ALL_NODES = ['nCPU', 'cellP', 'cellLd', 'nTLB', 'cellF', 'cellPd', 'nMem', 'nPT'];
+    const ARRLBL = { arrCPU: 'lblCPU', arrD: 'lblD', arrP: 'lblP', arrHit: 'lblHit', arrMiss: 'lblMiss', arrPT: 'lblPT', arrMem: 'lblMem' };
+    const strokeOf = k => k === 'hit' ? '#22c55e' : k === 'miss' ? '#ef4444' : k ? '#60a5fa' : '';
 
-  $('cHit').textContent=hits; $('cMiss').textContent=misses; $('cAcc').textContent=accesses;
-  // reset arrow inline colors so CSS controls them next run
-  ['arrCPU','arrD','arrP','arrHit','arrMiss','arrPT','arrMem'].forEach(a=>$(a).style.stroke='');
-  setBusy(false);
-}
-</script>
+    /* show only the active arrow's description (dim the rest) */
+    function setLabel(arr) {
+      Object.values(ARRLBL).forEach(id => { const e = $(id); if (e) e.setAttribute('class', 'arrlbl'); });
+      if (arr) { const lb = $(ARRLBL[arr.id]); if (lb) lb.setAttribute('class', 'arrlbl on' + (arr.kind ? ' ' + arr.kind : '')); }
+    }
+
+    async function flow(arr) {   // arr = {id, pts, kind, cost}
+      const el = $(arr.id); el.setAttribute('d', getRoundedPath(arr.pts, 8)); el.classList.add('on');
+      if (arr.kind) el.style.stroke = strokeOf(arr.kind);
+      setLabel(arr);
+      const lbl = $('costLbl'), showCost = (arr.cost != null);
+      if (showCost) { lbl.textContent = '+' + arr.cost + ' ns'; lbl.setAttribute('class', 'costlbl ' + (arr.kind || '')); lbl.setAttribute('opacity', '1'); }
+      const dur = Math.max(260, polyLen(arr.pts) * 5 / speedFactor());
+      token.setAttribute('opacity', '1');
+      await tween(dur, k => {
+        const [x, y] = polyAt(arr.pts, k);
+        token.setAttribute('cx', x); token.setAttribute('cy', y);
+        if (showCost) { lbl.setAttribute('x', x + 12); lbl.setAttribute('y', y - 12); }
+      });
+    }
+
+    function applyArrows(list) {
+      ALL_ARROWS.forEach(id => {
+        const m = list.find(a => a.id === id), el = $(id);
+        if (m) { el.setAttribute('d', getRoundedPath(m.pts, 8)); el.classList.add('on'); el.style.stroke = strokeOf(m.kind); }
+        else { el.classList.remove('on'); el.style.stroke = ''; }
+      });
+    }
+    function applyNodes(list) { ALL_NODES.forEach(id => { const e = $(id); if (e) e.classList.toggle('on', list.includes(id)); }); }
+    function setCells(c) { $('valP').textContent = c.p; $('valD').textContent = c.d; $('valF').textContent = c.f; $('valPd').textContent = c.pd; }
+
+    function rnd(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function updCounts() { $('cHit').textContent = hits; $('cMiss').textContent = misses; $('cAcc').textContent = accesses; }
+
+    function updateStepBtns() {
+      const has = frames.length > 0, lock = pgRunning || autoBusy;
+      $('bNext').disabled = !(has && stepIdx < frames.length - 1 && !lock);
+      $('bPrev').disabled = !(has && stepIdx > 0 && !lock);
+      $('bAuto').disabled = !(has && stepIdx < frames.length - 1 && !lock);
+      ['bHit', 'bRand', 'bMiss', 'bDemo', 'bCustom', 'bReset', 'mSingle', 'mDemo', 'mCustom', 'sMem2', 'sTlb2'].forEach(id => { const e = $(id); if (e) e.disabled = lock; });
+      const si = $('seqInput'); if (si) si.disabled = lock;
+      $('pProg').textContent = has
+        ? (stepIdx >= frames.length - 1 ? '✓ complete' : 'Step ' + stepIdx + ' / ' + (frames.length - 1))
+        : '';
+    }
+
+    function updateSeqLine() {
+      const sl = $('seqLine');
+      if (pmode === 'single' || seqPages.length < 2) { sl.style.display = 'none'; return; }
+      sl.style.display = 'block';
+      const fr = frames[stepIdx] || frames[0];
+      const refs = fr.hits + fr.misses;                 // completed logical accesses
+      const a = refs ? Math.round(fr.hits / refs * 100) : 0;
+      const avg = refs ? (fr.cumElapsed / refs).toFixed(1) : '—';
+      const cur = fr.refIdx;                          // 1-based current access (0 = ready)
+      let r = '';
+      seqPages.forEach((pg, i) => {
+        let cls = '';
+        if (i === cur - 1) cls = 'cur';
+        else if (i < cur - 1 && seqResults[i]) cls = seqResults[i].hit ? 'hit' : 'miss';
+        r += '<span class="' + cls + '">' + pg + '</span> ';
+      });
+      sl.innerHTML = 'hit ratio <b>α = ' + a + '%</b> &nbsp;·&nbsp; average access <b>' + avg + ' ns</b>' +
+        '<div class="seqrefs">' + r + '</div>';
+    }
+
+    const snapFrame = o => ({ ...o, arrows: o.arrows.slice(), nodes: o.nodes.slice(), cells: { ...o.cells }, tables: { ...o.tables }, tlb: o.tlb.map(e => ({ ...e })) });
+
+    /* append all step-frames for ONE access to st.frames, carrying state forward */
+    function appendAccess(st, p, d, tmem, ttlb, accIdx, accCount) {
+      const tIdx = st.tlb.findIndex(e => e.p === p), hit = tIdx >= 0;
+      const f = PAGE_TABLE[p], total = hit ? (ttlb + tmem) : (ttlb + 2 * tmem);
+      const baseNext = st.tlbNext;
+      seqResults.push({ p, hit });
+
+      const D = [];
+      D.push({
+        lab: 'Step 1 · CPU', kind: null,
+        html: 'The CPU issues logical address <b>⟨p=' + p + ', d=' + d + '⟩</b> — page ' + p + ', offset ' + d + '. Generating the address is free (<b>+0 ns</b>).',
+        arrow: { id: 'arrCPU', pts: [[90, 305], [148, 305]], kind: null, cost: 0 }, nodes: ['nCPU', 'cellP', 'cellLd'], tables: {}
+      });
+      D.push({
+        lab: 'Step 2 · offset', kind: null,
+        html: 'The offset <b>d=' + d + '</b> is not translated — it is wired straight to the physical address (<b>+0 ns</b>).',
+        arrow: { id: 'arrD', pts: [[210, 290], [210, 205], [537, 205], [537, 372]], kind: null, cost: 0 }, nodes: ['cellPd'], cells: { pd: d }, tables: {}
+      });
+      D.push({
+        lab: 'Step 3 · TLB search', kind: null,
+        html: 'Page <b>' + p + '</b> is checked against all ' + TLB_CAP + ' TLB entries at once. This costs the TLB search time <b>t<sub>tlb</sub> = ' + ttlb + ' ns</b>.',
+        arrow: { id: 'arrP', pts: [[170, 320], [170, 358]], kind: null, cost: ttlb }, nodes: ['nTLB'], tables: {}
+      });
+      if (hit) {
+        D.push({
+          lab: 'Step 4 · TLB HIT', kind: 'hit',
+          html: '<b style="color:var(--ok)">TLB HIT</b> on row ' + (tIdx + 1) + ': ⟨' + p + ' → ' + f + '⟩ is cached, so frame <b>' + f + '</b> is returned with <b>no page-table access</b> (<b>+0 ns</b>).',
+          arrow: { id: 'arrHit', pts: [[370, tRowY(tIdx)], [472, 387]], kind: 'hit', cost: 0 }, nodes: ['cellF'], cells: { f: f }, tables: { tlbRow: tIdx, tlbKind: 'onHit' }
+        });
+        D.push({
+          lab: 'Step 5 · access memory', kind: 'hit',
+          html: 'Physical address <b>⟨' + f + ', ' + d + '⟩</b> reads frame ' + f + ' (holds page ' + p + ') — one memory access, <b>t<sub>mem</sub> = ' + tmem + ' ns</b>. <b>Total = ' + total + ' ns</b> — a <b style="color:var(--ok)">hit: 1 trip</b>.',
+          arrow: { id: 'arrMem', pts: [[558, 387], [722, 387], [722, mRowY(f)], [732, mRowY(f)]], kind: 'hit', cost: tmem }, nodes: ['nMem'], count: { accesses: 1, hits: 1 }, tables: { tlbRow: tIdx, tlbKind: 'onHit', memFrame: f, memKind: 'onHit' }
+        });
+      } else {
+        D.push({
+          lab: 'Step 4 · TLB MISS', kind: 'miss',
+          html: '<b style="color:var(--bad)">TLB MISS</b> — page ' + p + ' is not cached, so the TLB cannot give the frame. We must read the <b>page table</b> in RAM (the miss adds <b>+0 ns</b>).',
+          arrow: { id: 'arrMiss', pts: [[260, 478], [260, 500], [385, 500], [385, pRowY(p) - 5], [602, pRowY(p) - 5]], kind: 'miss', cost: 0 }, nodes: ['nPT'], tables: {}
+        });
+        D.push({
+          lab: 'Step 5 · page table — TRIP 1', kind: 'miss',
+          html: '<b>1st trip to memory.</b> page&nbsp;table[<b>' + p + '</b>] = frame <b>' + f + '</b>. The page table is in RAM, so this lookup <i>is</i> a real memory access (<b>t<sub>mem</sub> = ' + tmem + ' ns</b>).',
+          arrow: { id: 'arrPT', pts: [[PX, pRowY(p) + 5], [580, pRowY(p) + 5], [580, 350], [495, 350], [495, 372]], kind: 'miss', cost: tmem }, nodes: ['cellF'], cells: { f: f }, count: { accesses: 1 }, tables: { ptPage: p, ptKind: 'onMiss' }
+        });
+        D.push({
+          lab: 'Step 6 · update TLB', kind: 'miss',
+          html: '⟨' + p + ' → ' + f + '⟩ is cached into the TLB (round-robin), so the <i>next</i> access to page ' + p + ' will hit and skip trip 1 (<b>+0 ns</b>).',
+          arrow: null, nodes: [], tlbLoad: true, tables: { ptPage: p, ptKind: 'onMiss', tlbRow: baseNext, tlbKind: 'onLoad' }
+        });
+        D.push({
+          lab: 'Step 7 · access memory — TRIP 2', kind: 'miss',
+          html: '<b>2nd trip to memory.</b> Now, knowing the frame, read the data at <b>⟨' + f + ', ' + d + '⟩</b> in frame ' + f + ' (holds page ' + p + ') — another <b>t<sub>mem</sub> = ' + tmem + ' ns</b>. <b>Total = ' + total + ' ns</b> — a <b style="color:var(--bad)">miss: 2 trips</b> (page table read + data read).',
+          arrow: { id: 'arrMem', pts: [[558, 387], [722, 387], [722, mRowY(f)], [732, mRowY(f)]], kind: 'miss', cost: tmem }, nodes: ['nMem'], count: { accesses: 1, misses: 1 }, tables: { memFrame: f, memKind: 'onMiss' }
+        });
+      }
+
+      // running state for this access (visuals reset; counters/TLB carried from st)
+      let cur = {
+        capLab: '', capHtml: '', capKind: null,
+        arrows: [], nodes: [], cells: { p: p, d: d, f: 'f', pd: 'd' }, tables: {},
+        elapsed: 0, cumElapsed: st.cumElapsed, hits: st.hits, misses: st.misses, accesses: st.accesses,
+        tlb: st.tlb.map(e => ({ ...e })), tlbNext: st.tlbNext, anim: null, accIdx, accCount, refIdx: accIdx
+      };
+
+      // boundary "clear" frame so the previous access's highlights reset cleanly
+      if (accIdx > 1) {
+        cur.capLab = 'Access ' + accIdx + ' of ' + accCount;
+        cur.capHtml = 'Now referencing <b>page ' + p + '</b> (offset ' + d + '). Previous highlights cleared — click <b>Next ▶</b> to translate it.';
+        st.frames.push(snapFrame(cur));
+      }
+
+      D.forEach(s => {
+        if (s.arrow) { cur.arrows = cur.arrows.concat([{ id: s.arrow.id, kind: s.arrow.kind, pts: s.arrow.pts }]); cur.elapsed += s.arrow.cost; cur.cumElapsed += s.arrow.cost; }
+        cur.nodes = cur.nodes.concat(s.nodes || []);
+        if (s.cells) cur.cells = { ...cur.cells, ...s.cells };
+        if (s.count) { cur.hits += s.count.hits || 0; cur.misses += s.count.misses || 0; cur.accesses += s.count.accesses || 0; }
+        if (s.tlbLoad) { cur.tlb = cur.tlb.map(e => ({ ...e })); cur.tlb[cur.tlbNext] = { p, f }; cur.tlbNext = (cur.tlbNext + 1) % TLB_CAP; }
+        cur.tables = s.tables || {};
+        cur.capLab = (accCount > 1 ? 'Access ' + accIdx + ' · ' : '') + s.lab; cur.capHtml = s.html; cur.capKind = s.kind; cur.anim = s.arrow;
+        st.frames.push(snapFrame(cur));
+      });
+
+      st.hits = cur.hits; st.misses = cur.misses; st.accesses = cur.accesses;
+      st.cumElapsed = cur.cumElapsed; st.tlb = cur.tlb.map(e => ({ ...e })); st.tlbNext = cur.tlbNext;
+    }
+
+    /* build frames for a whole sequence of accesses and arm the stepper */
+    function runSequence(pages, offsets, initTLB, readyHtml) {
+      if (pgRunning || autoBusy) return;
+      const tmem = +$('sMem').value, ttlb = +$('sTlb').value;
+      seqPages = pages.slice(); seqResults = [];
+      const st = { frames: [], hits: 0, misses: 0, accesses: 0, cumElapsed: 0, tlb: initTLB.map(e => ({ ...e })), tlbNext: 0 };
+      st.frames.push(snapFrame({
+        capLab: 'Ready', capHtml: readyHtml, capKind: null,
+        arrows: [], nodes: [], cells: { p: 'p', d: 'd', f: 'f', pd: 'd' }, tables: {},
+        elapsed: 0, cumElapsed: 0, hits: 0, misses: 0, accesses: 0,
+        tlb: st.tlb.map(e => ({ ...e })), tlbNext: 0, anim: null, accIdx: 0, accCount: pages.length, refIdx: 0
+      }));
+      pages.forEach((p, i) => appendAccess(st, p, (offsets && offsets[i] != null) ? offsets[i] : randOffset(), tmem, ttlb, i + 1, pages.length));
+      frames = st.frames;
+      hits = misses = accesses = 0; elapsed = 0;
+      clearPaging();
+      stepIdx = 0; showFrame(0, false);
+      updateStepBtns(); updateSeqLine();
+    }
+
+    async function showFrame(k, animate) {
+      const fr = frames[k], prev = frames[k - 1];
+      TLB = fr.tlb.map(e => ({ ...e })); tlbNext = fr.tlbNext;
+      setCells(fr.cells);
+      cap(fr.capLab, fr.capHtml, fr.capKind);
+      token.setAttribute('opacity', '0'); $('costLbl').setAttribute('opacity', '0'); setLabel(null);
+      if (animate && fr.anim && prev) {
+        hits = prev.hits; misses = prev.misses; accesses = prev.accesses; updCounts();
+        elapsed = prev.elapsed; $('cTime').textContent = elapsed;
+        applyArrows(prev.arrows); applyNodes(prev.nodes);
+        drawTables(fr.tables);                 // highlight appears as the token arrives
+        await flow(fr.anim);
+      } else {
+        applyArrows(fr.arrows); applyNodes(fr.nodes);
+        drawTables(fr.tables);
+        if (animate) await wait(360 / speedFactor());
+      }
+      applyArrows(fr.arrows); applyNodes(fr.nodes); setLabel(fr.anim);
+      hits = fr.hits; misses = fr.misses; accesses = fr.accesses; updCounts();
+      elapsed = fr.elapsed; $('cTime').textContent = elapsed;
+      updateSeqLine();
+    }
+
+    function randOffset() { return Math.floor(Math.random() * 256); }
+
+    /* ---- mode tabs & run buttons ---- */
+    function setPMode(m) {
+      if (pgRunning || autoBusy) return;
+      pmode = m;
+      ['single', 'demo', 'custom'].forEach(k => $('m' + k[0].toUpperCase() + k.slice(1)).classList.toggle('active', k === m));
+      $('paneSingle').style.display = m === 'single' ? 'block' : 'none';
+      $('paneDemo').style.display = m === 'demo' ? 'block' : 'none';
+      $('paneCustom').style.display = m === 'custom' ? 'block' : 'none';
+      resetPaging();
+    }
+
+    function startSingle(kind) {
+      if (pgRunning || autoBusy) return;
+      const initPages = TLB_INIT.map(e => e.p);
+      const notIn = [0, 1, 2, 3, 4, 5, 6, 7].filter(p => !initPages.includes(p));
+      let p;
+      if (kind === 'hit') p = rnd(initPages);
+      else if (kind === 'miss') p = notIn.length ? rnd(notIn) : rnd([0, 1, 2, 3, 4, 5, 6, 7]);
+      else p = Math.floor(Math.random() * 8);
+      const hit = initPages.includes(p);
+      const tmem = +$('sMem').value, ttlb = +$('sTlb').value, tot = hit ? (ttlb + tmem) : (ttlb + 2 * tmem);
+      const readyHtml = 'Single access to <b>page ' + p + '</b> — this will be a <b>' + (hit ? 'TLB hit (1 trip)' : 'TLB miss (2 trips)') + '</b> costing <b>' + tot + ' ns</b>. Step with <b>Next ▶</b>.';
+      runSequence([p], null, TLB_INIT, readyHtml);
+    }
+
+    function startDemo() {
+      if (pgRunning || autoBusy) return;
+      const initPages = TLB_INIT.map(e => e.p);
+      const notIn = [0, 1, 2, 3, 4, 5, 6, 7].filter(p => !initPages.includes(p));
+      const p = notIn.length ? rnd(notIn) : rnd([0, 1, 2, 3, 4, 5, 6, 7]);
+      const readyHtml = 'Demo: access <b>page ' + p + ' twice</b>. The 1st access <b style="color:var(--bad)">misses</b> (and loads the TLB); the 2nd <b style="color:var(--ok)">hits</b>. Step through to compare 2 trips vs 1 trip.';
+      runSequence([p, p], null, TLB_INIT, readyHtml);
+    }
+
+    function startCustom() {
+      if (pgRunning || autoBusy) return;
+      const parsed = $('seqInput').value.split(/[\s,]+/).filter(x => x !== '').map(Number);
+      const msg = $('seqMsg');
+      if (parsed.length === 0 || parsed.some(n => !Number.isInteger(n) || n < 0 || n > 7)) { msg.textContent = 'Enter pages 0–7 separated by spaces or commas.'; return; }
+      if (parsed.length > 16) { msg.textContent = 'Please keep it to 16 references or fewer.'; return; }
+      msg.textContent = '';
+      const readyHtml = 'Cold (empty) TLB. Running ' + parsed.length + ' references: <b>' + parsed.join(' ') + '</b>. Watch repeats become hits — the running α and average access time appear below.';
+      runSequence(parsed, null, [], readyHtml);
+    }
+
+    /* step forward (animated) */
+    async function nextStep() {
+      if (pgRunning || stepIdx >= frames.length - 1) return;
+      pgRunning = true; updateStepBtns();
+      stepIdx++; await showFrame(stepIdx, true);
+      pgRunning = false; updateStepBtns();
+    }
+    /* step backward (instant) */
+    function prevStep() {
+      if (pgRunning || autoBusy || stepIdx <= 0) return;
+      stepIdx--; showFrame(stepIdx, false);
+      updateStepBtns();
+    }
+
+    /* play the remaining steps with a readable pause between each */
+    async function autoRun() {
+      if (autoBusy || pgRunning || stepIdx >= frames.length - 1) return;
+      autoBusy = true; updateStepBtns();
+      while (stepIdx < frames.length - 1) {
+        await nextStep();
+        if (stepIdx < frames.length - 1) await wait(1700 / speedFactor());
+      }
+      autoBusy = false; updateStepBtns();
+    }
+
+    /* init */
+    TLB = TLB_INIT.map(e => ({ ...e }));
+    resetPaging();
+
+    /* Tab switcher logic */
+    function switchPageTab(tab) {
+      const isSim = tab === 'sim';
+      document.getElementById('tabSim').classList.toggle('active', isSim);
+      document.getElementById('tabGraph').classList.toggle('active', !isSim);
+      
+      const wrap = document.querySelector('.wrap');
+      const pagesec = document.querySelector('.pagesec');
+      const infoEAT = document.getElementById('infoEAT');
+      const infoPaging = document.getElementById('infoPaging');
+      const infoWhy2 = document.getElementById('infoWhy2');
+      
+      if (isSim) {
+        wrap.style.setProperty('display', 'none', 'important');
+        pagesec.style.setProperty('display', 'block', 'important');
+        if (infoEAT) infoEAT.style.setProperty('display', 'none', 'important');
+        if (infoPaging) infoPaging.style.setProperty('display', 'block', 'important');
+        if (infoWhy2) infoWhy2.style.setProperty('display', 'block', 'important');
+      } else {
+        wrap.style.setProperty('display', 'flex', 'important');
+        pagesec.style.setProperty('display', 'none', 'important');
+        if (infoEAT) infoEAT.style.setProperty('display', 'block', 'important');
+        if (infoPaging) infoPaging.style.setProperty('display', 'none', 'important');
+        if (infoWhy2) infoWhy2.style.setProperty('display', 'none', 'important');
+      }
+    }
+    
+    // Set default tab on load
+    switchPageTab('sim');
+  </script>
 </body>
+
 </html>
