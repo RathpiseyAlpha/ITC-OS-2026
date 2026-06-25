@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demand Paging &amp; Virtual Memory — Swap In / Swap Out</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --accent:#60a5fa; --border:#233042;
+    --hit:#22c55e; --fault:#ef4444; --evict:#f59e0b; --new:#a855f7;
+    --diskface:#1d3f5e; --diskedge:#3a5f82;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 600px;min-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;overflow-x:auto}
+  .side{flex:0 0 360px;min-width:300px;position:sticky;top:16px;align-self:flex-start}
+  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px}
+
+  /* ---- the diagram scene ---- */
+  .scene{position:relative;display:flex;gap:10px;align-items:flex-start;min-height:320px}
+  .col{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+  .colhead{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;min-height:26px;line-height:1.25}
+
+  /* logical memory + program cells */
+  .progs{display:flex;gap:14px}
+  .prog{display:flex;flex-direction:column;gap:6px}
+  .pgcell{width:48px;height:30px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+          font-weight:700;font-size:14px;background:#0e1826;color:#7e93ab;position:relative;transition:.2s}
+  .pgcell .pi{position:absolute;left:-16px;font-size:10px;color:var(--muted);font-weight:600}
+  .pgcell.resident{color:#fff}
+  .pgcell.cur{box-shadow:0 0 0 2px var(--accent)}
+  .pgcell .vi{position:absolute;right:-13px;font-size:10px;font-weight:800}
+  .vi.v{color:var(--hit)} .vi.i{color:var(--muted)}
+
+  /* page table */
+  .ptable{border-collapse:separate;border-spacing:3px}
+  .ptable td,.ptable th{font-size:12px;text-align:center;padding:0}
+  .ptable th{color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+  .ptable .idx{color:var(--muted);width:18px}
+  .ptable .fr{width:34px;height:26px;border:1px solid var(--border);border-radius:5px;background:#0e1826;font-weight:700}
+  .ptable .bit{width:24px;height:26px;border:1px solid var(--border);border-radius:5px;font-weight:800}
+  .ptable .bit.v{color:var(--hit);background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.4)}
+  .ptable .bit.i{color:var(--muted);background:#0c141d}
+  .ptable .fr.set{background:#13233f;color:#cfe0ff}
+
+  /* physical memory (RAM) */
+  .frame{width:64px;height:30px;border-radius:6px;border:1px solid var(--border);background:#0e1826;display:flex;align-items:center;justify-content:center;
+         font-weight:700;font-size:14px;color:#9fb4cc;position:relative;transition:background .2s,border-color .2s,box-shadow .25s}
+  .frame .fi{position:absolute;left:-22px;font-size:10px;color:var(--muted);font-weight:600}
+  .frame.filled{color:#fff}
+  .frame.flashHit{border-color:var(--hit);box-shadow:0 0 0 2px var(--hit),0 0 14px rgba(34,197,94,.5)}
+  .frame.flashNew{border-color:var(--new);box-shadow:0 0 0 2px var(--new),0 0 14px rgba(168,85,247,.5)}
+
+  /* connector + swap labels */
+  .conn{flex:0 0 78px;align-self:center;display:flex;flex-direction:column;align-items:center;gap:16px;color:var(--muted);font-size:11px}
+  .swaplbl{display:flex;align-items:center;gap:4px;opacity:.45;transition:.2s;white-space:nowrap}
+  .swaplbl.on{opacity:1}
+  .swaplbl.out{color:var(--evict)} .swaplbl.in{color:var(--new)}
+
+  /* disk cylinder backing store */
+  .diskwrap{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:6px}
+  .cyl{position:relative;padding:24px 14px 16px;border:1px solid var(--diskedge);border-radius:14px;
+       background:linear-gradient(90deg,#12233700 0%,#13263b 6%,#1d3f5e 50%,#13263b 94%,#12233700 100%)}
+  .cyl::before{content:'';position:absolute;left:10px;right:10px;top:-9px;height:18px;background:var(--diskface);
+       border:1px solid var(--diskedge);border-radius:50%}
+  .dprog{margin-bottom:8px}
+  .dprog:last-child{margin-bottom:0}
+  .dprog .dlbl{font-size:9px;color:var(--muted);text-align:center;margin-bottom:3px}
+  .drow{display:flex;gap:5px;justify-content:center}
+  .dslot{width:30px;height:26px;border:1px dashed var(--diskedge);border-radius:5px;display:flex;align-items:center;justify-content:center;
+         font-weight:700;font-size:12px;background:rgba(0,0,0,.22);color:transparent;transition:.18s}
+  .dslot.onDisk{border-style:solid;color:#fff;animation:dpop .25s ease}
+  @keyframes dpop{from{transform:scale(.4);opacity:.2}to{transform:scale(1);opacity:1}}
+  .diskcap{font-size:10px;color:var(--muted)}
+
+  /* flyer token */
+  .flyer{position:absolute;left:0;top:0;transform:translate(-50%,-50%);min-width:30px;height:28px;padding:0 9px;border-radius:6px;
+         display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;opacity:0;pointer-events:none;z-index:9;transition:opacity .12s}
+  .flyer.show{opacity:1}
+  .flyer.hit{background:var(--hit);color:#06210f;box-shadow:0 4px 16px rgba(34,197,94,.55)}
+  .flyer.in{background:var(--new);color:#1a0830;box-shadow:0 4px 16px rgba(168,85,247,.55)}
+  .flyer.out{background:var(--evict);color:#2a1c00;box-shadow:0 4px 16px rgba(245,158,11,.55)}
+
+  /* controls / side */
+  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:#2e4459}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .modes{display:flex;gap:4px;background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:14px}
+  .modes button{flex:1;background:transparent;border:1px solid transparent;border-radius:8px;padding:10px 12px;color:var(--muted);font-weight:600}
+  .modes button:hover:not(.active){background:rgba(255,255,255,.06);color:var(--ink)}
+  .modes button.active{background:linear-gradient(135deg,#6db1ff,#2f74d6);color:#07121f;border-color:transparent;font-weight:700;box-shadow:0 2px 7px rgba(47,116,214,.45)}
+  .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:104px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:15px;line-height:1.55}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+
+  .vmbox{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+  .vmbox h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+  .vmrow{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-top:1px solid var(--border)}
+  .vmrow:first-of-type{border-top:none}
+  .vmrow b{font-size:17px}
+  .vmrow .vp{color:var(--new)} .vmrow .pp{color:var(--accent)}
+  .takeaway{background:#13233f;border:1px solid #2a4565;border-radius:8px;padding:11px 13px;margin-top:10px;font-size:13px;line-height:1.5;color:#cfe0ff}
+  .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Demand Paging &amp; Virtual Memory — Swap In / Swap Out</h1>
+  <div class="sub">A page is brought into RAM <b>only when needed</b>. Pages live on the <b>disk backing store</b>; the <b>valid–invalid bit</b> says whether a page is currently in a frame. Watch how virtual memory can be <b>larger than RAM</b>, and how <b>several programs</b> share the same frames.</div>
+</header>
+
+<div class="wrap">
+  <div class="stage">
+    <p class="blockTitle" id="stageTitle">Logical memory → page table → physical memory ⇄ disk</p>
+    <div class="scene" id="scene">
+      <div class="col">
+        <div class="colhead">logical<br>memory</div>
+        <div class="progs" id="progs"></div>
+      </div>
+      <div class="col" id="ptCol">
+        <div class="colhead">page<br>table</div>
+        <table class="ptable" id="ptable"></table>
+      </div>
+      <div class="col">
+        <div class="colhead">physical<br>memory (RAM)</div>
+        <div id="ram" style="display:flex;flex-direction:column;gap:6px;margin-left:24px"></div>
+      </div>
+      <div class="conn">
+        <div class="swaplbl out" id="lblOut">swap out ▸</div>
+        <div style="font-size:20px">⇄</div>
+        <div class="swaplbl in" id="lblIn">◂ swap in</div>
+      </div>
+      <div class="diskwrap">
+        <div class="colhead">disk<br>backing store</div>
+        <div class="cyl" id="disk"></div>
+        <div class="diskcap">solid = on disk · outline = in RAM</div>
+      </div>
+      <div class="flyer" id="flyer"></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="modes">
+      <button id="mSingle" class="active" onclick="setMode('single')">One program · big virtual space</button>
+      <button id="mMulti" onclick="setMode('multi')">Three programs · shared RAM</button>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText">Every page starts on disk. Press <b>Next</b> to reference a page — it is paged into RAM on demand.</div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="vmbox">
+      <h3 id="vmHead">Virtual vs physical memory</h3>
+      <div class="vmrow"><span id="vpLabel">Virtual pages (addressable)</span><b class="vp" id="vpVal">—</b></div>
+      <div class="vmrow"><span>Physical frames (in RAM)</span><b class="pp" id="ppVal">—</b></div>
+      <div class="vmrow"><span>Resident right now</span><b id="resVal">—</b></div>
+      <div class="vmrow"><span>Page faults so far</span><b style="color:var(--fault)" id="faultVal">0</b></div>
+      <div class="takeaway" id="takeaway"></div>
+    </div>
+
+    <div class="legend">
+      <div class="row"><span class="sq" style="background:#13233f"></span> Resident page (valid bit = <b style="color:var(--hit)">v</b>, lives in a frame)</div>
+      <div class="row"><span class="sq" style="background:var(--diskface);border-color:var(--diskedge)"></span> On disk only (valid bit = <b style="color:var(--muted)">i</b>)</div>
+      <div class="row"><span class="sq" style="background:var(--evict)"></span> swap <b>out</b> &nbsp; <span class="sq" style="background:var(--new)"></span> swap <b>in</b> &nbsp; <span class="sq" style="background:var(--hit)"></span> hit</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- configuration ---------- */
+const MODES = {
+  single: {
+    frames: 4,
+    showPT: true,
+    programs: [
+      { name:'Program', color:'#60a5fa', pages:['A','B','C','D','E','F','G','H'] }
+    ],
+    // [programIndex, pageIndex]
+    refs: [[0,0],[0,2],[0,5],[0,1],[0,3],[0,0],[0,6],[0,4],[0,0]]
+  },
+  multi: {
+    frames: 8,
+    showPT: false,
+    programs: [
+      { name:'Program A', color:'#a855f7', pages:['A0','A1','A2','A3','A4','A5'] },
+      { name:'Program B', color:'#22c55e', pages:['B0','B1','B2','B3','B4','B5'] },
+      { name:'Program C', color:'#f59e0b', pages:['C0','C1','C2','C3','C4','C5'] }
+    ],
+    refs: [[0,0],[1,0],[2,0],[0,1],[1,1],[2,1],[0,0],[1,2],[2,2],[0,2],[1,0],[2,3]]
+  }
+};
+
+let mode='single';
+let cfg=MODES.single;
+let refs=cfg.refs;
+let trace=[];
+let step=0;
+let playing=false, playTimer=null;
+
+const key=(p,pg)=>p+'_'+pg;
+const label=(p,pg)=>cfg.programs[p].pages[pg];
+const colorOf=p=>cfg.programs[p].color;
+function allPages(){ const out=[]; cfg.programs.forEach((pr,p)=>pr.pages.forEach((_,pg)=>out.push([p,pg]))); return out; }
+function totalVirtual(){ return cfg.programs.reduce((s,pr)=>s+pr.pages.length,0); }
+
+/* ---------- simulation (FIFO replacement) ---------- */
+function simulate(){
+  const F=cfg.frames;
+  let frames=Array(F).fill(null);   // holds page keys
+  let order=[];                     // FIFO load order
+  let faults=0;
+  const tr=[];
+  for(const [p,pg] of refs){
+    const k=key(p,pg);
+    const hit=frames.includes(k);
+    let victim=null, slotIdx=-1;
+    if(!hit){
+      faults++;
+      const empty=frames.indexOf(null);
+      if(empty!==-1){ slotIdx=empty; frames[empty]=k; order.push(k); }
+      else{ victim=order.shift(); slotIdx=frames.indexOf(victim); frames[slotIdx]=k; order.push(k); }
+    }
+    tr.push({p,pg,k,hit,victim,slotIdx,frames:frames.slice(),faults});
+  }
+  return tr;
+}
+function framesAt(s){ return s>0 ? trace[s-1].frames : Array(cfg.frames).fill(null); }
+function residentKeys(s){ return new Set(framesAt(s).filter(v=>v!==null)); }
+function keyParts(k){ return k.split('_').map(Number); }
+
+/* ---------- static rendering ---------- */
+function buildPrograms(s){
+  const res=residentKeys(s);
+  const curK = (s>0)? trace[s-1].k : null;
+  let html='';
+  cfg.programs.forEach((pr,p)=>{
+    html+='<div class="prog"><div class="colhead" style="color:'+pr.color+'">'+pr.name+'</div>';
+    pr.pages.forEach((lab,pg)=>{
+      const k=key(p,pg);
+      const resident=res.has(k);
+      const cur=(k===curK);
+      const showVI = cfg.showPT;
+      html+='<div class="pgcell'+(resident?' resident':'')+(cur?' cur':'')+'" '+
+            'style="border-color:'+pr.color+';'+(resident?'background:'+pr.color+'22;':'')+'">'+
+            '<span class="pi">'+pg+'</span>'+lab+
+            (showVI?'<span class="vi '+(resident?'v':'i')+'">'+(resident?'v':'i')+'</span>':'')+
+            '</div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById('progs').innerHTML=html;
+}
+
+function buildPageTable(s){
+  const col=document.getElementById('ptCol');
+  if(!cfg.showPT){ col.style.display='none'; return; }
+  col.style.display='';
+  const frames=framesAt(s);
+  const pr=cfg.programs[0];
+  let html='<tr><th></th><th>frame</th><th>v/i</th></tr>';
+  pr.pages.forEach((lab,pg)=>{
+    const k=key(0,pg);
+    const fi=frames.indexOf(k);
+    const resident=fi!==-1;
+    html+='<tr><td class="idx">'+pg+'</td>'+
+          '<td class="fr'+(resident?' set':'')+'">'+(resident?fi:'–')+'</td>'+
+          '<td class="bit '+(resident?'v':'i')+'">'+(resident?'v':'i')+'</td></tr>';
+  });
+  document.getElementById('ptable').innerHTML=html;
+}
+
+function buildRAM(slots){
+  let html='';
+  for(let f=0; f<cfg.frames; f++){
+    const k=slots[f];
+    let lab='', col='';
+    if(k!=null){ const [p,pg]=keyParts(k); lab=label(p,pg); col=colorOf(p); }
+    html+='<div class="frame'+(k!=null?' filled':'')+'" id="ramf'+f+'" '+
+          (k!=null?'style="border-color:'+col+';background:'+col+'22"':'')+'>'+
+          '<span class="fi">'+f+'</span>'+lab+'</div>';
+  }
+  document.getElementById('ram').innerHTML=html;
+}
+
+function buildDisk(s){
+  const res=residentKeys(s);
+  let html='';
+  cfg.programs.forEach((pr,p)=>{
+    html+='<div class="dprog">'+(cfg.programs.length>1?'<div class="dlbl" style="color:'+pr.color+'">'+pr.name+'</div>':'')+'<div class="drow">';
+    pr.pages.forEach((lab,pg)=>{
+      const k=key(p,pg);
+      const onDisk=!res.has(k);   // solid = currently on disk; outline = in RAM
+      html+='<div class="dslot'+(onDisk?' onDisk':'')+'" id="ds'+p+'_'+pg+'" '+
+            (onDisk?'style="border-color:'+pr.color+';background:'+pr.color+'33"':'')+'>'+lab+'</div>';
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('disk').innerHTML=html;
+}
+function setSlotOnDisk(k,on){
+  const [p,pg]=keyParts(k);
+  const el=document.getElementById('ds'+p+'_'+pg); if(!el) return;
+  if(on){ el.classList.add('onDisk'); el.style.borderColor=colorOf(p); el.style.background=colorOf(p)+'33'; }
+  else { el.classList.remove('onDisk'); el.style.borderColor=''; el.style.background=''; }
+}
+function setRAM(f,k){
+  const el=document.getElementById('ramf'+f); if(!el) return;
+  if(k==null){ el.className='frame'; el.style.borderColor=''; el.style.background=''; el.innerHTML='<span class="fi">'+f+'</span>'; }
+  else{ const [p,pg]=keyParts(k); el.className='frame filled'; el.style.borderColor=colorOf(p); el.style.background=colorOf(p)+'22';
+        el.innerHTML='<span class="fi">'+f+'</span>'+label(p,pg); }
+}
+function flashFrame(f,cls){ const el=document.getElementById('ramf'+f); if(!el)return; el.classList.add(cls); setTimeout(()=>el.classList.remove(cls),700); }
+
+/* ---------- flying token ---------- */
+let animToken=0;
+function hideFlyer(){ document.getElementById('flyer').className='flyer'; }
+function center(el,sr){ const r=el.getBoundingClientRect(); return [r.left-sr.left+r.width/2, r.top-sr.top+r.height/2]; }
+function fly(fromEl,toEl,text,cls,ms,my){
+  return new Promise(res=>{
+    const scene=document.getElementById('scene'), fl=document.getElementById('flyer');
+    if(!fromEl||!toEl){ res(); return; }
+    const sr=scene.getBoundingClientRect();
+    const [x0,y0]=center(fromEl,sr), [x1,y1]=center(toEl,sr);
+    fl.textContent=text; fl.className='flyer show '+cls;
+    fl.style.left=x0+'px'; fl.style.top=y0+'px';
+    const t0=performance.now();
+    (function f(now){
+      if(my!==animToken){ res(); return; }
+      const kf=Math.min(1,(now-t0)/ms);
+      const e=kf<.5?2*kf*kf:1-Math.pow(-2*kf+2,2)/2;
+      fl.style.left=(x0+(x1-x0)*e)+'px';
+      fl.style.top =(y0+(y1-y0)*e)+'px';
+      if(kf<1) requestAnimationFrame(f); else res();
+    })(performance.now());
+  });
+}
+function lit(id,on){ document.getElementById(id).classList.toggle('on',on); }
+
+async function animateStep(t){
+  const my=++animToken;
+  const dur=playing?360:520;
+  const reqCell=document.getElementById('ds'+t.p+'_'+t.pg);       // page's home on disk
+  if(t.hit){
+    const idx=framesAt(step).indexOf(t.k);
+    await fly(document.getElementById('ramf'+idx), document.getElementById('ramf'+idx), label(t.p,t.pg),'hit',300,my);
+    if(my!==animToken) return;
+    flashFrame(idx,'flashHit'); hideFlyer();
+    return;
+  }
+  if(t.victim===null){
+    // free frame: load straight from disk
+    lit('lblIn',true);
+    await fly(reqCell, document.getElementById('ramf'+t.slotIdx), label(t.p,t.pg),'in',dur,my);
+    if(my!==animToken) return;
+    setSlotOnDisk(t.k,false); setRAM(t.slotIdx,t.k); flashFrame(t.slotIdx,'flashNew'); hideFlyer(); lit('lblIn',false);
+    return;
+  }
+  // full: swap victim out, then requested page in
+  const [vp,vpg]=keyParts(t.victim);
+  lit('lblOut',true);
+  await fly(document.getElementById('ramf'+t.slotIdx), document.getElementById('ds'+vp+'_'+vpg), label(vp,vpg),'out',dur,my);
+  if(my!==animToken) return;
+  setRAM(t.slotIdx,null); setSlotOnDisk(t.victim,true); lit('lblOut',false);
+  lit('lblIn',true);
+  await fly(reqCell, document.getElementById('ramf'+t.slotIdx), label(t.p,t.pg),'in',dur,my);
+  if(my!==animToken) return;
+  setSlotOnDisk(t.k,false); setRAM(t.slotIdx,t.k); flashFrame(t.slotIdx,'flashNew'); hideFlyer(); lit('lblIn',false);
+}
+
+/* ---------- main render ---------- */
+function renderScene(animate){
+  animToken++;
+  lit('lblOut',false); lit('lblIn',false);
+  if(animate && step>0){
+    buildPrograms(step); buildPageTable(step);     // page-table/logical can show the post state
+    buildRAM(framesAt(step-1)); buildDisk(step-1); // RAM + disk animate from the pre-step layout
+    hideFlyer();
+    animateStep(trace[step-1]);
+  } else {
+    buildPrograms(step); buildPageTable(step);
+    buildRAM(framesAt(step)); buildDisk(step);
+    hideFlyer();
+  }
+}
+
+function render(animate){
+  renderScene(animate);
+
+  const faults = step>0 ? trace[step-1].faults : 0;
+  const resident = framesAt(step).filter(v=>v!==null).length;
+  document.getElementById('vpVal').textContent = totalVirtual()+' pages';
+  document.getElementById('ppVal').textContent = cfg.frames+' frames';
+  document.getElementById('resVal').textContent = resident+' / '+cfg.frames+' frames used';
+  document.getElementById('faultVal').textContent = faults;
+
+  // caption
+  const sl=document.getElementById('stepLabel'), ct=document.getElementById('captionText');
+  if(step===0){
+    sl.textContent='Step 0 of '+refs.length;
+    ct.innerHTML='Every page starts on <b>disk</b> (all valid bits = <b style="color:var(--muted)">i</b>). Press <b>Next</b> to reference a page — it is paged into RAM on demand.';
+  } else {
+    const t=trace[step-1];
+    sl.textContent='Step '+step+' of '+refs.length+' · reference '+label(t.p,t.pg);
+    if(t.hit){
+      ct.innerHTML='Reference <b>'+label(t.p,t.pg)+'</b> → <b style="color:var(--hit)">HIT</b>. Valid bit is <b style="color:var(--hit)">v</b>, the page is already in a frame — no disk access.';
+    } else if(t.victim===null){
+      ct.innerHTML='Reference <b>'+label(t.p,t.pg)+'</b> → <b style="color:var(--fault)">PAGE FAULT</b> (bit was <b style="color:var(--muted)">i</b>). A free frame exists, so the page is <b style="color:var(--new)">swapped in</b> from disk to <b>F'+t.slotIdx+'</b>; bit → <b style="color:var(--hit)">v</b>.';
+    } else {
+      ct.innerHTML='Reference <b>'+label(t.p,t.pg)+'</b> → <b style="color:var(--fault)">PAGE FAULT</b>. RAM is full: victim <b style="color:var(--evict)">'+label(...keyParts(t.victim))+'</b> is <b style="color:var(--evict)">swapped out</b> to disk (bit → <b style="color:var(--muted)">i</b>), then <b>'+label(t.p,t.pg)+'</b> is <b style="color:var(--new)">swapped in</b> to F'+t.slotIdx+' (bit → <b style="color:var(--hit)">v</b>).';
+    }
+  }
+
+  // takeaway
+  const tk=document.getElementById('takeaway');
+  if(mode==='single'){
+    tk.innerHTML='The program addresses <b>'+totalVirtual()+' pages</b> but only <b>'+cfg.frames+'</b> fit in RAM — the rest stay on disk. <b>Virtual memory</b> can be as large as the backing store, far bigger than physical RAM.';
+  } else {
+    tk.innerHTML='<b>'+cfg.programs.length+' programs</b> need <b>'+totalVirtual()+' pages</b> total, but RAM has only <b>'+cfg.frames+' frames</b>. Demand paging keeps just each program\'s <b>active</b> pages resident, so all '+cfg.programs.length+' run at once — and more users fit.';
+  }
+
+  document.getElementById('prevBtn').disabled=(step===0);
+  document.getElementById('nextBtn').disabled=(step>=refs.length);
+  document.getElementById('progress').textContent='Step '+step+' / '+refs.length;
+}
+
+/* ---------- mode + controls ---------- */
+function setMode(m){
+  mode=m; cfg=MODES[m]; refs=cfg.refs; trace=simulate(); step=0; stopPlay();
+  document.getElementById('mSingle').classList.toggle('active',m==='single');
+  document.getElementById('mMulti').classList.toggle('active',m==='multi');
+  document.getElementById('vmHead').textContent = m==='single' ? 'Virtual memory can exceed RAM' : 'Many programs, one RAM';
+  document.getElementById('vpLabel').textContent = m==='single' ? 'Virtual pages (addressable)' : 'Virtual pages (all programs)';
+  document.getElementById('stageTitle').textContent = m==='single'
+    ? 'Logical memory → page table → physical memory ⇄ disk'
+    : 'Three programs’ logical memory → shared physical memory ⇄ disk';
+  render();
+}
+function next(){ if(step<refs.length){ step++; render(true); } if(step>=refs.length) stopPlay(); }
+function prev(){ if(step>0){ step--; render(); stopPlay(); } }
+function reset(){ step=0; stopPlay(); render(); }
+function togglePlay(){ playing?stopPlay():startPlay(); }
+function startPlay(){ playing=true; document.getElementById('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{ if(step>=refs.length){stopPlay();return;} next(); }, 1500); }
+function stopPlay(){ playing=false; document.getElementById('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
+
+document.addEventListener('keydown', e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select') return;
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+/* init */
+setMode('single');
+</script>
+</body>
+</html>

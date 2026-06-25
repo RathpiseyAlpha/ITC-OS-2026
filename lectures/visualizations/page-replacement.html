@@ -71,9 +71,14 @@
   .fr.flashHit{border-color:var(--hit);box-shadow:0 0 0 2px var(--hit),0 0 14px rgba(34,197,94,.55)}
   .fr.flashNew{border-color:var(--new);box-shadow:0 0 0 2px var(--new),0 0 14px rgba(168,85,247,.55)}
   .conn{flex:0 0 24px;align-self:center;color:var(--muted);font-size:18px;text-align:center;line-height:1.1}
-  .disk{width:92px}
+  .disk{width:112px}
   .disk .platters{display:flex;flex-direction:column;gap:4px;width:56px}
-  .disk .pl{height:10px;border-radius:3px;background:#1a2735;border:1px solid #2c3e54}
+  .disk .pl{height:8px;border-radius:3px;background:#1a2735;border:1px solid #2c3e54}
+  .disk .storelbl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--evict);text-align:center;margin-top:2px}
+  .diskStore{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;min-height:20px;width:100%}
+  .diskStore .dchip{min-width:22px;height:20px;padding:0 5px;border-radius:5px;background:#2a1c00;border:1px solid var(--evict);color:#f6c873;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;animation:dpop .25s ease}
+  .diskStore .empty{font-size:10px;color:var(--muted);font-weight:400}
+  @keyframes dpop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
   .flyer{position:absolute;left:0;top:0;transform:translate(-50%,-50%);min-width:30px;height:30px;padding:0 9px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;opacity:0;pointer-events:none;z-index:6;transition:opacity .12s}
   .flyer.show{opacity:1}
   .flyer.hit{background:var(--hit);color:#06210f;box-shadow:0 4px 16px rgba(34,197,94,.55)}
@@ -136,7 +141,9 @@
       <div class="conn">⇄</div>
       <div class="unit disk">
         <div class="unit-title">Disk<br>(backing store)</div>
-        <div class="platters"><div class="pl"></div><div class="pl"></div><div class="pl"></div><div class="pl"></div></div>
+        <div class="platters"><div class="pl"></div><div class="pl"></div><div class="pl"></div></div>
+        <div class="storelbl">swapped out</div>
+        <div class="diskStore" id="diskStore"></div>
       </div>
       <div class="flyer" id="flyer"></div>
     </div>
@@ -211,6 +218,7 @@
     <div class="legend">
       <div class="row"><span class="sq" style="background:#2a1c3d;border-color:var(--new)"></span> Page just loaded on a fault (the victim it replaced is named in the caption)</div>
       <div class="row"><span class="sq" style="background:#1c2940"></span> Resident page (unchanged this step)</div>
+      <div class="row"><span class="sq" style="background:#2a1c00;border-color:var(--evict)"></span> On disk — swapped out and not currently in a frame</div>
       <div class="row"><span class="sq" style="background:var(--hit)"></span> <b>H</b> = hit &nbsp; <span class="sq" style="background:var(--fault)"></span> <b>F</b> = fault</div>
     </div>
   </div>
@@ -280,6 +288,21 @@ function totalFaults(refs, nf, algo){ const t=simulate(refs,nf,algo); return t.l
 let animToken=0;   // bumped to cancel an in-flight animation
 function frameValsAt(s){ return s>0 ? trace[s-1].slots : Array(numFrames).fill(null); }
 
+// pages that have been referenced so far but are NOT currently resident =
+// the pages sitting on disk (evicted and not yet swapped back in)
+function diskValsAt(s){
+  const resident = new Set(frameValsAt(s).filter(v=>v!==null));
+  const seen=[];
+  for(let i=0;i<s;i++){ if(!seen.includes(refs[i])) seen.push(refs[i]); }
+  return seen.filter(p=>!resident.has(p)).sort((a,b)=>a-b);
+}
+function buildDisk(vals){
+  const c=document.getElementById('diskStore');
+  c.innerHTML = vals.length
+    ? vals.map(v=>'<span class="dchip">'+v+'</span>').join('')
+    : '<span class="empty">—</span>';
+}
+
 function buildFrames(slots){
   const c=document.getElementById('ramFrames');
   let html='';
@@ -341,16 +364,22 @@ async function swapAnimate(t){
     setFrame(idx,t.page); flash(idx,'flashNew'); hideFlyer();
   } else {
     const idx=t.slotIdx;
-    // 1) swap victim out of RAM to disk
+    const fromDisk = refs.slice(0, step-1).includes(t.page);   // was this page evicted earlier?
+    // 1) swap victim out of RAM to disk — it now sits in the disk store
     await fly(document.getElementById('fr'+idx), disk, t.victim, 'evict', dur, my);
     if(my!==animToken) return;
     setFrame(idx,'');
-    // 2) load requested page from CPU into the freed frame
-    await fly(cpu, document.getElementById('fr'+idx), t.page, 'new', dur, my);
+    buildDisk(unionSorted(diskValsAt(step-1), t.victim));        // victim lands on disk
+    // 2) load the requested page into the freed frame — from disk if it was swapped
+    //    out before, otherwise brought in fresh from the CPU side
+    const src = fromDisk ? disk : cpu;
+    await fly(src, document.getElementById('fr'+idx), t.page, 'new', dur, my);
     if(my!==animToken) return;
     setFrame(idx,t.page); flash(idx,'flashNew'); hideFlyer();
+    buildDisk(diskValsAt(step));                                 // page (if any) removed from disk
   }
 }
+function unionSorted(arr, v){ return arr.includes(v)?arr.slice():arr.concat([v]).sort((a,b)=>a-b); }
 
 function renderScene(animate){
   // cancel any running animation; static renders show the final state
@@ -358,10 +387,12 @@ function renderScene(animate){
   document.getElementById('cpuReg').textContent = step>0 ? trace[step-1].page : '—';
   if(animate && step>0){
     buildFrames(frameValsAt(step-1));   // start from the pre-step layout
+    buildDisk(diskValsAt(step-1));
     hideFlyer();
     swapAnimate(trace[step-1]);
   } else {
     buildFrames(frameValsAt(step));     // jump straight to current state
+    buildDisk(diskValsAt(step));
     hideFlyer();
   }
 }
@@ -436,7 +467,10 @@ function render(animate){
       const why = algo==='FIFO' ? 'it was loaded earliest (oldest in)'
                 : algo==='LRU'  ? 'it was used least recently'
                 :                 'its next use is farthest in the future';
-      ct.innerHTML='Reference <b>'+t.page+'</b> → <b style="color:var(--fault)">FAULT</b>. Memory is full, so '+algo+' evicts <b style="color:var(--evict)">'+t.victim+'</b> ('+why+') and loads '+t.page+' into <b>F'+(t.slotIdx+1)+'</b>.';
+      const fromDisk = refs.slice(0, step-1).includes(t.page);
+      ct.innerHTML='Reference <b>'+t.page+'</b> → <b style="color:var(--fault)">FAULT</b>. Memory is full, so '+algo+
+        ' evicts <b style="color:var(--evict)">'+t.victim+'</b> ('+why+') — it is <b>written out to disk</b> — and loads '+t.page+
+        (fromDisk?' <b>back in from disk</b>':'')+' into <b>F'+(t.slotIdx+1)+'</b>.';
     }
   }
 

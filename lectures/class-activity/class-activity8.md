@@ -32,7 +32,7 @@ Each has a **Build your own** mode — plug in your personalized address, refere
 | Task | What you do | Evidence you submit |
 |------|-------------|---------------------|
 | **Part 1A** — Address translation **by hand** | Translate six logical addresses (incl. your `N` and an invalid page) through the page table | Filled translation table + arithmetic |
-| **Part 1B** — TLB lookup & **EAT** **by hand** | Trace a page-reference stream through a 4-entry LRU **TLB**, then compute **Effective Access Time** | TLB trace table + EAT calculation + EAT screenshot |
+| **Part 1B** — TLB lookup & **EAT** **by hand** | Trace a page-reference stream through a 4-entry **TLB**, then compute **Effective Access Time** | TLB trace table + EAT calculation + EAT screenshot |
 | **Part 1C** — Paging simulator | Program the translation (and optionally a TLB cache); verify Part 1A/1B | Source + `task1_translation.png` |
 | **Part 2A** — Page replacement **by hand** | Predict, then hand-trace **FIFO** and **LRU** on *your* reference string | Two trace tables + prediction |
 | **Part 2B** — Demand-paging simulator | Program FIFO & LRU; verify Part 2A | Source + `task2_fifo.png`, `task2_lru.png` |
@@ -90,27 +90,32 @@ Every translation above had to read the **page table in memory**. A **TLB** (Tra
 **TLB model:**
 
 ```text
-TLB: 4 entries, fully associative, empty at start, LRU replacement.
+TLB: 4 entries, fully associative, empty at start.
 A TLB HIT  -> frame known immediately (no page-table read).
 A TLB MISS -> read the page table in memory to get the frame, then load
-              that page→frame entry into the TLB (evicting the LRU entry if full).
+              that page→frame entry into the TLB.
+
+Your stream below touches at most 4 distinct pages, so the TLB never fills
+past its 4 entries — once a page is loaded it stays, and nothing is ever
+evicted. (What to do when a cache is already full — replacement policies —
+comes later, with demand paging in Part 2.)
 ```
 
-Use the **same page table** as Part 1A. Build **your** page-reference stream:
+Use the **same page table** as Part 1A. Build **your** page-reference stream by setting **p = (a mod 3)**:
 
 ```text
-Base stream (pages):  1  2  4  1  6  2  7  1  4  6
-Yours: replace the FIRST page (1) with (a mod 8).
-       If that gives an invalid page (3 or 5), use 0 instead. Keep the rest.
+Stream (pages):  p  2  4  p  7  2  4  p  7  2      with p = a mod 3
+Pages p, 2, 4 and 7 are all valid, so every reference resolves to a frame.
+If p = 2 your stream has 3 distinct pages; otherwise it has 4.
 ```
 
-**Predict first (before tracing):** how many of the 10 references do you expect to be TLB **hits**? One sentence why.
+**Predict first (before tracing):** how many of the 10 references do you expect to be TLB **hits**? (Hint: a page can only *miss* the first time it is touched.) One sentence why.
 
-Now hand-trace the TLB. One row per reference — mark HIT/MISS, the TLB contents after the reference (most-recently-used last), and the evicted entry if any:
+Now hand-trace the TLB. One row per reference — mark HIT/MISS and the TLB contents after the reference:
 
-| Ref (page) | HIT / MISS | Page table read? | TLB after (LRU→MRU) | Evicted |
-|------------|------------|------------------|---------------------|---------|
-| … (10 rows) | | | | |
+| Ref (page) | HIT / MISS | Page table read? | TLB contents after |
+|------------|------------|------------------|--------------------|
+| … (10 rows) | | | |
 
 **Measured hits: ____ / 10  →  hit ratio α = ____**
 
@@ -126,7 +131,7 @@ EAT = α·(t_tlb + t_mem) + (1 − α)·(t_tlb + 2·t_mem)
 2. Compute EAT at the lecture's **α = 0.80** and **α = 0.99**, and at **no TLB** (every access pays `t_tlb + 2·t_mem`). Show all three.
 3. In one sentence: how much **faster** (in %) is the 99% case than having no TLB at all?
 
-**Verify:** open the **EAT calculator** visualization, set `t_mem`, `t_tlb` and the hit ratio to your numbers (use the *80% hit* / *99% hit* presets to check those two), and confirm the EAT it reports matches your arithmetic. Screenshot → `screenshots/part1_eat.png`. You may also rebuild your stream in the **TLB** visualization to check your hit/miss column → `screenshots/part1_tlb.png`.
+**Verify:** open the **EAT calculator** visualization, set `t_mem`, `t_tlb` and the hit ratio to your numbers (use the *80% hit* / *99% hit* presets to check those two), and confirm the EAT it reports matches your arithmetic. Screenshot → `screenshots/part1_eat.png`. You may also rebuild your stream in the **TLB** visualization (leave the TLB size at 4) to check your hit/miss column — with this stream the TLB never fills, so nothing is ever evicted → `screenshots/part1_tlb.png`.
 
 ### Part 1C — Paging address-translation simulator
 
@@ -154,7 +159,7 @@ for LA in addresses:
     else:                  print "Page fault: page not in memory"
 ```
 
-**Optional — TLB cache + EAT:** add a 4-entry LRU TLB in front of the page table, feed it your Part 1B stream, count hits/misses, and print the measured hit ratio and EAT. Confirm both match your Part 1B hand numbers.
+**Optional — TLB cache + EAT:** add a 4-entry TLB in front of the page table (no replacement needed — your stream has at most 4 distinct pages), feed it your Part 1B stream, count hits/misses, and print the measured hit ratio and EAT. Confirm both match your Part 1B hand numbers.
 
 **Verify:** confirm every row of your Part 1A table matches the program. Screenshot → `screenshots/task1_translation.png`.
 
@@ -312,7 +317,7 @@ Which faulted more, and did it match my prediction: …
 | Criteria | Points | Description |
 |----------|--------|-------------|
 | **1A hand translation** | 12 | Correct page/offset/frame/physical for all six addresses (incl. your N and an invalid page), with shown arithmetic and the fragmentation calculation. |
-| **1B TLB trace + EAT** | 13 | Complete TLB hit/miss trace for *your* stream with correct LRU evictions, a recorded prediction, and correct EAT at your α, 80%, 99% and no-TLB with shown substitutions. |
+| **1B TLB trace + EAT** | 13 | Complete TLB hit/miss trace for *your* stream with correct TLB contents per row, a recorded prediction, and correct EAT at your α, 80%, 99% and no-TLB with shown substitutions. |
 | **1C paging simulator** | 12 | Correct translation program incl. the invalid-page message (TLB/EAT extension optional). |
 | **2A hand traces + prediction** | 18 | Complete FIFO and LRU trace tables for *your* string, correct fault totals, and a recorded prediction. |
 | **2B demand-paging simulator** | 18 | Correct FIFO and LRU (hits update recency), per-step trace, and fault counts on both strings. |
@@ -329,7 +334,7 @@ Which faulted more, and did it match my prediction: …
 
 - Keep page size a power of two: `page = LA >> 4`, `offset = LA & 15` — and the offset-bits answer falls right out.
 - Do the **by-hand** part of each section *before* writing any code; the simulator is your answer key, not your calculator.
-- For the TLB, "LRU" means the entry **not used for the longest** is evicted — and a **hit** refreshes that entry's recency, just like LRU page replacement.
+- For the TLB, a page **misses only the first time** you touch it and **hits** every time after — with a 4-page working set the 4-entry TLB never fills, so nothing is ever evicted (replacement policies arrive in Part 2).
 - In the EAT formula a TLB **miss** costs *two* memory accesses (page table, then data); a **hit** costs *one*. That single extra access is the whole story.
 - A FIFO queue (oldest-first) and an LRU recency order are **different** structures — don't reuse one for the other.
 - With 3 empty frames, the first 3 distinct pages always fault — that's expected.
