@@ -82,6 +82,10 @@
   header h1{font-size:clamp(17px,2.5vh,24px)}
   header .sub{font-size:clamp(11px,1.5vh,14px)}
   .side{top:calc(var(--hh,92px) + 12px)}
+/* keep the back link on the same row as the title so the header stays short */
+  header{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:14px;row-gap:2px}
+  header a[href="index.html"]{margin-bottom:0 !important;order:-1}
+  header .sub{flex-basis:100%}
 </style>
 </head>
 <body>
