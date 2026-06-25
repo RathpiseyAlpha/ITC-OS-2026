@@ -7,20 +7,39 @@
 <style>
   :root{--bg:#0f1722;--panel:#16212f;--ink:#e7eef7;--muted:#8aa0b6;--accent:#60a5fa;--border:#233042;--ok:#22c55e}
   *{box-sizing:border-box}
-  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
-  header{padding:26px 24px;border-bottom:1px solid var(--border)}
-  h1{margin:0;font-size:24px}
-  .sub{color:var(--muted);font-size:14px;margin-top:6px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;padding:24px;max-width:1000px}
-  a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;transition:.15s}
+  html,body{height:100%}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);
+       display:flex;flex-direction:column;min-height:100vh}
+  header{flex:0 0 auto;padding:clamp(10px,2.2vh,22px) clamp(16px,3vw,28px);border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:clamp(17px,2.5vh,24px)}
+  .sub{color:var(--muted);font-size:clamp(11px,1.5vh,14px);margin-top:4px}
+
+  /* 3×3 grid that fills the space between header and footer */
+  .grid{flex:1 1 auto;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;
+        gap:clamp(10px,1.6vw,18px);padding:clamp(12px,2vh,24px) clamp(16px,3vw,28px);
+        width:100%;max-width:1280px;margin:0 auto;min-height:0}
+  a.card{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:var(--panel);
+         border:1px solid var(--border);border-radius:14px;padding:clamp(12px,2vh,20px);transition:.15s;min-height:0;overflow:hidden}
   a.card:hover{border-color:var(--accent);transform:translateY(-2px)}
-  a.card.soon{opacity:.55;pointer-events:none}
-  .tag{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
-  .tag.soon{color:var(--muted)}
-  h2{margin:8px 0 6px;font-size:18px}
-  p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
-  .go{margin-top:14px;font-size:13px;color:var(--ok);font-weight:600}
-  footer{padding:18px 24px;color:var(--muted);font-size:12px;border-top:1px solid var(--border)}
+  .tag{font-size:clamp(9px,1.3vh,11px);text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
+  h2{margin:5px 0 6px;font-size:clamp(14px,2vh,18px);line-height:1.2}
+  p{margin:0;color:var(--muted);font-size:clamp(11px,1.5vh,14px);line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .go{margin-top:auto;padding-top:10px;font-size:clamp(11px,1.5vh,13px);color:var(--ok);font-weight:600}
+  footer{flex:0 0 auto;padding:clamp(8px,1.4vh,16px) clamp(16px,3vw,28px);color:var(--muted);
+         font-size:clamp(10px,1.3vh,12px);border-top:1px solid var(--border)}
+
+  /* lock to a single screen on normal laptop/desktop heights */
+  @media (min-height:560px){ body{height:100vh;overflow:hidden} }
+  /* narrower screens: fewer columns, allow scrolling */
+  @media (max-width:900px){
+    .grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:minmax(120px,1fr)}
+    body{height:auto;overflow:auto}
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr}
+    body{height:auto;overflow:auto}
+  }
 </style>
 </head>
 <body>
