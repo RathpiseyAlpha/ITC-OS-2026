@@ -120,6 +120,11 @@
   header{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:14px;row-gap:2px}
   header a[href="index.html"]{margin-bottom:0 !important;order:-1}
   header .sub{flex-basis:100%}
+/* back link on the left; title and subtitle stacked in one column to its right */
+  header{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:14px;row-gap:2px}
+  header a[href="index.html"]{grid-column:1;grid-row:1 / span 2;align-self:center;margin-bottom:0 !important}
+  header h1{grid-column:2;grid-row:1}
+  header .sub{grid-column:2;grid-row:2}
 </style>
 </head>
 <body>
