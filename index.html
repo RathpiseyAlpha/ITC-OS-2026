@@ -9,6 +9,40 @@
     <!-- Firebase SDK (for web visitor presence — optional, enable in app/js/config.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <style>
+    /* Penguin stays put and dribbles a ball: kicked fast, then decelerates to a stop.
+       Speed "air" lines flash when it's fast and fade as it slows, then it returns for the next touch. */
+    .peng-dribble{position:relative;display:inline-block;vertical-align:bottom}
+    .peng-dribble .ball-wrap{position:absolute;left:58%;bottom:1px;
+        width:clamp(11px,2.2vw,20px);height:clamp(11px,2.2vw,20px);
+        animation:ballMove 2.6s linear infinite}
+    .peng-dribble .soccer-ball{position:absolute;inset:0;border-radius:50%;
+        background:radial-gradient(circle at 32% 28%,#ffffff 0 10%,#dff7e6 11% 40%,#39e07a 41% 100%);
+        border:1px solid #1f8f4e;
+        box-shadow:0 3px 4px rgba(0,0,0,.45),0 0 10px rgba(57,224,122,.5),inset -3px -3px 5px rgba(0,0,0,.25);
+        animation:ballRoll 2.6s linear infinite}
+    .peng-dribble .air{position:absolute;right:100%;bottom:3px;margin-right:3px;width:30px;height:10px;
+        opacity:0;animation:airFlow 2.6s linear infinite}
+    .peng-dribble .air::before,.peng-dribble .air::after{content:"";position:absolute;right:0;height:2px;border-radius:2px;
+        background:linear-gradient(90deg,rgba(57,224,122,0),rgba(57,224,122,.9))}
+    .peng-dribble .air::before{top:1px;width:28px}
+    .peng-dribble .air::after{top:6px;width:18px}
+    @keyframes ballMove{
+        0%{transform:translateX(0)} 6%{transform:translateX(30px)} 14%{transform:translateX(56px)}
+        24%{transform:translateX(76px)} 36%{transform:translateX(92px)} 50%{transform:translateX(102px)}
+        64%{transform:translateX(107px)} 74%{transform:translateX(108px)} 86%{transform:translateX(108px)}
+        100%{transform:translateX(0)} }
+    @keyframes ballRoll{
+        0%{transform:rotate(0)} 6%{transform:rotate(90deg)} 14%{transform:rotate(168deg)}
+        24%{transform:rotate(228deg)} 36%{transform:rotate(276deg)} 50%{transform:rotate(306deg)}
+        64%{transform:rotate(321deg)} 74%{transform:rotate(324deg)} 86%{transform:rotate(324deg)}
+        100%{transform:rotate(0)} }
+    @keyframes airFlow{
+        0%{opacity:0} 5%{opacity:.95} 18%{opacity:.65} 32%{opacity:.3} 46%{opacity:.1} 55%,100%{opacity:0} }
+    @media (prefers-reduced-motion:reduce){
+        .peng-dribble .ball-wrap,.peng-dribble .soccer-ball,.peng-dribble .air{animation:none}
+        .peng-dribble .air{display:none} }
+    </style>
 </head>
 <body>
 
@@ -60,7 +94,7 @@
 ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║╚════██║
 ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║███████║
 ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝╚══════╝
-</pre><img class="totoro" src="app/css/running-pose-only-transparent.gif" alt="Tux">
+</pre><span class="peng-dribble"><img class="totoro" src="app/css/running-pose-only-transparent.gif" alt="Tux"><span class="ball-wrap"><span class="air"></span><span class="soccer-ball"></span></span></span>
                     <div style="margin-top: 10px; color: var(--cyan); font-size: 13px;">
                         Institute of Technology of Cambodia &middot; Department of Information and Communication Engineering
                     </div>
