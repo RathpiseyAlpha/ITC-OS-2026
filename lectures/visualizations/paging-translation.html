@@ -81,8 +81,11 @@
   table.pt tr.active td{background:#1d2c3e;box-shadow:inset 0 0 0 2px var(--accent)}
   table.pt tr.active.faultrow td{box-shadow:inset 0 0 0 2px var(--bad)}
   .ptInput{width:46px;padding:4px;text-align:center}
-  /* memory map: logical pages (left) → physical RAM frames (right), both vertical */
-  .memmap{display:flex;align-items:flex-start;gap:12px;margin-top:6px}
+  /* memory map: logical pages | page table | physical RAM frames, side by side */
+  .maprow{display:flex;align-items:flex-start;gap:12px;margin-top:6px;flex-wrap:wrap}
+  .maprow .memcol{flex:0 1 132px;min-width:118px}
+  .maprow .ptmid{flex:1 1 220px;min-width:200px;display:flex;flex-direction:column;gap:8px}
+  .maprow .ptmid table.pt{margin-top:0}
   .memcol{display:flex;flex-direction:column;gap:8px;flex:1 1 0;min-width:0}
   .memcolhead{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;line-height:1.3;min-height:30px}
   .memcolhead span{font-size:10px;opacity:.8}
@@ -97,8 +100,6 @@
   .memcell.selpage .mlabel{color:#bcd4ff}
   .memcell.target{border-color:var(--frame);background:#241a33;box-shadow:0 0 0 2px var(--frame)}
   .memcell.target .mlabel{color:#e6ccff}
-  .memarrow{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--muted);font-weight:700;line-height:1.3;padding-top:30px;white-space:nowrap}
-  .memarrow .big{font-size:22px}
   .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700}
   .pill.page{background:#13233f;color:#9cc2ff}
   .calc{font-family:"Consolas",monospace;font-size:14px;background:#0c141d;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;line-height:1.7;white-space:pre-wrap}
@@ -125,9 +126,22 @@
 
     <div class="arrowDown">▼</div>
 
-    <!-- Page table -->
-    <p class="blockTitle">2 · Index the page table at <span id="ptIndexLabel" class="pill page">page —</span></p>
-    <table class="pt" id="ptTable"></table>
+    <!-- Page table flanked by logical pages (left) and physical RAM frames (right) -->
+    <p class="blockTitle">2 · Index the <span style="color:var(--page)">page table</span> at <span id="ptIndexLabel" class="pill page">page —</span> — it maps logical <span style="color:var(--page)">pages</span> to physical <span style="color:var(--frame)">RAM frames</span></p>
+    <div class="maprow">
+      <div class="memcol">
+        <div class="memcolhead">Logical memory <span>(pages)</span></div>
+        <div class="memstack" id="pagesCol"></div>
+      </div>
+      <div class="ptmid">
+        <div class="memcolhead">Page table</div>
+        <table class="pt" id="ptTable"></table>
+      </div>
+      <div class="memcol">
+        <div class="memcolhead">Physical memory <span>(RAM frames)</span></div>
+        <div class="memstack" id="framesCol"></div>
+      </div>
+    </div>
 
     <div class="arrowDown">▼</div>
 
@@ -136,19 +150,6 @@
     <div class="calc" id="calcBox">Waiting…</div>
     <div class="bits" id="paBits" style="margin-top:10px"></div>
     <div class="fieldlabel" id="paFieldLabels"></div>
-
-    <p class="blockTitle" style="margin-top:16px">Memory map — logical <span style="color:var(--page)">pages</span> map into physical <span style="color:var(--frame)">RAM frames</span> (16 bytes each)</p>
-    <div class="memmap">
-      <div class="memcol">
-        <div class="memcolhead">Logical memory <span>(pages)</span></div>
-        <div class="memstack" id="pagesCol"></div>
-      </div>
-      <div class="memarrow" id="memArrow"><span class="big">→</span></div>
-      <div class="memcol">
-        <div class="memcolhead">Physical memory <span>(RAM frames)</span></div>
-        <div class="memstack" id="framesCol"></div>
-      </div>
-    </div>
   </div>
 
   <div class="side">
@@ -336,15 +337,6 @@ function renderMemMap(){
     else right = '<span class="mmap dim">free</span>';
     div.innerHTML = '<span class="mlabel">frame '+f+'</span>'+right;
     framesCol.appendChild(div);
-  }
-
-  const arrow = document.getElementById('memArrow');
-  if(step>=3 && fr===null){
-    arrow.innerHTML = '<span class="big" style="color:var(--bad)">⛔</span><span style="color:var(--bad)">page fault</span>';
-  } else if(resolved){
-    arrow.innerHTML = '<span style="color:var(--page)">page '+pg+'</span><span class="big" style="color:var(--frame)">→</span><span style="color:var(--frame)">frame '+fr+'</span>';
-  } else {
-    arrow.innerHTML = '<span class="big">→</span>';
   }
 }
 
