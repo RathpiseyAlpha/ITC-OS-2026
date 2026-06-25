@@ -81,11 +81,24 @@
   table.pt tr.active td{background:#1d2c3e;box-shadow:inset 0 0 0 2px var(--accent)}
   table.pt tr.active.faultrow td{box-shadow:inset 0 0 0 2px var(--bad)}
   .ptInput{width:46px;padding:4px;text-align:center}
-  .frames{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
-  .fcell{flex:1 1 44px;min-width:40px;border:1px solid var(--border);border-radius:6px;padding:6px 2px;text-align:center;background:#0c141d;transition:.25s}
-  .fcell .fn{font-size:10px;color:var(--muted)}
-  .fcell .fv{font-size:14px;font-weight:700;margin-top:2px}
-  .fcell.target{border-color:var(--frame);background:#241a33;box-shadow:0 0 0 2px var(--frame)}
+  /* memory map: logical pages (left) → physical RAM frames (right), both vertical */
+  .memmap{display:flex;align-items:flex-start;gap:12px;margin-top:6px}
+  .memcol{display:flex;flex-direction:column;gap:8px;flex:1 1 0;min-width:0}
+  .memcolhead{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;line-height:1.3;min-height:30px}
+  .memcolhead span{font-size:10px;opacity:.8}
+  .memstack{display:flex;flex-direction:column;gap:5px}
+  .memcell{border:1px solid var(--border);border-radius:6px;padding:0 10px;height:34px;background:#0c141d;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:.25s}
+  .memcell .mlabel{font-size:12px;font-weight:700}
+  .memcell .mmap{font-size:11px;color:var(--muted)}
+  .memcell .mmap.bad{color:var(--bad)}
+  .memcell .mmap.dim{opacity:.45}
+  .memcell.invalidpage{opacity:.5}
+  .memcell.selpage{border-color:var(--page);background:#13233f;box-shadow:0 0 0 2px var(--page)}
+  .memcell.selpage .mlabel{color:#bcd4ff}
+  .memcell.target{border-color:var(--frame);background:#241a33;box-shadow:0 0 0 2px var(--frame)}
+  .memcell.target .mlabel{color:#e6ccff}
+  .memarrow{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--muted);font-weight:700;line-height:1.3;padding-top:30px;white-space:nowrap}
+  .memarrow .big{font-size:22px}
   .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700}
   .pill.page{background:#13233f;color:#9cc2ff}
   .calc{font-family:"Consolas",monospace;font-size:14px;background:#0c141d;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;line-height:1.7;white-space:pre-wrap}
@@ -124,8 +137,18 @@
     <div class="bits" id="paBits" style="margin-top:10px"></div>
     <div class="fieldlabel" id="paFieldLabels"></div>
 
-    <p class="blockTitle" style="margin-top:16px">Physical memory (8 frames × 16 bytes)</p>
-    <div class="frames" id="framesRow"></div>
+    <p class="blockTitle" style="margin-top:16px">Memory map — logical <span style="color:var(--page)">pages</span> map into physical <span style="color:var(--frame)">RAM frames</span> (16 bytes each)</p>
+    <div class="memmap">
+      <div class="memcol">
+        <div class="memcolhead">Logical memory <span>(pages)</span></div>
+        <div class="memstack" id="pagesCol"></div>
+      </div>
+      <div class="memarrow" id="memArrow"><span class="big">→</span></div>
+      <div class="memcol">
+        <div class="memcolhead">Physical memory <span>(RAM frames)</span></div>
+        <div class="memstack" id="framesCol"></div>
+      </div>
+    </div>
   </div>
 
   <div class="side">
@@ -167,6 +190,7 @@
       <div class="row"><span class="sq" style="background:var(--offset)"></span> Offset bits (low 4 bits) — copied <i>unchanged</i> to the physical address</div>
       <div class="row"><span class="sq" style="background:var(--frame)"></span> Frame number — from the page table, becomes the high bits of the physical address</div>
       <div class="row"><span class="sq" style="background:var(--bad)"></span> Invalid page → page fault (trap to the OS)</div>
+      <div class="row"><span class="sq" style="background:var(--page)"></span> In the memory map, the <b>selected page</b> (left) lights up at once; its <b>RAM frame</b> (right) lights up after the page-table lookup</div>
     </div>
   </div>
 </div>
@@ -246,16 +270,6 @@ function renderPhysical(){
   const calc = document.getElementById('calcBox');
   const paBits = document.getElementById('paBits');
   const paLbl = document.getElementById('paFieldLabels');
-  const framesRow = document.getElementById('framesRow');
-
-  framesRow.innerHTML='';
-  for(let f=0; f<NFRAMES; f++){
-    const target = (step>=5 && fr!==null && f===fr);
-    const div = document.createElement('div');
-    div.className='fcell'+(target?' target':'');
-    div.innerHTML='<div class="fn">frame '+f+'</div><div class="fv">'+(target?('byte '+(fr*P+off)):'·')+'</div>';
-    framesRow.appendChild(div);
-  }
 
   if(step<3){ calc.textContent='Waiting…'; paBits.innerHTML=''; paLbl.innerHTML=''; return; }
 
@@ -284,6 +298,56 @@ function renderPhysical(){
   } else { paBits.innerHTML=''; paLbl.innerHTML=''; }
 }
 
+/* Vertical memory map: pages (left) + RAM frames (right), with highlights. */
+function renderMemMap(){
+  const pg = pageOf(curLA), off = offsetOf(curLA), fr = pageTable[pg];
+  const pagesCol = document.getElementById('pagesCol');
+  const framesCol = document.getElementById('framesCol');
+
+  // reverse map: which page currently occupies each frame
+  const occ = {};
+  for(let p=0;p<NPAGES;p++){ if(pageTable[p]!==null) occ[pageTable[p]] = p; }
+
+  // logical pages — highlight the selected page as soon as an address is chosen
+  pagesCol.innerHTML='';
+  for(let i=0;i<NPAGES;i++){
+    const f = pageTable[i];
+    const sel = (i===pg);
+    const div = document.createElement('div');
+    div.className = 'memcell'+(sel?' selpage':'')+(f===null?' invalidpage':'');
+    const maps = (f===null)
+      ? '<span class="mmap bad">invalid</span>'
+      : '<span class="mmap">&rarr; frame '+f+'</span>';
+    div.innerHTML = '<span class="mlabel">page '+i+'</span>'+maps;
+    pagesCol.appendChild(div);
+  }
+
+  // physical frames — highlight the target frame once the page table is read
+  const resolved = (step>=3 && fr!==null);
+  framesCol.innerHTML='';
+  for(let f=0;f<NFRAMES;f++){
+    const isTarget = (resolved && f===fr);
+    const occupant = (f in occ) ? occ[f] : null;
+    const div = document.createElement('div');
+    div.className = 'memcell'+(isTarget?' target':'');
+    let right;
+    if(isTarget && step>=4) right = '<span class="mmap">byte '+(fr*P+off)+'</span>';
+    else if(occupant!==null) right = '<span class="mmap">page '+occupant+'</span>';
+    else right = '<span class="mmap dim">free</span>';
+    div.innerHTML = '<span class="mlabel">frame '+f+'</span>'+right;
+    framesCol.appendChild(div);
+  }
+
+  const arrow = document.getElementById('memArrow');
+  if(step>=3 && fr===null){
+    arrow.innerHTML = '<span class="big" style="color:var(--bad)">⛔</span><span style="color:var(--bad)">page fault</span>';
+  } else if(resolved){
+    arrow.innerHTML = '<span style="color:var(--page)">page '+pg+'</span><span class="big" style="color:var(--frame)">→</span><span style="color:var(--frame)">frame '+fr+'</span>';
+  } else {
+    arrow.innerHTML = '<span class="big">→</span>';
+  }
+}
+
 const CAPS = [
   la=>'CPU emits logical address <b>'+la+'</b>. With page size 16, every address is 7 bits: 3 page-number bits + 4 offset bits.',
   la=>'Split the bits: <b>page = '+la+' ÷ 16 = '+pageOf(la)+'</b> (high 3 bits), <b>offset = '+la+' mod 16 = '+offsetOf(la)+'</b> (low 4 bits).',
@@ -301,7 +365,7 @@ const CAPS = [
 ];
 
 function render(){
-  renderBits(); renderTable(); renderPhysical();
+  renderBits(); renderTable(); renderPhysical(); renderMemMap();
   const la = curLA, fr = pageTable[pageOf(la)];
   document.getElementById('stepLabel').textContent = 'Logical '+la+' · Step '+step+' of '+MAXSTEP;
   document.getElementById('captionText').innerHTML = CAPS[step](la);
