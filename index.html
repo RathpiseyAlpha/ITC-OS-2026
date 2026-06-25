@@ -24,12 +24,19 @@
         border:1px solid #1f8f4e;
         box-shadow:0 3px 4px rgba(0,0,0,.45),0 0 10px rgba(57,224,122,.5),inset -3px -3px 5px rgba(0,0,0,.25);
         animation:ballRoll 2.6s linear infinite}
-    .peng-dribble .grass{position:absolute;left:0;bottom:-1px;width:185px;height:9px;z-index:1;opacity:.92;
+    .peng-dribble .grass{position:absolute;left:0;bottom:-1px;width:185px;height:11px;z-index:1;opacity:.92;
         background:linear-gradient(#3ad06a,#127f42);
-        -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpolygon points='0,12 2,4 4,11 6,2 8,12' fill='%23000'/%3E%3C/svg%3E") repeat-x;
-        mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cpolygon points='0,12 2,4 4,11 6,2 8,12' fill='%23000'/%3E%3C/svg%3E") repeat-x;
-        -webkit-mask-size:8px 9px;mask-size:8px 9px;
-        animation:grassMove 1.1s linear infinite}
+        -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpolygon points='0,12 1.5,5 3,12 4.5,2 6,12 7.5,7 9,12 10.5,4 12,12' fill='%23000'/%3E%3C/svg%3E") repeat-x;
+        mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpolygon points='0,12 1.5,5 3,12 4.5,2 6,12 7.5,7 9,12 10.5,4 12,12' fill='%23000'/%3E%3C/svg%3E") repeat-x;
+        -webkit-mask-size:12px 11px;mask-size:12px 11px;
+        animation:grassMove .2s linear infinite}
+    /* trampled patch under the feet — squashes as the penguin pounds the ground */
+    .peng-dribble .stomp{position:absolute;left:50%;margin-left:-19px;bottom:-1px;width:38px;height:6px;z-index:1;
+        background:linear-gradient(#1f9e51,#0a4f29);
+        -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 5'%3E%3Cpolygon points='0,5 1.25,1 2.5,5 3.75,1.5 5,5' fill='%23000'/%3E%3C/svg%3E") repeat-x;
+        mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 5'%3E%3Cpolygon points='0,5 1.25,1 2.5,5 3.75,1.5 5,5' fill='%23000'/%3E%3C/svg%3E") repeat-x;
+        -webkit-mask-size:5px 6px;mask-size:5px 6px;transform-origin:bottom center;
+        filter:drop-shadow(0 1px 1px rgba(0,0,0,.55));animation:stomp .2s ease-in-out infinite}
     .peng-dribble .air{position:absolute;right:100%;bottom:3px;margin-right:3px;width:30px;height:10px;
         opacity:0;animation:airFlow 2.6s linear infinite}
     .peng-dribble .air::before,.peng-dribble .air::after{content:"";position:absolute;right:0;height:2px;border-radius:2px;
@@ -49,9 +56,11 @@
     @keyframes airFlow{
         0%{opacity:0} 5%{opacity:.95} 18%{opacity:.65} 32%{opacity:.3} 46%{opacity:.1} 55%,100%{opacity:0} }
     @keyframes grassMove{
-        from{-webkit-mask-position:0 0;mask-position:0 0} to{-webkit-mask-position:-8px 0;mask-position:-8px 0} }
+        from{-webkit-mask-position:0 0;mask-position:0 0} to{-webkit-mask-position:-12px 0;mask-position:-12px 0} }
+    @keyframes stomp{
+        0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.45)} }
     @media (prefers-reduced-motion:reduce){
-        .peng-dribble .ball-wrap,.peng-dribble .soccer-ball,.peng-dribble .air,.peng-dribble .grass{animation:none}
+        .peng-dribble .ball-wrap,.peng-dribble .soccer-ball,.peng-dribble .air,.peng-dribble .grass,.peng-dribble .stomp{animation:none}
         .peng-dribble .air{display:none} }
     </style>
 </head>
@@ -105,7 +114,7 @@
 ╚════██║  ╚██╔╝  ╚════██║   ██║   ██╔══╝  ██║╚██╔╝██║╚════██║
 ███████║   ██║   ███████║   ██║   ███████╗██║ ╚═╝ ██║███████║
 ╚══════╝   ╚═╝   ╚══════╝   ╚═╝   ╚══════╝╚═╝     ╚═╝╚══════╝
-</pre><span class="peng-dribble"><span class="grass"></span><img class="totoro" src="app/css/running-pose-only-transparent.gif" alt="Tux"><span class="ball-wrap"><span class="air"></span><span class="soccer-ball"></span></span></span>
+</pre><span class="peng-dribble"><span class="grass"></span><span class="stomp"></span><img class="totoro" src="app/css/running-pose-only-transparent.gif" alt="Tux"><span class="ball-wrap"><span class="air"></span><span class="soccer-ball"></span></span></span>
                     <div style="margin-top: 10px; color: var(--cyan); font-size: 13px;">
                         Institute of Technology of Cambodia &middot; Department of Information and Communication Engineering
                     </div>
