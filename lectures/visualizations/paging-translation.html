@@ -168,7 +168,7 @@
         <span class="stepper"><button onclick="bumpLA(-1)">−</button><span class="sval" id="customLA">42</span><button onclick="bumpLA(1)">+</button></span>
         <button class="primary" onclick="loadCustom()">Translate</button>
       </div>
-      <div class="hint">Page size is fixed at 16 bytes, 8 pages, 8 frames. Use the <b>+ / −</b> buttons in the <b>frame</b> column below to change the mapping — decrement past 0 to mark a page <b>invalid</b> (not in memory).</div>
+      <div class="hint">Page size is fixed at 16 bytes, 8 pages, 8 frames. Use the <b>+ / −</b> buttons in the <b>frame</b> column to change the mapping — decrement past 0 to mark a page <b>invalid</b> (not in memory). Each frame holds only one page, so frames already taken by another page are skipped.</div>
       <div class="msg" id="builderMsg"></div>
     </div>
 
@@ -397,14 +397,26 @@ function bumpLA(delta){
   document.getElementById('customLA').textContent=cLA;
   loadCustom();   // live re-translate
 }
-// Frame column stepper: 0..7, and decrementing below 0 marks the page invalid (null).
+// Frame column stepper: 0..7, decrement past 0 marks the page invalid (null).
+// A frame can hold only one page, so frames already taken by another page are skipped.
 function bumpFrame(page, delta){
-  const cur = pageTable[page];
-  let v;
-  if(cur===null){ v = delta>0 ? 0 : null; }
-  else { v = cur + delta; if(v<0) v=null; else if(v>7) v=7; }
-  pageTable[page]=v;
-  document.getElementById('builderMsg').textContent = v===null ? ('Page '+page+' set to invalid.') : '';
+  const used = new Set();
+  pageTable.forEach((f,p)=>{ if(p!==page && f!==null) used.add(f); });
+  const orig = pageTable[page];
+  let cur = (orig===null) ? -1 : orig;   // treat "invalid" as -1 for ordering
+  let next = cur;
+  while(true){
+    next += delta;
+    if(next <= -1){ next = -1; break; }   // invalid is always allowed
+    if(next > 7){ next = cur; break; }     // no free frame higher → keep current
+    if(!used.has(next)) break;             // landed on a free frame
+  }                                        // otherwise skip a taken frame and keep going
+  const v = (next === -1) ? null : next;
+  pageTable[page] = v;
+  const msg = document.getElementById('builderMsg');
+  if(v===null) msg.textContent = 'Page '+page+' set to invalid (not in physical memory).';
+  else if(v===orig) msg.textContent = (delta>0 ? 'No free frame above '+orig : 'No free frame below '+orig)+' — each frame holds only one page.';
+  else msg.textContent = '';
   step=Math.min(step,2); render();
 }
 
