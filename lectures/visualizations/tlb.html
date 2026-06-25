@@ -819,6 +819,19 @@
   header a[href="index.html"]{grid-column:1;grid-row:1 / span 2;align-self:center;margin-bottom:0 !important}
   header h1{grid-column:2;grid-row:1}
   header .sub{grid-column:2;grid-row:2}
+/* full-screen control for the visualization area (.wrap) */
+  header{grid-template-columns:auto 1fr auto}
+  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .fsBtn:hover{background:#2e4459;border-color:var(--accent)}
+  .fsBtn .fsIcon{margin-right:6px}
+  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .fsExit:hover{background:#2e4459;border-color:var(--accent)}
+  .wrap:fullscreen{background:var(--bg);overflow:auto;padding:20px}
+  .wrap:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
+  .wrap:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .wrap:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .wrap:fullscreen .side{top:14px}
+  .wrap:-webkit-full-screen .side{top:14px}
   </style>
 </head>
 
@@ -1529,6 +1542,26 @@
     recompute(); render();
   </script>
 <script>(function(){function h(){var el=document.querySelector("header");document.documentElement.style.setProperty("--hh",(el?el.offsetHeight:92)+"px");}window.addEventListener("resize",h);h();})();</script>
+<script>(function(){
+  var wrap=document.querySelector('.wrap'); if(!wrap) return;
+  var header=document.querySelector('header'); if(!header) return;
+  function reqFs(el){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
+  function exitFs(){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
+  function fsEl(){ return document.fullscreenElement||document.webkitFullscreenElement||null; }
+  var enter=document.createElement('button');
+  enter.className='fsBtn'; enter.type='button';
+  enter.innerHTML='<span class="fsIcon">⛶</span><span class="fsTxt">Full screen</span>';
+  enter.addEventListener('click',function(){ fsEl()===wrap?exitFs():reqFs(wrap); });
+  header.appendChild(enter);
+  var exit=document.createElement('button');
+  exit.className='fsExit'; exit.type='button';
+  exit.innerHTML='✕ Exit full screen';
+  exit.addEventListener('click',exitFs);
+  wrap.appendChild(exit);
+  function sync(){ var t=enter.querySelector('.fsTxt'); if(t) t.textContent=(fsEl()===wrap)?'Exit full screen':'Full screen'; }
+  document.addEventListener('fullscreenchange',sync);
+  document.addEventListener('webkitfullscreenchange',sync);
+})();</script>
 </body>
 
 </html>
