@@ -119,6 +119,7 @@
   <h1>Demand Paging &amp; Virtual Memory — Swap In / Swap Out</h1>
   <div class="sub">A page is brought into RAM <b>only when needed</b>. Pages live on the <b>disk backing store</b>; the <b>valid–invalid bit</b> says whether a page is currently in a frame. Watch how virtual memory can be <b>larger than RAM</b>, and how <b>several programs</b> share the same frames.</div>
 </header>
+<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:#cdd9e6;font-size:13.5px;line-height:1.7;"><li>Explain demand paging: a page is brought into memory only when it is first referenced.</li><li>Trace a page fault: locate the page in swap, bring it into a frame, update the page table.</li><li>Follow victim selection and swap-out when no free frame is available.</li><li>Track how valid / invalid bits change as pages move between memory and disk.</li></ul></details>
 
 <div class="wrap">
   <div class="stage">

@@ -97,6 +97,7 @@
   <h1>Paging &amp; Address Translation</h1>
   <div class="sub">Class Activity 8 · Task 1 — how the MMU turns a <b>logical address</b> into a <b>physical address</b> through a page table (Chapter 9). For the cache that speeds this up, see the <a href="tlb.html" style="color:var(--accent)">TLB visualizer</a>.</div>
 </header>
+<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:#cdd9e6;font-size:13.5px;line-height:1.7;"><li>Split a logical address into page number and offset using the page size.</li><li>Use the page number to index the page table and read the frame number plus valid / invalid bit.</li><li>Assemble the physical address from frame number and offset.</li><li>Recognise when an access triggers a page fault (invalid bit).</li></ul></details>
 
 <div class="wrap">
   <div class="stage">
