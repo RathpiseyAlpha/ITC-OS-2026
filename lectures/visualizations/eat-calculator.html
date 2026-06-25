@@ -1033,12 +1033,12 @@
   .fsBtn .fsIcon{margin-right:6px}
   .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
   .fsExit:hover{background:#2e4459;border-color:var(--accent)}
-  .wrap:fullscreen{background:var(--bg);overflow:auto;padding:20px}
-  .wrap:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
-  .wrap:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
-  .wrap:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
-  .wrap:fullscreen .side{top:14px}
-  .wrap:-webkit-full-screen .side{top:14px}
+  .fsRoot:fullscreen{background:var(--bg);overflow:auto;padding:20px}
+  .fsRoot:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
+  .fsRoot:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .fsRoot:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .fsRoot:fullscreen .side{top:14px}
+  .fsRoot:-webkit-full-screen .side{top:14px}
   </style>
 </head>
 
@@ -1052,6 +1052,7 @@
   </header>
 <details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:#cdd9e6;font-size:13.5px;line-height:1.7;"><li>Walk a single memory access through the paging hardware, with and without the TLB.</li><li>Write the EAT formula in terms of the TLB hit ratio and memory access time.</li><li>Predict how EAT changes as the hit ratio varies.</li><li>Justify why even a modest hit ratio makes the TLB worthwhile.</li></ul></details>
 
+  <div class="vizRoot" data-fs-root>
   <!-- tab bar selector -->
   <div class="page-tabs">
     <button id="tabSim" class="active" onclick="switchPageTab('sim')">Paging Simulator</button>
@@ -1403,6 +1404,7 @@
       </div>
     </div>
   </div>
+  </div><!-- /vizRoot -->
 
   <script>
     const SVGNS = 'http://www.w3.org/2000/svg';
@@ -1974,7 +1976,7 @@
   </script>
 <script>(function(){function h(){var el=document.querySelector("header");document.documentElement.style.setProperty("--hh",(el?el.offsetHeight:92)+"px");}window.addEventListener("resize",h);h();})();</script>
 <script>(function(){
-  var wrap=document.querySelector('.wrap'); if(!wrap) return;
+  var wrap=document.querySelector('[data-fs-root]')||document.querySelector('.wrap'); if(!wrap) return; wrap.classList.add('fsRoot');
   var header=document.querySelector('header'); if(!header) return;
   function reqFs(el){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
   function exitFs(){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }

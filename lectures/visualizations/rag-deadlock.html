@@ -86,12 +86,12 @@
   .fsBtn .fsIcon{margin-right:6px}
   .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
   .fsExit:hover{background:#2e4459;border-color:var(--accent)}
-  .wrap:fullscreen{background:var(--bg);overflow:auto;padding:20px}
-  .wrap:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
-  .wrap:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
-  .wrap:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
-  .wrap:fullscreen .side{top:14px}
-  .wrap:-webkit-full-screen .side{top:14px}
+  .fsRoot:fullscreen{background:var(--bg);overflow:auto;padding:20px}
+  .fsRoot:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
+  .fsRoot:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .fsRoot:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .fsRoot:fullscreen .side{top:14px}
+  .fsRoot:-webkit-full-screen .side{top:14px}
 </style>
 </head>
 <body>
@@ -466,7 +466,7 @@ loadScenario('A');
 </script>
 <script>(function(){function h(){var el=document.querySelector("header");document.documentElement.style.setProperty("--hh",(el?el.offsetHeight:92)+"px");}window.addEventListener("resize",h);h();})();</script>
 <script>(function(){
-  var wrap=document.querySelector('.wrap'); if(!wrap) return;
+  var wrap=document.querySelector('[data-fs-root]')||document.querySelector('.wrap'); if(!wrap) return; wrap.classList.add('fsRoot');
   var header=document.querySelector('header'); if(!header) return;
   function reqFs(el){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
   function exitFs(){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
