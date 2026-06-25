@@ -85,6 +85,11 @@
   .emsg.ok{color:var(--ok)}
   .hint{font-size:12px;color:var(--muted);margin-top:6px}
   .node-label{font-size:14px;font-weight:600;fill:#fff;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+/* fixed, responsive page header (matches the index page) */
+  header{position:sticky;top:0;z-index:50;background:var(--bg);padding:clamp(10px,2.2vh,22px) clamp(16px,3vw,28px)}
+  header h1{font-size:clamp(17px,2.5vh,24px)}
+  header .sub{font-size:clamp(11px,1.5vh,14px)}
+  .side{top:calc(var(--hh,92px) + 12px)}
 </style>
 </head>
 <body>
@@ -502,5 +507,6 @@ function applyAndAnimate(){ if(applyCustom()) animateFromStart(); }
 /* ================= init ================= */
 loadScenario('N');
 </script>
+<script>(function(){function h(){var el=document.querySelector("header");document.documentElement.style.setProperty("--hh",(el?el.offsetHeight:92)+"px");}window.addEventListener("resize",h);h();})();</script>
 </body>
 </html>
