@@ -1670,7 +1670,6 @@ def exam_schedule():
     else:
         d = datetime.now(_PPH).date()
     start = ov.get("start") or os.environ.get("EXAM_START_HHMM", "13:00")
-    end = ov.get("end") or os.environ.get("EXAM_END_HHMM", "15:30")
     cb_open = ov.get("cbOpen") or os.environ.get("CB_OPEN_HHMM", "14:30")
     cb_seal = ov.get("cbSeal") or os.environ.get("CB_SEAL_HHMM", "14:45")
     try:
@@ -1680,24 +1679,25 @@ def exam_schedule():
     if dur <= 0:
         dur = 120
     start_ms = _exam_hhmm_ms(start, d)
+    finish = start_ms + dur * 60000
     return {
         "start": start_ms,
-        "end": _exam_hhmm_ms(end, d),
+        # Exam ends at start + duration (the separate End field was removed).
+        "finish": finish,
+        "end": finish,
         "cbOpen": _exam_hhmm_ms(cb_open, d),
         "cbSeal": _exam_hhmm_ms(cb_seal, d),
-        # Exam "finished" = start + duration (independent of the End time).
-        "finish": start_ms + dur * 60000,
         "durationMin": dur,
         # Raw values so the admin form can prefill, plus where they came from.
         "date": d.isoformat(),
-        "startHHMM": start, "endHHMM": end,
+        "startHHMM": start,
         "cbOpenHHMM": cb_open, "cbSealHHMM": cb_seal,
         "source": "file" if ov else (
             "env" if os.environ.get("EXAM_DATE") else "default"),
     }
 
 
-def exam_set_schedule(date_s, start, end, cb_open, cb_seal, duration_min=120):
+def exam_set_schedule(date_s, start, cb_open, cb_seal, duration_min=120):
     """Persist an admin-supplied timetable; returns the recomputed schedule.
     Raises ValueError on malformed input (caller maps to HTTP 400)."""
     datetime.strptime(date_s, "%Y-%m-%d")  # validates the date
@@ -1710,7 +1710,6 @@ def exam_set_schedule(date_s, start, end, cb_open, cb_seal, duration_min=120):
     data = {
         "date": date_s,
         "start": _valid_hhmm(start),
-        "end": _valid_hhmm(end),
         "cbOpen": _valid_hhmm(cb_open),
         "cbSeal": _valid_hhmm(cb_seal),
         "durationMin": dur,
@@ -2487,7 +2486,6 @@ def route_admin_exam_schedule():
         sched = exam_set_schedule(
             str(body.get("date", "")).strip(),
             str(body.get("start", "")).strip(),
-            str(body.get("end", "")).strip(),
             str(body.get("cbOpen", "")).strip(),
             str(body.get("cbSeal", "")).strip(),
             body.get("durationMin", 120),

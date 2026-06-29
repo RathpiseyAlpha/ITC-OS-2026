@@ -1916,8 +1916,7 @@
             + '<button class="admin-tab" onclick="examFullscreen()">⛶ Fullscreen</button></div>';
 
         var timers = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
-            + '<div style="' + tcss + '"><div style="' + lcss + '">Exam (window)</div><div style="' + bcss + '" id="exTexam">--:--</div></div>'
-            + '<div style="' + tcss + '"><div style="' + lcss + '">Exam finished</div><div style="' + bcss + '" id="exTfin">--:--</div></div>'
+            + '<div style="' + tcss + '"><div style="' + lcss + '">Exam</div><div style="' + bcss + '" id="exTexam">--:--</div></div>'
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball release</div><div style="' + bcss + '" id="exTcbo">--:--</div></div>'
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball closes</div><div style="' + bcss + '" id="exTcbs">--:--</div></div></div>';
 
@@ -1944,8 +1943,7 @@
                 + '<label style="' + ilab + '">Start<input id="exSchStart" type="time" style="' + iin + '"></label>'
                 + '<label style="' + ilab + '">Duration min<input id="exSchDur" type="number" min="1" style="' + iin + ';width:78px"></label>'
                 + '<label style="' + ilab + '">CB release<input id="exSchCbo" type="time" style="' + iin + '"></label>'
-                + '<label style="' + ilab + '">CB seal<input id="exSchCbs" type="time" style="' + iin + '"></label>'
-                + '<label style="' + ilab + '">End<input id="exSchEnd" type="time" style="' + iin + '"></label> '
+                + '<label style="' + ilab + '">CB seal<input id="exSchCbs" type="time" style="' + iin + '"></label> '
                 + '<button class="admin-tab" onclick="examSetSchedule()">Save schedule</button>'
                 + '<div style="color:#8b949e;margin-top:8px" id="examSchMsg"></div></div>';
         }
@@ -1963,15 +1961,8 @@
                 else if (now < closes) { el.innerHTML = _examFmt(closes - now) + ' <small style="color:#3fb37f">left</small>'; }
                 else { el.innerHTML = '00:00 <small style="color:#e5736f">' + (doneLabel || 'done') + '</small>'; }
             }
-            setT('exTexam', _examSched.start, _examSched.end, 'starts in');
-            // Exam-finish tile: a duration countdown that begins at exam start —
-            // shows the full duration before start, then counts down to finish.
-            var fel = document.getElementById('exTfin');
-            if (fel) {
-                if (now < _examSched.start) { fel.innerHTML = _examFmt(_examSched.finish - _examSched.start) + ' <small style="color:#9ca3af">duration</small>'; }
-                else if (now < _examSched.finish) { fel.innerHTML = _examFmt(_examSched.finish - now) + ' <small style="color:#3fb37f">left</small>'; }
-                else { fel.innerHTML = '00:00 <small style="color:#e5736f">FINISHED</small>'; }
-            }
+            // Exam: counts to start, then down to finish (start + duration), then FINISHED.
+            setT('exTexam', _examSched.start, _examSched.finish, 'starts in', 'FINISHED');
             setT('exTcbo', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
             // "closes" tile counts down to the seal moment only (then shows done).
             setT('exTcbs', _examSched.cbSeal, _examSched.cbSeal, 'closes in');
@@ -1998,7 +1989,7 @@
                 if (tb) tb.innerHTML = _examRankRows(admin.students);
                 if (!_examSchedFilled) {
                     var sc = d.schedule, setv = function (id, v) { var el = document.getElementById(id); if (el) el.value = v; };
-                    setv('exSchDate', sc.date); setv('exSchStart', sc.startHHMM); setv('exSchDur', sc.durationMin); setv('exSchCbo', sc.cbOpenHHMM); setv('exSchCbs', sc.cbSealHHMM); setv('exSchEnd', sc.endHHMM);
+                    setv('exSchDate', sc.date); setv('exSchStart', sc.startHHMM); setv('exSchDur', sc.durationMin); setv('exSchCbo', sc.cbOpenHHMM); setv('exSchCbs', sc.cbSealHHMM);
                     var srcEl = document.getElementById('exSchSrc'); if (srcEl) srcEl.textContent = '(source: ' + (sc.source || '') + ' — set any date/time live)';
                     _examSchedFilled = true;
                 }
@@ -2071,7 +2062,7 @@
         fetch(url + '/api/admin/exam/schedule', {
             method: 'POST', mode: 'cors',
             headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date: g('exSchDate'), start: g('exSchStart'), end: g('exSchEnd'), cbOpen: g('exSchCbo'), cbSeal: g('exSchCbs'), durationMin: parseInt(g('exSchDur'), 10) || 120 })
+            body: JSON.stringify({ date: g('exSchDate'), start: g('exSchStart'), cbOpen: g('exSchCbo'), cbSeal: g('exSchCbs'), durationMin: parseInt(g('exSchDur'), 10) || 120 })
         })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
