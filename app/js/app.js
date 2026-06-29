@@ -1899,6 +1899,15 @@
                     + '<button class="admin-tab" onclick="examControl(\'curveball\',\'open\')">Release</button> '
                     + '<button class="admin-tab" onclick="examControl(\'curveball\',\'seal\')">Seal</button>'
                     + '<div style="color:#8b949e;margin-top:8px" id="examCtlMsg"></div></div>';
+                var sc = d.schedule, ilab = 'color:#8b949e;font-size:12px;margin-right:12px;display:inline-block;margin-bottom:6px', iin = 'margin-left:5px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:5px;padding:3px 6px';
+                html += '<div style="' + ccss + '"><b>Schedule</b> <span style="color:#8b949e;font-size:11px">(source: ' + (sc.source || '') + ' — set any date/time live)</span><br><br>'
+                    + '<label style="' + ilab + '">Date<input id="exSchDate" type="date" value="' + sc.date + '" style="' + iin + '"></label>'
+                    + '<label style="' + ilab + '">Start<input id="exSchStart" type="time" value="' + sc.startHHMM + '" style="' + iin + '"></label>'
+                    + '<label style="' + ilab + '">CB release<input id="exSchCbo" type="time" value="' + sc.cbOpenHHMM + '" style="' + iin + '"></label>'
+                    + '<label style="' + ilab + '">CB seal<input id="exSchCbs" type="time" value="' + sc.cbSealHHMM + '" style="' + iin + '"></label>'
+                    + '<label style="' + ilab + '">End<input id="exSchEnd" type="time" value="' + sc.endHHMM + '" style="' + iin + '"></label> '
+                    + '<button class="admin-tab" onclick="examSetSchedule()">Save schedule</button>'
+                    + '<div style="color:#8b949e;margin-top:8px" id="examSchMsg"></div></div>';
                 html += '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
                     + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody>';
                 for (var i = 0; i < admin.students.length; i++) {
@@ -1953,6 +1962,23 @@
             renderExam();
         })
         .catch(function () {});
+    };
+
+    window.examSetSchedule = function () {
+        var url = serverUrl(); if (!url) return;
+        var g = function (id) { var el = document.getElementById(id); return el ? el.value : ''; };
+        var msg = document.getElementById('examSchMsg'); if (msg) msg.textContent = 'Saving…';
+        fetch(url + '/api/admin/exam/schedule', {
+            method: 'POST', mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: g('exSchDate'), start: g('exSchStart'), end: g('exSchEnd'), cbOpen: g('exSchCbo'), cbSeal: g('exSchCbs') })
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+            if (res.ok && res.d.ok) { _examSched = res.d.schedule; if (msg) msg.textContent = 'Saved — timers updated.'; }
+            else if (msg) { msg.textContent = res.d.error || 'failed'; }
+        })
+        .catch(function () { if (msg) msg.textContent = 'network error'; });
     };
 
     // Refresh deadlines from server and re-render My Grades

@@ -1590,6 +1590,11 @@ EXAM_PAPER_DIR = os.environ.get("EXAM_PAPER_DIR", "exam-paper")
 # Where paper_access / curveball_access live (run via sudo for open/seal controls,
 # since this service runs as a normal user, not root).
 EXAM_TOOLS_DIR = os.environ.get("EXAM_TOOLS_DIR", "/home/rathpisey/exam-final")
+# Admin-editable schedule override (written from the dashboard). Takes precedence
+# over EXAM_DATE / *_HHMM env vars, so the timetable can be changed live without a
+# service restart.
+EXAM_SCHEDULE_FILE = os.environ.get(
+    "EXAM_SCHEDULE_FILE", os.path.join(EXAM_TOOLS_DIR, "schedule.json"))
 
 # Expected deliverables in ~/os-se-<id>/final-exam/  (an item ending in "buy_" is
 # matched by prefix, since that script name varies per student).
@@ -1639,19 +1644,66 @@ def _exam_hhmm_ms(hhmm, d):
                         tzinfo=_PPH).timestamp() * 1000)
 
 
+def _valid_hhmm(s):
+    h, m = (int(x) for x in str(s).split(":"))
+    if not (0 <= h < 24 and 0 <= m < 60):
+        raise ValueError("time out of range")
+    return "%02d:%02d" % (h, m)
+
+
+def _read_schedule_override():
+    """Schedule written by the admin dashboard, if any. {} when absent/invalid."""
+    try:
+        with open(EXAM_SCHEDULE_FILE, encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
 def exam_schedule():
-    s = os.environ.get("EXAM_DATE")
-    if s:
-        y, mo, da = (int(x) for x in s.split("-"))
+    ov = _read_schedule_override()
+    date_s = ov.get("date") or os.environ.get("EXAM_DATE")
+    if date_s:
+        y, mo, da = (int(x) for x in str(date_s).split("-"))
         d = datetime(y, mo, da).date()
     else:
         d = datetime.now(_PPH).date()
+    start = ov.get("start") or os.environ.get("EXAM_START_HHMM", "13:00")
+    end = ov.get("end") or os.environ.get("EXAM_END_HHMM", "15:30")
+    cb_open = ov.get("cbOpen") or os.environ.get("CB_OPEN_HHMM", "14:30")
+    cb_seal = ov.get("cbSeal") or os.environ.get("CB_SEAL_HHMM", "14:45")
     return {
-        "start": _exam_hhmm_ms(os.environ.get("EXAM_START_HHMM", "13:00"), d),
-        "end": _exam_hhmm_ms(os.environ.get("EXAM_END_HHMM", "15:30"), d),
-        "cbOpen": _exam_hhmm_ms(os.environ.get("CB_OPEN_HHMM", "14:30"), d),
-        "cbSeal": _exam_hhmm_ms(os.environ.get("CB_SEAL_HHMM", "14:45"), d),
+        "start": _exam_hhmm_ms(start, d),
+        "end": _exam_hhmm_ms(end, d),
+        "cbOpen": _exam_hhmm_ms(cb_open, d),
+        "cbSeal": _exam_hhmm_ms(cb_seal, d),
+        # Raw values so the admin form can prefill, plus where they came from.
+        "date": d.isoformat(),
+        "startHHMM": start, "endHHMM": end,
+        "cbOpenHHMM": cb_open, "cbSealHHMM": cb_seal,
+        "source": "file" if ov else (
+            "env" if os.environ.get("EXAM_DATE") else "default"),
     }
+
+
+def exam_set_schedule(date_s, start, end, cb_open, cb_seal):
+    """Persist an admin-supplied timetable; returns the recomputed schedule.
+    Raises ValueError on malformed input (caller maps to HTTP 400)."""
+    datetime.strptime(date_s, "%Y-%m-%d")  # validates the date
+    data = {
+        "date": date_s,
+        "start": _valid_hhmm(start),
+        "end": _valid_hhmm(end),
+        "cbOpen": _valid_hhmm(cb_open),
+        "cbSeal": _valid_hhmm(cb_seal),
+    }
+    os.makedirs(os.path.dirname(EXAM_SCHEDULE_FILE), exist_ok=True)
+    tmp = EXAM_SCHEDULE_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    os.replace(tmp, EXAM_SCHEDULE_FILE)
+    return exam_schedule()
 
 
 def _find_final_root(username):
@@ -2323,6 +2375,23 @@ def route_admin_exam_control():
     res = exam_set_access(target, action)
     return jsonify({"ok": res["ok"], "target": target, "action": action,
                     "output": res["output"]})
+
+
+@app.route("/api/admin/exam/schedule", methods=["POST"])
+@admin_required
+def route_admin_exam_schedule():
+    body = request.get_json(silent=True) or {}
+    try:
+        sched = exam_set_schedule(
+            str(body.get("date", "")).strip(),
+            str(body.get("start", "")).strip(),
+            str(body.get("end", "")).strip(),
+            str(body.get("cbOpen", "")).strip(),
+            str(body.get("cbSeal", "")).strip(),
+        )
+    except (ValueError, KeyError) as exc:
+        return jsonify({"error": "invalid schedule: %s" % exc}), 400
+    return jsonify({"ok": True, "schedule": sched})
 
 
 @app.route("/exam")
