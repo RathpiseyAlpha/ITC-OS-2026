@@ -1817,6 +1817,7 @@
     //  Final Exam view (reuses the logged-in session)
     // ──────────────────────────────────────
     var _examPoll = null, _examTick = null, _examSched = null, _examSkew = 0;
+    var _examTab = 'live', _examSchedFilled = false, _examPrevRank = {}, _examDoPoll = null;
     function _examClr() {
         if (_examPoll) { clearInterval(_examPoll); _examPoll = null; }
         if (_examTick) { clearInterval(_examTick); _examTick = null; }
@@ -1844,10 +1845,50 @@
         return h;
     }
 
+    function _examEnsureStyle() {
+        if (document.getElementById('exam-style')) return;
+        var st = document.createElement('style'); st.id = 'exam-style';
+        st.textContent = '#exTabLive:fullscreen,#exTabLive:-webkit-full-screen{background:#0d1117;padding:22px 26px;overflow:auto}'
+            + '#exTabLive:fullscreen #exTexam,#exTabLive:fullscreen #exTcbo,#exTabLive:fullscreen #exTcbs,'
+            + '#exTabLive:-webkit-full-screen #exTexam,#exTabLive:-webkit-full-screen #exTcbo,#exTabLive:-webkit-full-screen #exTcbs{font-size:42px}';
+        document.head.appendChild(st);
+    }
+    function _examMeCardHtml(m) {
+        var ccss = 'background:#171c24;border:1px solid #262d39;border-radius:10px;padding:12px 14px;margin-bottom:12px';
+        return '<div style="' + ccss + '"><b>' + m.name + '</b> <span style="color:#8b949e">' + m.user + '</span> &middot; paper ' + _examPill(m.paper) + ' &middot; curveball ' + _examPill(m.cb)
+            + '<div style="margin-top:10px">' + _examPartsHtml(m.parts) + '</div>'
+            + '<div style="color:#8b949e;margin-top:6px">' + (m.found ? (m.pct + '% complete') : 'No final-exam folder pushed yet.') + '</div></div>';
+    }
+    function _examRankRows(students) {
+        var ps = ['Docs', 'A', 'B', 'C', 'D', 'E'], rows = '', newRank = {};
+        var medbg = ['#3a2f00', '#2a2d33', '#311f12'], medfg = ['#ffd24a', '#cfd3d8', '#e0a072'];
+        for (var i = 0; i < students.length; i++) {
+            var s = students[i], cells = '';
+            for (var j = 0; j < ps.length; j++) {
+                var x = s.parts[ps[j]] || { p: 0, t: 0 }, f = x.t ? x.p / x.t : 0;
+                cells += '<td style="text-align:center;padding:4px"><span style="background:' + _examHue(f) + ';color:#06120c;border-radius:5px;padding:2px 6px">' + x.p + '/' + x.t + '</span></td>';
+            }
+            var nm = s.found ? s.name : '<span style="color:#8b949e;font-style:italic">' + s.name + '</span>';
+            var prev = _examPrevRank[s.user], mv = '';
+            if (prev !== undefined) {
+                if (prev > i) mv = ' <span style="color:#3fb37f;font-size:11px">▲' + (prev - i) + '</span>';
+                else if (prev < i) mv = ' <span style="color:#e5736f;font-size:11px">▼' + (i - prev) + '</span>';
+            }
+            newRank[s.user] = i;
+            var rk = (i < 3)
+                ? '<span style="background:' + medbg[i] + ';color:' + medfg[i] + ';border-radius:6px;padding:2px 8px;font-weight:700">' + (i + 1) + '</span>'
+                : (i + 1);
+            rows += '<tr style="border-top:1px solid #262d39"><td style="padding:6px">' + rk + mv + '</td><td>' + nm + '<br><span style="color:#8b949e;font-size:11px">' + s.user + '</span></td><td>' + _examPill(s.paper) + '</td><td>' + _examPill(s.cb) + '</td><td><b>' + s.pct + '%</b></td>' + cells + '</tr>';
+        }
+        _examPrevRank = newRank;
+        return rows;
+    }
+
     function renderExam() {
         if (!authToken) { window.location.hash = 'browse'; return; }
         var url = serverUrl(); if (!url) return;
-        _examClr();
+        _examClr(); _examEnsureStyle(); _examSchedFilled = false;
+        var isAdmin = (authRole === 'admin');
         var viewerEl = document.getElementById('file-viewer');
         document.getElementById('outline-content').style.display = 'none';
         document.getElementById('viewer-placeholder').style.display = 'none';
@@ -1855,11 +1896,55 @@
         viewerEl.style.display = 'flex';
         document.getElementById('explorer-title').textContent = 'bash — final exam';
         document.getElementById('explorer-cmd').textContent = 'cat final-exam/status';
-        viewerEl.innerHTML = '<div class="admin-panel" id="exam-content"><div class="admin-loading">Loading…</div></div>';
+
+        var tcss = 'flex:1;min-width:170px;background:#171c24;border:1px solid #262d39;border-radius:10px;padding:10px 14px';
+        var lcss = 'font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em';
+        var bcss = 'font-size:26px;font-weight:700;margin-top:4px';
+        var ccss = 'background:#171c24;border:1px solid #262d39;border-radius:10px;padding:12px 14px;margin-bottom:12px';
+
+        var tabbar = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap">'
+            + '<button id="exTabBtnLive" class="admin-tab" onclick="examSwitchTab(\'live\')">📊 Live standings</button>'
+            + (isAdmin ? '<button id="exTabBtnCtrl" class="admin-tab" onclick="examSwitchTab(\'ctrl\')">⚙ Control</button>' : '')
+            + '<span style="flex:1"></span>'
+            + '<span id="exUpd" style="color:#8b949e;font-size:11px;margin-right:8px"></span>'
+            + '<button class="admin-tab" onclick="examFullscreen()">⛶ Fullscreen</button></div>';
+
+        var timers = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+            + '<div style="' + tcss + '"><div style="' + lcss + '">Exam</div><div style="' + bcss + '" id="exTexam">--:--</div></div>'
+            + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball release</div><div style="' + bcss + '" id="exTcbo">--:--</div></div>'
+            + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball closes</div><div style="' + bcss + '" id="exTcbs">--:--</div></div></div>';
+
+        var live = '<div id="exTabLive">' + timers + '<div id="exMeCard"></div>'
+            + (isAdmin ? ('<div id="exStats" style="color:#8b949e;font-size:12px;margin:4px 0 10px"></div>'
+                + '<div id="exTableWrap" style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
+                + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody id="exTbody"></tbody></table></div>') : '')
+            + '</div>';
+
+        var ctrl = '';
+        if (isAdmin) {
+            ctrl = '<div id="exTabCtrl" style="display:none">'
+                + '<div style="' + ccss + '"><b>Manual control</b><br><br>Papers: '
+                + '<button class="admin-tab" onclick="examControl(\'paper\',\'open\')">Open</button> '
+                + '<button class="admin-tab" onclick="examControl(\'paper\',\'seal\')">Seal</button> &nbsp;&nbsp; Curveballs: '
+                + '<button class="admin-tab" onclick="examControl(\'curveball\',\'open\')">Release</button> '
+                + '<button class="admin-tab" onclick="examControl(\'curveball\',\'seal\')">Seal</button>'
+                + '<div style="color:#8b949e;margin-top:8px" id="examCtlMsg"></div></div>';
+            var ilab = 'color:#8b949e;font-size:12px;margin-right:12px;display:inline-block;margin-bottom:6px', iin = 'margin-left:5px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:5px;padding:3px 6px';
+            ctrl += '<div style="' + ccss + '"><b>Schedule</b> <span id="exSchSrc" style="color:#8b949e;font-size:11px">(set any date/time live)</span><br><br>'
+                + '<label style="' + ilab + '">Date<input id="exSchDate" type="date" style="' + iin + '"></label>'
+                + '<label style="' + ilab + '">Start<input id="exSchStart" type="time" style="' + iin + '"></label>'
+                + '<label style="' + ilab + '">CB release<input id="exSchCbo" type="time" style="' + iin + '"></label>'
+                + '<label style="' + ilab + '">CB seal<input id="exSchCbs" type="time" style="' + iin + '"></label>'
+                + '<label style="' + ilab + '">End<input id="exSchEnd" type="time" style="' + iin + '"></label> '
+                + '<button class="admin-tab" onclick="examSetSchedule()">Save schedule</button>'
+                + '<div style="color:#8b949e;margin-top:8px" id="examSchMsg"></div></div>';
+        }
+
+        viewerEl.innerHTML = '<div class="admin-panel" id="exam-root">' + tabbar + live + ctrl + '</div>';
+        examSwitchTab((_examTab === 'ctrl' && isAdmin) ? 'ctrl' : 'live');
 
         function tick() {
-            var box = document.getElementById('exam-content');
-            if (!box) { _examClr(); return; }
+            if (!document.getElementById('exam-root')) { _examClr(); return; }
             if (!_examSched) return;
             var now = Date.now() + _examSkew;
             function setT(id, opens, closes, startLabel) {
@@ -1873,78 +1958,66 @@
             setT('exTcbs', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
         }
 
-        function render(d, admin) {
+        function update(d, admin) {
             _examSched = d.schedule; _examSkew = d.serverNow - Date.now();
-            var tcss = 'flex:1;min-width:180px;background:#171c24;border:1px solid #262d39;border-radius:10px;padding:10px 14px';
-            var lcss = 'font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em';
-            var bcss = 'font-size:24px;font-weight:700;margin-top:4px';
-            var ccss = 'background:#171c24;border:1px solid #262d39;border-radius:10px;padding:12px 14px;margin-bottom:12px';
-            var html = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
-                + '<div style="' + tcss + '"><div style="' + lcss + '">Exam</div><div style="' + bcss + '" id="exTexam">--:--</div></div>'
-                + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball release</div><div style="' + bcss + '" id="exTcbo">--:--</div></div>'
-                + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball closes</div><div style="' + bcss + '" id="exTcbs">--:--</div></div>'
-                + '</div>';
-            if (d.me) {
-                var m = d.me;
-                html += '<div style="' + ccss + '"><b>' + m.name + '</b> <span style="color:#8b949e">' + m.user + '</span> &middot; paper ' + _examPill(m.paper) + ' &middot; curveball ' + _examPill(m.cb)
-                    + '<div style="margin-top:10px">' + _examPartsHtml(m.parts) + '</div>'
-                    + '<div style="color:#8b949e;margin-top:6px">' + (m.found ? (m.pct + '% complete') : 'No final-exam folder pushed yet.') + '</div></div>';
-            }
+            var me = document.getElementById('exMeCard');
+            if (me) me.innerHTML = d.me ? _examMeCardHtml(d.me) : '';
             if (admin) {
                 var o = admin.overall, e = admin.env, c = o.curveball, pp = o.paper, N = o.totalStudents;
-                html += '<div style="color:#8b949e;font-size:12px;margin:4px 0 10px">homes <b>' + e.homeBase + '</b> &middot; srv <b>' + e.srvBase + '</b> &middot; papers ' + (pp.open + pp.sealed) + '/' + N + ' (' + pp.sealed + ' sealed, ' + pp.open + ' open) &middot; curveballs ' + (c.open + c.sealed) + '/' + N + ' (' + c.sealed + ' sealed, ' + c.open + ' open) &middot; started ' + o.foundCount + '/' + N + '</div>';
-                html += '<div style="' + ccss + '"><b>Manual control</b><br><br>Papers: '
-                    + '<button class="admin-tab" onclick="examControl(\'paper\',\'open\')">Open</button> '
-                    + '<button class="admin-tab" onclick="examControl(\'paper\',\'seal\')">Seal</button> &nbsp;&nbsp; Curveballs: '
-                    + '<button class="admin-tab" onclick="examControl(\'curveball\',\'open\')">Release</button> '
-                    + '<button class="admin-tab" onclick="examControl(\'curveball\',\'seal\')">Seal</button>'
-                    + '<div style="color:#8b949e;margin-top:8px" id="examCtlMsg"></div></div>';
-                var sc = d.schedule, ilab = 'color:#8b949e;font-size:12px;margin-right:12px;display:inline-block;margin-bottom:6px', iin = 'margin-left:5px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:5px;padding:3px 6px';
-                html += '<div style="' + ccss + '"><b>Schedule</b> <span style="color:#8b949e;font-size:11px">(source: ' + (sc.source || '') + ' — set any date/time live)</span><br><br>'
-                    + '<label style="' + ilab + '">Date<input id="exSchDate" type="date" value="' + sc.date + '" style="' + iin + '"></label>'
-                    + '<label style="' + ilab + '">Start<input id="exSchStart" type="time" value="' + sc.startHHMM + '" style="' + iin + '"></label>'
-                    + '<label style="' + ilab + '">CB release<input id="exSchCbo" type="time" value="' + sc.cbOpenHHMM + '" style="' + iin + '"></label>'
-                    + '<label style="' + ilab + '">CB seal<input id="exSchCbs" type="time" value="' + sc.cbSealHHMM + '" style="' + iin + '"></label>'
-                    + '<label style="' + ilab + '">End<input id="exSchEnd" type="time" value="' + sc.endHHMM + '" style="' + iin + '"></label> '
-                    + '<button class="admin-tab" onclick="examSetSchedule()">Save schedule</button>'
-                    + '<div style="color:#8b949e;margin-top:8px" id="examSchMsg"></div></div>';
-                html += '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
-                    + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody>';
-                for (var i = 0; i < admin.students.length; i++) {
-                    var s = admin.students[i], cells = '', ps = ['Docs', 'A', 'B', 'C', 'D', 'E'];
-                    for (var j = 0; j < ps.length; j++) {
-                        var x = s.parts[ps[j]] || { p: 0, t: 0 }, f = x.t ? x.p / x.t : 0;
-                        cells += '<td style="text-align:center;padding:4px"><span style="background:' + _examHue(f) + ';color:#06120c;border-radius:5px;padding:2px 6px">' + x.p + '/' + x.t + '</span></td>';
-                    }
-                    var nm = s.found ? s.name : '<span style="color:#8b949e;font-style:italic">' + s.name + '</span>';
-                    html += '<tr style="border-top:1px solid #262d39"><td style="padding:6px">' + (i + 1) + '</td><td>' + nm + '<br><span style="color:#8b949e;font-size:11px">' + s.user + '</span></td><td>' + _examPill(s.paper) + '</td><td>' + _examPill(s.cb) + '</td><td><b>' + s.pct + '%</b></td>' + cells + '</tr>';
+                var st = document.getElementById('exStats');
+                if (st) st.innerHTML = 'homes <b>' + e.homeBase + '</b> &middot; srv <b>' + e.srvBase + '</b> &middot; papers ' + (pp.open + pp.sealed) + '/' + N + ' (' + pp.sealed + ' sealed, ' + pp.open + ' open) &middot; curveballs ' + (c.open + c.sealed) + '/' + N + ' (' + c.sealed + ' sealed, ' + c.open + ' open) &middot; started ' + o.foundCount + '/' + N;
+                var tb = document.getElementById('exTbody');
+                if (tb) tb.innerHTML = _examRankRows(admin.students);
+                if (!_examSchedFilled) {
+                    var sc = d.schedule, setv = function (id, v) { var el = document.getElementById(id); if (el) el.value = v; };
+                    setv('exSchDate', sc.date); setv('exSchStart', sc.startHHMM); setv('exSchCbo', sc.cbOpenHHMM); setv('exSchCbs', sc.cbSealHHMM); setv('exSchEnd', sc.endHHMM);
+                    var srcEl = document.getElementById('exSchSrc'); if (srcEl) srcEl.textContent = '(source: ' + (sc.source || '') + ' — set any date/time live)';
+                    _examSchedFilled = true;
                 }
-                html += '</tbody></table>';
             }
-            var box = document.getElementById('exam-content');
-            if (box) box.innerHTML = html;
+            var up = document.getElementById('exUpd'); if (up) up.innerHTML = '<span style="color:#3fb37f">●</span> live · ' + new Date().toLocaleTimeString();
             tick();
         }
 
         function poll() {
-            var box = document.getElementById('exam-content');
-            if (!box) { _examClr(); return; }
+            if (!document.getElementById('exam-root')) { _examClr(); return; }
             fetch(url + '/api/exam/status', { mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken } })
                 .then(function (r) { return r.ok ? r.json() : null; })
                 .then(function (d) {
                     if (!d) return;
-                    if (authRole === 'admin') {
+                    if (isAdmin) {
                         fetch(url + '/api/admin/exam', { mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken } })
                             .then(function (r) { return r.ok ? r.json() : null; })
-                            .then(function (a) { render(d, a); });
-                    } else { render(d, null); }
+                            .then(function (a) { update(d, a); });
+                    } else { update(d, null); }
                 })
                 .catch(function () {});
         }
+        _examDoPoll = poll;
         poll();
-        _examPoll = setInterval(poll, 7000);
+        _examPoll = setInterval(poll, 5000);
         _examTick = setInterval(tick, 250);
     }
+
+    window.examSwitchTab = function (name) {
+        _examTab = name;
+        var live = document.getElementById('exTabLive'), ctrl = document.getElementById('exTabCtrl');
+        var bL = document.getElementById('exTabBtnLive'), bC = document.getElementById('exTabBtnCtrl');
+        if (live) live.style.display = (name === 'live') ? 'block' : 'none';
+        if (ctrl) ctrl.style.display = (name === 'ctrl') ? 'block' : 'none';
+        if (bL) bL.style.background = (name === 'live') ? '#1f6feb' : '';
+        if (bC) bC.style.background = (name === 'ctrl') ? '#1f6feb' : '';
+    };
+
+    window.examFullscreen = function () {
+        examSwitchTab('live');
+        var el = document.getElementById('exTabLive'); if (!el) return;
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+            (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+        } else if (el.requestFullscreen || el.webkitRequestFullscreen) {
+            (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+        }
+    };
 
     window.examControl = function (target, action) {
         if (!confirm(action + ' ' + target + ' for ALL students?')) return;
@@ -1958,8 +2031,7 @@
         .then(function (res) {
             var el = document.getElementById('examCtlMsg');
             if (el) el.textContent = (res.ok && res.d.ok) ? (action + ' ' + target + ' — ' + res.d.output) : (res.d.output || res.d.error || 'failed');
-            window.location.hash = 'exam';
-            renderExam();
+            if (_examDoPoll) _examDoPoll();
         })
         .catch(function () {});
     };
