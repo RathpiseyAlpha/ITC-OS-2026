@@ -1673,11 +1673,21 @@ def exam_schedule():
     end = ov.get("end") or os.environ.get("EXAM_END_HHMM", "15:30")
     cb_open = ov.get("cbOpen") or os.environ.get("CB_OPEN_HHMM", "14:30")
     cb_seal = ov.get("cbSeal") or os.environ.get("CB_SEAL_HHMM", "14:45")
+    try:
+        dur = int(ov.get("durationMin") or os.environ.get("EXAM_DURATION_MIN", "120"))
+    except (TypeError, ValueError):
+        dur = 120
+    if dur <= 0:
+        dur = 120
+    start_ms = _exam_hhmm_ms(start, d)
     return {
-        "start": _exam_hhmm_ms(start, d),
+        "start": start_ms,
         "end": _exam_hhmm_ms(end, d),
         "cbOpen": _exam_hhmm_ms(cb_open, d),
         "cbSeal": _exam_hhmm_ms(cb_seal, d),
+        # Exam "finished" = start + duration (independent of the End time).
+        "finish": start_ms + dur * 60000,
+        "durationMin": dur,
         # Raw values so the admin form can prefill, plus where they came from.
         "date": d.isoformat(),
         "startHHMM": start, "endHHMM": end,
@@ -1687,16 +1697,23 @@ def exam_schedule():
     }
 
 
-def exam_set_schedule(date_s, start, end, cb_open, cb_seal):
+def exam_set_schedule(date_s, start, end, cb_open, cb_seal, duration_min=120):
     """Persist an admin-supplied timetable; returns the recomputed schedule.
     Raises ValueError on malformed input (caller maps to HTTP 400)."""
     datetime.strptime(date_s, "%Y-%m-%d")  # validates the date
+    try:
+        dur = int(duration_min)
+    except (TypeError, ValueError):
+        raise ValueError("duration must be an integer")
+    if not (1 <= dur <= 24 * 60):
+        raise ValueError("duration out of range (1..1440 min)")
     data = {
         "date": date_s,
         "start": _valid_hhmm(start),
         "end": _valid_hhmm(end),
         "cbOpen": _valid_hhmm(cb_open),
         "cbSeal": _valid_hhmm(cb_seal),
+        "durationMin": dur,
     }
     os.makedirs(os.path.dirname(EXAM_SCHEDULE_FILE), exist_ok=True)
     tmp = EXAM_SCHEDULE_FILE + ".tmp"
@@ -1784,7 +1801,57 @@ def exam_set_access(target, action):
         return {"ok": False, "output": str(exc)}
 
 
+def _exam_blocked_shells():
+    """Users whose login shell is nologin/false (i.e. SSH-blocked)."""
+    blocked = set()
+    try:
+        with open("/etc/passwd", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                parts = line.split(":")
+                if len(parts) >= 7:
+                    shell = parts[6].strip()
+                    if shell.endswith("nologin") or shell.endswith("false"):
+                        blocked.add(parts[0])
+    except OSError:
+        pass
+    return blocked
+
+
+def _exam_active_users():
+    """Usernames with an active login session (per `who`)."""
+    try:
+        r = subprocess.run(["who"], capture_output=True, text=True, timeout=10)
+        return {ln.split()[0] for ln in r.stdout.splitlines() if ln.split()}
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def exam_ssh_state(user, blocked, active):
+    if user in blocked:
+        return "blocked"
+    if user in active:
+        return "connected"
+    return "idle"
+
+
+def exam_set_ssh(action):
+    """Block/unblock SSH for all student accounts via the root-owned ssh_access
+    script (nologin shell + session kill on block; shell restore on unblock)."""
+    users = [STUDENTS[s]["user"] for s in sorted(STUDENTS.keys())]
+    path = os.path.join(EXAM_TOOLS_DIR, "ssh_access")
+    try:
+        r = subprocess.run(
+            ["sudo", "-n", "bash", path, action] + users,
+            capture_output=True, text=True, timeout=90,
+        )
+        out = (r.stdout or "") + (r.stderr or "")
+        return {"ok": r.returncode == 0, "output": out.strip()[-300:]}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "output": str(exc)}
+
+
 def exam_admin_state():
+    blocked, active = _exam_blocked_shells(), _exam_active_users()
     students = []
     for sid in sorted(STUDENTS.keys()):
         info = STUDENTS[sid]
@@ -1794,13 +1861,16 @@ def exam_admin_state():
             "id": sid, "name": info["name"], "user": u,
             "found": c["found"], "pct": c["pct"], "parts": c["parts"],
             "paper": exam_paper_status(u), "cb": exam_curveball_status(u),
+            "ssh": exam_ssh_state(u, blocked, active),
         })
     students.sort(key=lambda s: (-s["pct"], s["name"]))
     cb = {"open": 0, "sealed": 0, "missing": 0, "unknown": 0}
     paper = {"open": 0, "sealed": 0, "missing": 0, "unknown": 0}
+    ssh = {"connected": 0, "blocked": 0, "idle": 0}
     for s in students:
         cb[s["cb"]] = cb.get(s["cb"], 0) + 1
         paper[s["paper"]] = paper.get(s["paper"], 0) + 1
+        ssh[s["ssh"]] = ssh.get(s["ssh"], 0) + 1
     return {
         "serverNow": int(datetime.now(timezone.utc).timestamp() * 1000),
         "schedule": exam_schedule(),
@@ -1810,9 +1880,33 @@ def exam_admin_state():
         "overall": {
             "totalStudents": len(students),
             "foundCount": sum(1 for s in students if s["found"]),
-            "curveball": cb, "paper": paper,
+            "curveball": cb, "paper": paper, "ssh": ssh,
         },
     }
+
+
+# Auto-block: once the exam-finish moment (start + duration) passes, block all
+# student SSH access. Server-clock driven; latches so a manual unblock isn't
+# immediately undone, and re-arms if the schedule is moved back to the future.
+_ssh_auto_blocked = False
+
+
+def _exam_autoblock_loop():
+    global _ssh_auto_blocked
+    while True:
+        try:
+            sch = exam_schedule()
+            now = int(datetime.now(timezone.utc).timestamp() * 1000)
+            fin = sch.get("finish")
+            if fin:
+                if now >= fin and not _ssh_auto_blocked:
+                    exam_set_ssh("block")
+                    _ssh_auto_blocked = True
+                elif now < fin:
+                    _ssh_auto_blocked = False
+        except Exception:  # noqa: BLE001
+            pass
+        time.sleep(20)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -2343,12 +2437,14 @@ def route_exam_status():
     info = STUDENTS.get(sid) if sid else None
     me = None
     if info:
-        c = exam_completion(info["user"])
+        u = info["user"]
+        c = exam_completion(u)
         me = {
-            "id": sid, "name": info["name"], "user": info["user"],
+            "id": sid, "name": info["name"], "user": u,
             "found": c["found"], "pct": c["pct"], "parts": c["parts"],
-            "paper": exam_paper_status(info["user"]),
-            "cb": exam_curveball_status(info["user"]),
+            "paper": exam_paper_status(u),
+            "cb": exam_curveball_status(u),
+            "ssh": exam_ssh_state(u, _exam_blocked_shells(), _exam_active_users()),
         }
     return jsonify({
         "serverNow": int(datetime.now(timezone.utc).timestamp() * 1000),
@@ -2370,6 +2466,12 @@ def route_admin_exam_control():
     body = request.get_json(silent=True) or {}
     target = str(body.get("target", ""))
     action = str(body.get("action", ""))
+    if target == "ssh":
+        if action not in ("block", "unblock"):
+            return jsonify({"error": "action=block|unblock for ssh"}), 400
+        res = exam_set_ssh(action)
+        return jsonify({"ok": res["ok"], "target": target, "action": action,
+                        "output": res["output"]})
     if target not in ("paper", "curveball") or action not in ("open", "seal"):
         return jsonify({"error": "target=paper|curveball, action=open|seal"}), 400
     res = exam_set_access(target, action)
@@ -2388,6 +2490,7 @@ def route_admin_exam_schedule():
             str(body.get("end", "")).strip(),
             str(body.get("cbOpen", "")).strip(),
             str(body.get("cbSeal", "")).strip(),
+            body.get("durationMin", 120),
         )
     except (ValueError, KeyError) as exc:
         return jsonify({"error": "invalid schedule: %s" % exc}), 400
@@ -2436,6 +2539,7 @@ def main():
     print(f"    GET  /api/health             — health check")
     print(f"  Press Ctrl+C to stop.\n")
 
+    threading.Thread(target=_exam_autoblock_loop, daemon=True).start()
     app.run(host=args.host, port=args.port, threaded=True)
 
 

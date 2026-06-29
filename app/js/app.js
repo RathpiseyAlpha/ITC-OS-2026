@@ -1836,6 +1836,12 @@
         var c = M[x] || M.unknown;
         return '<span style="background:' + c[0] + ';color:' + c[1] + ';padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600">' + c[2] + '</span>';
     }
+    function _examSshPill(x) {
+        var M = { connected: ['#0f3d2e', '#3fb37f', 'connected'], blocked: ['#3a1d1d', '#e5736f', 'BLOCKED'],
+                  idle: ['#26303b', '#9ca3af', 'idle'] };
+        var c = M[x] || M.idle;
+        return '<span style="background:' + c[0] + ';color:' + c[1] + ';padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600">' + c[2] + '</span>';
+    }
     function _examPartsHtml(parts) {
         var ps = ['Docs', 'A', 'B', 'C', 'D', 'E'], h = '';
         for (var i = 0; i < ps.length; i++) {
@@ -1855,7 +1861,7 @@
     }
     function _examMeCardHtml(m) {
         var ccss = 'background:#171c24;border:1px solid #262d39;border-radius:10px;padding:12px 14px;margin-bottom:12px';
-        return '<div style="' + ccss + '"><b>' + m.name + '</b> <span style="color:#8b949e">' + m.user + '</span> &middot; paper ' + _examPill(m.paper) + ' &middot; curveball ' + _examPill(m.cb)
+        return '<div style="' + ccss + '"><b>' + m.name + '</b> <span style="color:#8b949e">' + m.user + '</span> &middot; paper ' + _examPill(m.paper) + ' &middot; curveball ' + _examPill(m.cb) + ' &middot; ssh ' + _examSshPill(m.ssh)
             + '<div style="margin-top:10px">' + _examPartsHtml(m.parts) + '</div>'
             + '<div style="color:#8b949e;margin-top:6px">' + (m.found ? (m.pct + '% complete') : 'No final-exam folder pushed yet.') + '</div></div>';
     }
@@ -1878,7 +1884,7 @@
             var rk = (i < 3)
                 ? '<span style="background:' + medbg[i] + ';color:' + medfg[i] + ';border-radius:6px;padding:2px 8px;font-weight:700">' + (i + 1) + '</span>'
                 : (i + 1);
-            rows += '<tr style="border-top:1px solid #262d39"><td style="padding:6px">' + rk + mv + '</td><td>' + nm + '<br><span style="color:#8b949e;font-size:11px">' + s.user + '</span></td><td>' + _examPill(s.paper) + '</td><td>' + _examPill(s.cb) + '</td><td><b>' + s.pct + '%</b></td>' + cells + '</tr>';
+            rows += '<tr style="border-top:1px solid #262d39"><td style="padding:6px">' + rk + mv + '</td><td>' + nm + '<br><span style="color:#8b949e;font-size:11px">' + s.user + '</span></td><td>' + _examPill(s.paper) + '</td><td>' + _examPill(s.cb) + '</td><td>' + _examSshPill(s.ssh) + '</td><td><b>' + s.pct + '%</b></td>' + cells + '</tr>';
         }
         _examPrevRank = newRank;
         return rows;
@@ -1910,14 +1916,15 @@
             + '<button class="admin-tab" onclick="examFullscreen()">⛶ Fullscreen</button></div>';
 
         var timers = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
-            + '<div style="' + tcss + '"><div style="' + lcss + '">Exam</div><div style="' + bcss + '" id="exTexam">--:--</div></div>'
+            + '<div style="' + tcss + '"><div style="' + lcss + '">Exam (window)</div><div style="' + bcss + '" id="exTexam">--:--</div></div>'
+            + '<div style="' + tcss + '"><div style="' + lcss + '">Exam finished</div><div style="' + bcss + '" id="exTfin">--:--</div></div>'
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball release</div><div style="' + bcss + '" id="exTcbo">--:--</div></div>'
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball closes</div><div style="' + bcss + '" id="exTcbs">--:--</div></div></div>';
 
         var live = '<div id="exTabLive">' + timers + '<div id="exMeCard"></div>'
             + (isAdmin ? ('<div id="exStats" style="color:#8b949e;font-size:12px;margin:4px 0 10px"></div>'
                 + '<div id="exTableWrap" style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
-                + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody id="exTbody"></tbody></table></div>') : '')
+                + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>SSH</th><th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody id="exTbody"></tbody></table></div>') : '')
             + '</div>';
 
         var ctrl = '';
@@ -1928,11 +1935,16 @@
                 + '<button class="admin-tab" onclick="examControl(\'paper\',\'seal\')">Seal</button> &nbsp;&nbsp; Curveballs: '
                 + '<button class="admin-tab" onclick="examControl(\'curveball\',\'open\')">Release</button> '
                 + '<button class="admin-tab" onclick="examControl(\'curveball\',\'seal\')">Seal</button>'
+                + '<br><br>SSH access: '
+                + '<button class="admin-tab" onclick="examControl(\'ssh\',\'block\')">Block all</button> '
+                + '<button class="admin-tab" onclick="examControl(\'ssh\',\'unblock\')">Unblock all</button> '
+                + '<span style="color:#8b949e;font-size:11px">auto-blocks at exam finish (start + duration)</span>'
                 + '<div style="color:#8b949e;margin-top:8px" id="examCtlMsg"></div></div>';
             var ilab = 'color:#8b949e;font-size:12px;margin-right:12px;display:inline-block;margin-bottom:6px', iin = 'margin-left:5px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:5px;padding:3px 6px';
             ctrl += '<div style="' + ccss + '"><b>Schedule</b> <span id="exSchSrc" style="color:#8b949e;font-size:11px">(set any date/time live)</span><br><br>'
                 + '<label style="' + ilab + '">Date<input id="exSchDate" type="date" style="' + iin + '"></label>'
                 + '<label style="' + ilab + '">Start<input id="exSchStart" type="time" style="' + iin + '"></label>'
+                + '<label style="' + ilab + '">Duration min<input id="exSchDur" type="number" min="1" style="' + iin + ';width:78px"></label>'
                 + '<label style="' + ilab + '">CB release<input id="exSchCbo" type="time" style="' + iin + '"></label>'
                 + '<label style="' + ilab + '">CB seal<input id="exSchCbs" type="time" style="' + iin + '"></label>'
                 + '<label style="' + ilab + '">End<input id="exSchEnd" type="time" style="' + iin + '"></label> '
@@ -1947,13 +1959,15 @@
             if (!document.getElementById('exam-root')) { _examClr(); return; }
             if (!_examSched) return;
             var now = Date.now() + _examSkew;
-            function setT(id, opens, closes, startLabel) {
+            function setT(id, opens, closes, startLabel, doneLabel) {
                 var el = document.getElementById(id); if (!el) return;
                 if (now < opens) { el.innerHTML = _examFmt(opens - now) + ' <small style="color:#9ca3af">' + startLabel + '</small>'; }
                 else if (now < closes) { el.innerHTML = _examFmt(closes - now) + ' <small style="color:#3fb37f">left</small>'; }
-                else { el.innerHTML = '00:00 <small style="color:#e5736f">done</small>'; }
+                else { el.innerHTML = '00:00 <small style="color:#e5736f">' + (doneLabel || 'done') + '</small>'; }
             }
             setT('exTexam', _examSched.start, _examSched.end, 'starts in');
+            // Exam-finish tile: start + duration (independent of End).
+            setT('exTfin', _examSched.start, _examSched.finish, 'starts in', 'FINISHED');
             setT('exTcbo', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
             // "closes" tile counts down to the seal moment only (then shows done).
             setT('exTcbs', _examSched.cbSeal, _examSched.cbSeal, 'closes in');
@@ -1966,12 +1980,13 @@
             if (admin) {
                 var o = admin.overall, e = admin.env, c = o.curveball, pp = o.paper, N = o.totalStudents;
                 var st = document.getElementById('exStats');
-                if (st) st.innerHTML = 'homes <b>' + e.homeBase + '</b> &middot; srv <b>' + e.srvBase + '</b> &middot; papers ' + (pp.open + pp.sealed) + '/' + N + ' (' + pp.sealed + ' sealed, ' + pp.open + ' open) &middot; curveballs ' + (c.open + c.sealed) + '/' + N + ' (' + c.sealed + ' sealed, ' + c.open + ' open) &middot; started ' + o.foundCount + '/' + N;
+                var sh = o.ssh || { connected: 0, blocked: 0, idle: 0 };
+                if (st) st.innerHTML = 'homes <b>' + e.homeBase + '</b> &middot; srv <b>' + e.srvBase + '</b> &middot; papers ' + (pp.open + pp.sealed) + '/' + N + ' (' + pp.sealed + ' sealed, ' + pp.open + ' open) &middot; curveballs ' + (c.open + c.sealed) + '/' + N + ' (' + c.sealed + ' sealed, ' + c.open + ' open) &middot; ssh ' + sh.connected + ' conn / ' + sh.blocked + ' blocked &middot; started ' + o.foundCount + '/' + N;
                 var tb = document.getElementById('exTbody');
                 if (tb) tb.innerHTML = _examRankRows(admin.students);
                 if (!_examSchedFilled) {
                     var sc = d.schedule, setv = function (id, v) { var el = document.getElementById(id); if (el) el.value = v; };
-                    setv('exSchDate', sc.date); setv('exSchStart', sc.startHHMM); setv('exSchCbo', sc.cbOpenHHMM); setv('exSchCbs', sc.cbSealHHMM); setv('exSchEnd', sc.endHHMM);
+                    setv('exSchDate', sc.date); setv('exSchStart', sc.startHHMM); setv('exSchDur', sc.durationMin); setv('exSchCbo', sc.cbOpenHHMM); setv('exSchCbs', sc.cbSealHHMM); setv('exSchEnd', sc.endHHMM);
                     var srcEl = document.getElementById('exSchSrc'); if (srcEl) srcEl.textContent = '(source: ' + (sc.source || '') + ' — set any date/time live)';
                     _examSchedFilled = true;
                 }
@@ -2044,7 +2059,7 @@
         fetch(url + '/api/admin/exam/schedule', {
             method: 'POST', mode: 'cors',
             headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ date: g('exSchDate'), start: g('exSchStart'), end: g('exSchEnd'), cbOpen: g('exSchCbo'), cbSeal: g('exSchCbs') })
+            body: JSON.stringify({ date: g('exSchDate'), start: g('exSchStart'), end: g('exSchEnd'), cbOpen: g('exSchCbo'), cbSeal: g('exSchCbs'), durationMin: parseInt(g('exSchDur'), 10) || 120 })
         })
         .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
         .then(function (res) {
