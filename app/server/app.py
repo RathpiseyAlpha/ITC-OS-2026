@@ -1604,7 +1604,6 @@ FINAL_EXAM_ITEMS = {
         "partA_threads/thread_demo.c", "partA_threads/signal_demo.c",
         "partA_threads/thread_map.txt",
         "partA_threads/images/a1_thread_run.png",
-        "partA_threads/images/a2_signal_catch.png",
         "partA_threads/images/live_a.png",
     ],
     "B": [
@@ -1612,18 +1611,15 @@ FINAL_EXAM_ITEMS = {
         "partB_security/setuid_demo.c",
         "partB_security/images/b1_special_bits.png",
         "partB_security/images/b2_acl.png",
-        "partB_security/images/live_b.png",
     ],
     "C": [
         "partC_scripting/scripts/greeter", "partC_scripting/scripts/collector",
         "partC_scripting/path_report.txt",
         "partC_scripting/images/c1_collector_run.png",
-        "partC_scripting/images/live_c.png",
     ],
     "D": [
         "partD_secure/scripts/buy_", "partD_secure/scripts/swarm",
         "partD_secure/observations.txt",
-        "partD_secure/images/d1_race.png",
         "partD_secure/images/d2_patched.png",
         "partD_secure/images/live_d.png",
     ],
