@@ -1955,7 +1955,8 @@
             }
             setT('exTexam', _examSched.start, _examSched.end, 'starts in');
             setT('exTcbo', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
-            setT('exTcbs', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
+            // "closes" tile counts down to the seal moment only (then shows done).
+            setT('exTcbs', _examSched.cbSeal, _examSched.cbSeal, 'closes in');
         }
 
         function update(d, admin) {
