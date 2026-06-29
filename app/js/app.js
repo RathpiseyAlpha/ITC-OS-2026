@@ -1935,9 +1935,7 @@
                 + '<button class="admin-tab" onclick="examControl(\'paper\',\'seal\')">Seal</button> &nbsp;&nbsp; Curveballs: '
                 + '<button class="admin-tab" onclick="examControl(\'curveball\',\'open\')">Release</button> '
                 + '<button class="admin-tab" onclick="examControl(\'curveball\',\'seal\')">Seal</button>'
-                + '<br><br>SSH access: '
-                + '<button class="admin-tab" onclick="examControl(\'ssh\',\'block\')">Block all</button> '
-                + '<button class="admin-tab" onclick="examControl(\'ssh\',\'unblock\')">Unblock all</button> '
+                + '<br><br>SSH access: <span id="exSshToggle"></span> '
                 + '<span style="color:#8b949e;font-size:11px">auto-blocks at exam finish (start + duration)</span>'
                 + '<div style="color:#8b949e;margin-top:8px" id="examCtlMsg"></div></div>';
             var ilab = 'color:#8b949e;font-size:12px;margin-right:12px;display:inline-block;margin-bottom:6px', iin = 'margin-left:5px;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:5px;padding:3px 6px';
@@ -1982,6 +1980,14 @@
                 var st = document.getElementById('exStats');
                 var sh = o.ssh || { connected: 0, blocked: 0, idle: 0 };
                 if (st) st.innerHTML = 'homes <b>' + e.homeBase + '</b> &middot; srv <b>' + e.srvBase + '</b> &middot; papers ' + (pp.open + pp.sealed) + '/' + N + ' (' + pp.sealed + ' sealed, ' + pp.open + ' open) &middot; curveballs ' + (c.open + c.sealed) + '/' + N + ' (' + c.sealed + ' sealed, ' + c.open + ' open) &middot; ssh ' + sh.connected + ' conn / ' + sh.blocked + ' blocked &middot; started ' + o.foundCount + '/' + N;
+                var tgl = document.getElementById('exSshToggle');
+                if (tgl) {
+                    var allBlk = (N > 0 && sh.blocked >= N);
+                    tgl.innerHTML = (allBlk
+                        ? '<button class="admin-tab" style="background:#3fb37f;color:#06120c" onclick="examControl(\'ssh\',\'unblock\')">🔓 Unblock everyone</button>'
+                        : '<button class="admin-tab" style="background:#e5736f;color:#180b0b" onclick="examControl(\'ssh\',\'block\')">🔒 Block everyone</button>')
+                        + ' <span style="color:#8b949e;font-size:11px">(' + sh.blocked + '/' + N + ' blocked)</span>';
+                }
                 var tb = document.getElementById('exTbody');
                 if (tb) tb.innerHTML = _examRankRows(admin.students);
                 if (!_examSchedFilled) {
