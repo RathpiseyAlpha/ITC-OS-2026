@@ -1924,7 +1924,7 @@
         var live = '<div id="exTabLive">' + timers + '<div id="exMeCard"></div>'
             + (isAdmin ? ('<div id="exStats" style="color:#8b949e;font-size:12px;margin:4px 0 10px"></div>'
                 + '<div id="exTableWrap" style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
-                + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>SSH</th><th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody id="exTbody"></tbody></table></div>') : '')
+                + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>SSH</th><th>Overall</th><th style="text-align:center">Docs</th><th style="text-align:center">A</th><th style="text-align:center">B</th><th style="text-align:center">C</th><th style="text-align:center">D</th><th style="text-align:center">E</th></tr></thead><tbody id="exTbody"></tbody></table></div>') : '')
             + '</div>';
 
         var ctrl = '';
