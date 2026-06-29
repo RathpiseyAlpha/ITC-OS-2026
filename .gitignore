@@ -5,3 +5,4 @@ app/server/sessions.json
 moodle-qbanks/
 Bash Script 2*
 labs/lab10/check_cron_tasks.sh
+exam/

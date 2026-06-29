@@ -260,6 +260,9 @@
         // Show grades nav for authenticated students
         var gradesNav = document.getElementById('grades-nav');
         if (gradesNav) gradesNav.style.display = (role === 'user') ? '' : 'none';
+        // Show final-exam nav for any authenticated user (student or admin)
+        var examNav = document.getElementById('exam-nav');
+        if (examNav) examNav.style.display = (role === 'user' || role === 'admin') ? '' : 'none';
         updatePresenceVisibility();
     }
 
@@ -272,6 +275,8 @@
         if (adminNav) adminNav.style.display = 'none';
         var gradesNav = document.getElementById('grades-nav');
         if (gradesNav) gradesNav.style.display = 'none';
+        var examNav = document.getElementById('exam-nav');
+        if (examNav) examNav.style.display = 'none';
         updatePresenceVisibility();
     }
 
@@ -283,6 +288,10 @@
     if (authRole === 'user') {
         var gradesNav = document.getElementById('grades-nav');
         if (gradesNav) gradesNav.style.display = '';
+    }
+    if (authRole === 'admin' || authRole === 'user') {
+        var examNavR = document.getElementById('exam-nav');
+        if (examNavR) examNavR.style.display = '';
     }
     updatePresenceVisibility();
 
@@ -1804,6 +1813,148 @@
         renderStudentGrades(tab);
     };
 
+    // ──────────────────────────────────────
+    //  Final Exam view (reuses the logged-in session)
+    // ──────────────────────────────────────
+    var _examPoll = null, _examTick = null, _examSched = null, _examSkew = 0;
+    function _examClr() {
+        if (_examPoll) { clearInterval(_examPoll); _examPoll = null; }
+        if (_examTick) { clearInterval(_examTick); _examTick = null; }
+    }
+    function _examFmt(ms) {
+        if (ms <= 0) return '00:00';
+        var s = Math.floor(ms / 1000), h = Math.floor(s / 3600); s -= h * 3600;
+        var m = Math.floor(s / 60); s -= m * 60;
+        function p(n) { return (n < 10 ? '0' : '') + n; }
+        return (h > 0 ? p(h) + ':' : '') + p(m) + ':' + p(s);
+    }
+    function _examHue(f) { return 'hsl(' + Math.round(f * 125) + ',60%,40%)'; }
+    function _examPill(x) {
+        var M = { open: ['#0f3d2e', '#3fb37f', 'OPEN'], sealed: ['#26303b', '#9ca3af', 'sealed'],
+                  missing: ['#3a1d1d', '#e5736f', 'MISSING'], unknown: ['#26303b', '#9ca3af', '?'] };
+        var c = M[x] || M.unknown;
+        return '<span style="background:' + c[0] + ';color:' + c[1] + ';padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600">' + c[2] + '</span>';
+    }
+    function _examPartsHtml(parts) {
+        var ps = ['Docs', 'A', 'B', 'C', 'D', 'E'], h = '';
+        for (var i = 0; i < ps.length; i++) {
+            var x = parts[ps[i]] || { p: 0, t: 0 }, f = x.t ? x.p / x.t : 0;
+            h += '<span style="background:' + _examHue(f) + ';color:#06120c;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:600;margin-right:6px;display:inline-block;margin-bottom:4px">' + ps[i] + ' ' + x.p + '/' + x.t + '</span>';
+        }
+        return h;
+    }
+
+    function renderExam() {
+        if (!authToken) { window.location.hash = 'browse'; return; }
+        var url = serverUrl(); if (!url) return;
+        _examClr();
+        var viewerEl = document.getElementById('file-viewer');
+        document.getElementById('outline-content').style.display = 'none';
+        document.getElementById('viewer-placeholder').style.display = 'none';
+        document.getElementById('viewer-title').textContent = 'bash — final exam';
+        viewerEl.style.display = 'flex';
+        document.getElementById('explorer-title').textContent = 'bash — final exam';
+        document.getElementById('explorer-cmd').textContent = 'cat final-exam/status';
+        viewerEl.innerHTML = '<div class="admin-panel" id="exam-content"><div class="admin-loading">Loading…</div></div>';
+
+        function tick() {
+            var box = document.getElementById('exam-content');
+            if (!box) { _examClr(); return; }
+            if (!_examSched) return;
+            var now = Date.now() + _examSkew;
+            function setT(id, opens, closes, startLabel) {
+                var el = document.getElementById(id); if (!el) return;
+                if (now < opens) { el.innerHTML = _examFmt(opens - now) + ' <small style="color:#9ca3af">' + startLabel + '</small>'; }
+                else if (now < closes) { el.innerHTML = _examFmt(closes - now) + ' <small style="color:#3fb37f">left</small>'; }
+                else { el.innerHTML = '00:00 <small style="color:#e5736f">done</small>'; }
+            }
+            setT('exTexam', _examSched.start, _examSched.end, 'starts in');
+            setT('exTcbo', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
+            setT('exTcbs', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
+        }
+
+        function render(d, admin) {
+            _examSched = d.schedule; _examSkew = d.serverNow - Date.now();
+            var tcss = 'flex:1;min-width:180px;background:#171c24;border:1px solid #262d39;border-radius:10px;padding:10px 14px';
+            var lcss = 'font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.05em';
+            var bcss = 'font-size:24px;font-weight:700;margin-top:4px';
+            var ccss = 'background:#171c24;border:1px solid #262d39;border-radius:10px;padding:12px 14px;margin-bottom:12px';
+            var html = '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+                + '<div style="' + tcss + '"><div style="' + lcss + '">Exam</div><div style="' + bcss + '" id="exTexam">--:--</div></div>'
+                + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball release</div><div style="' + bcss + '" id="exTcbo">--:--</div></div>'
+                + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball closes</div><div style="' + bcss + '" id="exTcbs">--:--</div></div>'
+                + '</div>';
+            if (d.me) {
+                var m = d.me;
+                html += '<div style="' + ccss + '"><b>' + m.name + '</b> <span style="color:#8b949e">' + m.user + '</span> &middot; paper ' + _examPill(m.paper) + ' &middot; curveball ' + _examPill(m.cb)
+                    + '<div style="margin-top:10px">' + _examPartsHtml(m.parts) + '</div>'
+                    + '<div style="color:#8b949e;margin-top:6px">' + (m.found ? (m.pct + '% complete') : 'No final-exam folder pushed yet.') + '</div></div>';
+            }
+            if (admin) {
+                var o = admin.overall, e = admin.env, c = o.curveball, pp = o.paper, N = o.totalStudents;
+                html += '<div style="color:#8b949e;font-size:12px;margin:4px 0 10px">homes <b>' + e.homeBase + '</b> &middot; srv <b>' + e.srvBase + '</b> &middot; papers ' + (pp.open + pp.sealed) + '/' + N + ' (' + pp.sealed + ' sealed, ' + pp.open + ' open) &middot; curveballs ' + (c.open + c.sealed) + '/' + N + ' (' + c.sealed + ' sealed, ' + c.open + ' open) &middot; started ' + o.foundCount + '/' + N + '</div>';
+                html += '<div style="' + ccss + '"><b>Manual control</b><br><br>Papers: '
+                    + '<button class="admin-tab" onclick="examControl(\'paper\',\'open\')">Open</button> '
+                    + '<button class="admin-tab" onclick="examControl(\'paper\',\'seal\')">Seal</button> &nbsp;&nbsp; Curveballs: '
+                    + '<button class="admin-tab" onclick="examControl(\'curveball\',\'open\')">Release</button> '
+                    + '<button class="admin-tab" onclick="examControl(\'curveball\',\'seal\')">Seal</button>'
+                    + '<div style="color:#8b949e;margin-top:8px" id="examCtlMsg"></div></div>';
+                html += '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
+                    + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead><tbody>';
+                for (var i = 0; i < admin.students.length; i++) {
+                    var s = admin.students[i], cells = '', ps = ['Docs', 'A', 'B', 'C', 'D', 'E'];
+                    for (var j = 0; j < ps.length; j++) {
+                        var x = s.parts[ps[j]] || { p: 0, t: 0 }, f = x.t ? x.p / x.t : 0;
+                        cells += '<td style="text-align:center;padding:4px"><span style="background:' + _examHue(f) + ';color:#06120c;border-radius:5px;padding:2px 6px">' + x.p + '/' + x.t + '</span></td>';
+                    }
+                    var nm = s.found ? s.name : '<span style="color:#8b949e;font-style:italic">' + s.name + '</span>';
+                    html += '<tr style="border-top:1px solid #262d39"><td style="padding:6px">' + (i + 1) + '</td><td>' + nm + '<br><span style="color:#8b949e;font-size:11px">' + s.user + '</span></td><td>' + _examPill(s.paper) + '</td><td>' + _examPill(s.cb) + '</td><td><b>' + s.pct + '%</b></td>' + cells + '</tr>';
+                }
+                html += '</tbody></table>';
+            }
+            var box = document.getElementById('exam-content');
+            if (box) box.innerHTML = html;
+            tick();
+        }
+
+        function poll() {
+            var box = document.getElementById('exam-content');
+            if (!box) { _examClr(); return; }
+            fetch(url + '/api/exam/status', { mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (d) {
+                    if (!d) return;
+                    if (authRole === 'admin') {
+                        fetch(url + '/api/admin/exam', { mode: 'cors', headers: { 'Authorization': 'Bearer ' + authToken } })
+                            .then(function (r) { return r.ok ? r.json() : null; })
+                            .then(function (a) { render(d, a); });
+                    } else { render(d, null); }
+                })
+                .catch(function () {});
+        }
+        poll();
+        _examPoll = setInterval(poll, 7000);
+        _examTick = setInterval(tick, 250);
+    }
+
+    window.examControl = function (target, action) {
+        if (!confirm(action + ' ' + target + ' for ALL students?')) return;
+        var url = serverUrl(); if (!url) return;
+        fetch(url + '/api/admin/exam/control', {
+            method: 'POST', mode: 'cors',
+            headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ target: target, action: action })
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+            var el = document.getElementById('examCtlMsg');
+            if (el) el.textContent = (res.ok && res.d.ok) ? (action + ' ' + target + ' — ' + res.d.output) : (res.d.output || res.d.error || 'failed');
+            window.location.hash = 'exam';
+            renderExam();
+        })
+        .catch(function () {});
+    };
+
     // Refresh deadlines from server and re-render My Grades
     window.refreshStudentDeadlines = function () {
         var url = serverUrl();
@@ -3021,6 +3172,8 @@
             renderAdminPanel();
         } else if (hash === 'grades') {
             renderStudentGrades();
+        } else if (hash === 'exam') {
+            renderExam();
         } else if (hash.startsWith('browse/') || hash === 'browse') {
             var path = hash === 'browse' ? '' : hash.slice(7);
             renderExplorer(path);

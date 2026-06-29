@@ -1581,6 +1581,189 @@ def get_student_activity_tree(username, activity_name):
 
 
 # ══════════════════════════════════════════════════════════════
+#  Final Exam — config, completion grading, status & controls
+# ══════════════════════════════════════════════════════════════
+
+EXAM_HOME_BASE = os.environ.get("EXAM_HOME_BASE", "/home")
+EXAM_SRV_BASE = os.environ.get("EXAM_SRV_BASE", "/srv/exam")
+EXAM_PAPER_DIR = os.environ.get("EXAM_PAPER_DIR", "exam-paper")
+# Where paper_access / curveball_access live (run via sudo for open/seal controls,
+# since this service runs as a normal user, not root).
+EXAM_TOOLS_DIR = os.environ.get("EXAM_TOOLS_DIR", "/home/rathpisey/exam-final")
+
+# Expected deliverables in ~/os-se-<id>/final-exam/  (an item ending in "buy_" is
+# matched by prefix, since that script name varies per student).
+FINAL_EXAM_ITEMS = {
+    "Docs": ["README.md", "commands.md", "live_mods.md"],
+    "A": [
+        "partA_threads/thread_demo.c", "partA_threads/signal_demo.c",
+        "partA_threads/thread_map.txt",
+        "partA_threads/images/a1_thread_run.png",
+        "partA_threads/images/a2_signal_catch.png",
+        "partA_threads/images/live_a.png",
+    ],
+    "B": [
+        "partB_security/perm_report.txt", "partB_security/acl_report.txt",
+        "partB_security/setuid_demo.c",
+        "partB_security/images/b1_special_bits.png",
+        "partB_security/images/b2_acl.png",
+        "partB_security/images/live_b.png",
+    ],
+    "C": [
+        "partC_scripting/scripts/greeter", "partC_scripting/scripts/collector",
+        "partC_scripting/path_report.txt",
+        "partC_scripting/images/c1_collector_run.png",
+        "partC_scripting/images/live_c.png",
+    ],
+    "D": [
+        "partD_secure/scripts/buy_", "partD_secure/scripts/swarm",
+        "partD_secure/observations.txt",
+        "partD_secure/images/d1_race.png",
+        "partD_secure/images/d2_patched.png",
+        "partD_secure/images/live_d.png",
+    ],
+    "E": [
+        "partE_automation/scripts/backup_project",
+        "partE_automation/scripts/timed_job",
+        "partE_automation/cron_report.txt",
+        "partE_automation/images/e1_backup_retention.png",
+        "partE_automation/images/e2_cron_fired.png",
+        "partE_automation/images/live_e.png",
+    ],
+}
+
+
+def _exam_hhmm_ms(hhmm, d):
+    h, m = (int(x) for x in hhmm.split(":"))
+    return int(datetime(d.year, d.month, d.day, h, m,
+                        tzinfo=_PPH).timestamp() * 1000)
+
+
+def exam_schedule():
+    s = os.environ.get("EXAM_DATE")
+    if s:
+        y, mo, da = (int(x) for x in s.split("-"))
+        d = datetime(y, mo, da).date()
+    else:
+        d = datetime.now(_PPH).date()
+    return {
+        "start": _exam_hhmm_ms(os.environ.get("EXAM_START_HHMM", "13:00"), d),
+        "end": _exam_hhmm_ms(os.environ.get("EXAM_END_HHMM", "15:30"), d),
+        "cbOpen": _exam_hhmm_ms(os.environ.get("CB_OPEN_HHMM", "14:30"), d),
+        "cbSeal": _exam_hhmm_ms(os.environ.get("CB_SEAL_HHMM", "14:45"), d),
+    }
+
+
+def _find_final_root(username):
+    home = Path(f"{EXAM_HOME_BASE}/{username}")
+    if not home.is_dir():
+        return None
+    try:
+        for de in home.iterdir():
+            if de.is_dir() and de.name.lower().startswith("os-se-"):
+                fe = de / "final-exam"
+                if fe.is_dir():
+                    return fe
+    except (PermissionError, OSError):
+        return None
+    return None
+
+
+def _exam_present(item, found):
+    il = item.lower()
+    if il.endswith("buy_"):
+        return any(k.startswith(il) for k in found)
+    return il in found
+
+
+def exam_completion(username):
+    root = _find_final_root(username)
+    found = set(_list_recursive(root).keys()) if root else set()
+    parts, tp, tt = {}, 0, 0
+    for g, items in FINAL_EXAM_ITEMS.items():
+        present = sum(1 for x in items if _exam_present(x, found))
+        parts[g] = {"p": present, "t": len(items)}
+        tp += present
+        tt += len(items)
+    return {
+        "found": root is not None, "present": tp, "total": tt,
+        "pct": round(tp / tt * 100) if tt else 0, "parts": parts,
+    }
+
+
+def exam_paper_status(username):
+    d = Path(EXAM_HOME_BASE) / username / EXAM_PAPER_DIR
+    try:
+        st = d.stat()
+    except FileNotFoundError:
+        return "missing"
+    except (PermissionError, OSError):
+        return "unknown"
+    # Note: when sealed (0700 root:root) a non-root service cannot stat files
+    # inside, so we judge by the directory's own mode (deployed => dir exists).
+    return "open" if (st.st_mode & 0o001) else "sealed"
+
+
+def exam_curveball_status(username):
+    p = Path(EXAM_SRV_BASE) / username / "curveball.md"
+    try:
+        st = p.stat()
+    except FileNotFoundError:
+        return "missing"
+    except (PermissionError, OSError):
+        return "unknown"
+    return "open" if (st.st_mode & 0o040) else "sealed"
+
+
+def exam_set_access(target, action):
+    """Open/seal papers or curveballs by invoking the root-owned access scripts via
+    sudo (this service runs as a normal user; the exam account has passwordless sudo
+    for the exam window). Returns {ok, output}."""
+    script = "paper_access" if target == "paper" else "curveball_access"
+    path = os.path.join(EXAM_TOOLS_DIR, script)
+    try:
+        r = subprocess.run(
+            ["sudo", "-n", "bash", path, action],
+            capture_output=True, text=True, timeout=30,
+        )
+        out = (r.stdout or "") + (r.stderr or "")
+        return {"ok": r.returncode == 0, "output": out.strip()[:300]}
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "output": str(exc)}
+
+
+def exam_admin_state():
+    students = []
+    for sid in sorted(STUDENTS.keys()):
+        info = STUDENTS[sid]
+        u = info["user"]
+        c = exam_completion(u)
+        students.append({
+            "id": sid, "name": info["name"], "user": u,
+            "found": c["found"], "pct": c["pct"], "parts": c["parts"],
+            "paper": exam_paper_status(u), "cb": exam_curveball_status(u),
+        })
+    students.sort(key=lambda s: (-s["pct"], s["name"]))
+    cb = {"open": 0, "sealed": 0, "missing": 0, "unknown": 0}
+    paper = {"open": 0, "sealed": 0, "missing": 0, "unknown": 0}
+    for s in students:
+        cb[s["cb"]] = cb.get(s["cb"], 0) + 1
+        paper[s["paper"]] = paper.get(s["paper"], 0) + 1
+    return {
+        "serverNow": int(datetime.now(timezone.utc).timestamp() * 1000),
+        "schedule": exam_schedule(),
+        "env": {"homeBase": EXAM_HOME_BASE, "srvBase": EXAM_SRV_BASE,
+                "paperDir": EXAM_PAPER_DIR},
+        "students": students,
+        "overall": {
+            "totalStudents": len(students),
+            "foundCount": sum(1 for s in students if s["found"]),
+            "curveball": cb, "paper": paper,
+        },
+    }
+
+
+# ══════════════════════════════════════════════════════════════
 #  Flask Application & Routes
 # ══════════════════════════════════════════════════════════════
 
@@ -1940,6 +2123,211 @@ def route_my_activity_tree():
     if tree is None:
         return jsonify({"error": "Activity directory not found"}), 404
     return jsonify(tree)
+
+
+EXAM_PAGE = r"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OS Final — Exam Monitor</title>
+<style>
+ :root{--bg:#0e1116;--card:#171c24;--line:#262d39;--ink:#e6edf3;--mut:#8b949e}
+ *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);
+   font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif}
+ header{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;
+   justify-content:space-between;align-items:center}
+ h1{font-size:17px;margin:0} .mut{color:var(--mut);font-size:12px}
+ .wrap{padding:16px 20px;max-width:1200px;margin:0 auto}
+ .timers{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:14px}
+ .t{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+ .t .lab{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+ .t .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:4px}
+ .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600}
+ .pill.wait{background:#1f2937;color:#9ca3af}.pill.live{background:#0f3d2e;color:#3fb37f}
+ .pill.done{background:#3a1d1d;color:#e5736f}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+ .bar{position:relative;height:18px;background:#0b0e13;border-radius:6px;overflow:hidden;min-width:120px}
+ .bar>i{position:absolute;inset:0 auto 0 0;border-radius:6px}
+ .bar>span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
+ .parts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+ .pc{font-size:12px;font-weight:600;border-radius:6px;padding:4px 8px;color:#06120c}
+ table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+ th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+ th{font-size:11px;color:var(--mut);text-transform:uppercase}
+ .cell{text-align:center;font-size:12px;font-weight:600;border-radius:5px;padding:3px 0;color:#06120c}
+ .ctrl button{background:#1f2937;color:var(--ink);border:1px solid var(--line);border-radius:8px;
+   padding:7px 12px;font-size:13px;cursor:pointer;margin-right:8px}
+ .ctrl button:hover{border-color:#3fb37f}
+ input{background:#0b0e13;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 11px;font-size:14px}
+ #login{max-width:340px;margin:60px auto;display:flex;flex-direction:column;gap:10px}
+ .miss{color:#6b7280;font-style:italic} .hide{display:none}
+ .env{color:var(--mut);font-size:12px;margin:2px 0 12px;display:flex;gap:14px;flex-wrap:wrap}
+</style></head>
+<body>
+<header><h1>OS Practical Final — Monitor</h1>
+  <div class="mut" id="who"></div></header>
+
+<div id="login" class="wrap">
+  <div class="mut">Log in with your server account to see your exam status.</div>
+  <input id="u" placeholder="username" autocomplete="username">
+  <input id="p" type="password" placeholder="password" autocomplete="current-password">
+  <button class="ctrl" onclick="doLogin()" style="background:#0f3d2e;color:#3fb37f;border:1px solid #3fb37f;border-radius:8px;padding:9px">Log in</button>
+  <div class="mut" id="loginErr" style="color:#e5736f"></div>
+</div>
+
+<div id="app" class="wrap hide">
+  <section class="timers">
+    <div class="t"><div class="lab">Exam</div><div class="big" id="exam">--:--</div><div id="examSt"></div></div>
+    <div class="t"><div class="lab">Curveball release</div><div class="big" id="cbo">--:--</div><div id="cboSt"></div></div>
+    <div class="t"><div class="lab">Curveball closes</div><div class="big" id="cbs">--:--</div><div id="cbsSt"></div></div>
+  </section>
+
+  <div id="meCard" class="card hide"></div>
+
+  <div id="adminWrap" class="hide">
+    <div class="env" id="env"></div>
+    <div class="card ctrl">
+      <b>Manual control</b><br><br>
+      Papers:
+      <button onclick="ctl('paper','open')">Open papers</button>
+      <button onclick="ctl('paper','seal')">Seal papers</button>
+      &nbsp;&nbsp; Curveballs:
+      <button onclick="ctl('curveball','open')">Release curveballs</button>
+      <button onclick="ctl('curveball','seal')">Seal curveballs</button>
+      <div class="mut" id="ctlMsg" style="margin-top:8px"></div>
+    </div>
+    <table><thead><tr><th>#</th><th>Student</th><th>Paper</th><th>Curveball</th>
+      <th>Overall</th><th>Docs</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr></thead>
+      <tbody id="rows"></tbody></table>
+  </div>
+</div>
+
+<script>
+let TOK=localStorage.getItem('exam_tok')||'', ROLE=localStorage.getItem('exam_role')||'';
+let sched=null, skew=0;
+const $=id=>document.getElementById(id);
+function af(url,opts){opts=opts||{};opts.headers=Object.assign({'Authorization':'Bearer '+TOK,'Content-Type':'application/json'},opts.headers||{});return fetch(url,opts);}
+function clr(f){return `hsl(${Math.round(f*125)},65%,42%)`;}
+function fmt(ms){if(ms<=0)return'00:00';let s=Math.floor(ms/1000),h=Math.floor(s/3600);s-=h*3600;let m=Math.floor(s/60);s-=m*60;const p=n=>String(n).padStart(2,'0');return(h>0?p(h)+':':'')+p(m)+':'+p(s);}
+const PILL={open:['live','OPEN'],sealed:['wait','sealed'],missing:['done','MISSING'],unknown:['wait','?']};
+function pill(x){const c=PILL[x]||PILL.unknown;return `<span class="pill ${c[0]}">${c[1]}</span>`;}
+
+async function doLogin(){
+  $('loginErr').textContent='';
+  const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:$('u').value.trim(),password:$('p').value})});
+  const d=await r.json();
+  if(!r.ok){$('loginErr').textContent=d.error||'login failed';return;}
+  TOK=d.token;ROLE=d.role;localStorage.setItem('exam_tok',TOK);localStorage.setItem('exam_role',ROLE);
+  start();
+}
+function logout(){localStorage.removeItem('exam_tok');localStorage.removeItem('exam_role');location.reload();}
+
+function tick(){
+  if(!sched)return;const now=Date.now()+skew;
+  const e=$('exam'),es=$('examSt');
+  if(now<sched.start){e.textContent=fmt(sched.start-now);es.innerHTML='<span class="pill wait">starts in</span>';}
+  else if(now<sched.end){e.textContent=fmt(sched.end-now);es.innerHTML='<span class="pill live">ends in</span>';}
+  else{e.textContent='00:00';es.innerHTML='<span class="pill done">ENDED</span>';}
+  [['cbo','cboSt'],['cbs','cbsSt']].forEach(([a,b])=>{
+    const el=$(a),st=$(b);
+    if(now<sched.cbOpen){el.textContent=fmt(sched.cbOpen-now);st.innerHTML='<span class="pill wait">opens in</span>';}
+    else if(now<sched.cbSeal){el.textContent=fmt(sched.cbSeal-now);st.innerHTML='<span class="pill live">RELEASED · closes in</span>';}
+    else{el.textContent='00:00';st.innerHTML='<span class="pill done">CLOSED</span>';}
+  });
+}
+function partsHtml(parts){return ['Docs','A','B','C','D','E'].map(p=>{const x=parts[p]||{p:0,t:0};const f=x.t?x.p/x.t:0;
+  return `<span class="pc" style="background:${clr(f)}">${p} ${x.p}/${x.t}</span>`;}).join('');}
+
+async function pollMe(){
+  const r=await af('/api/exam/status'); if(r.status===403){logout();return;}
+  const d=await r.json(); sched=d.schedule; skew=d.serverNow-Date.now();
+  $('who').innerHTML=`signed in${d.role==='admin'?' as <b>admin</b>':''} · <a href="#" onclick="logout();return false" style="color:#8b949e">log out</a>`;
+  if(d.me){const m=d.me;$('meCard').classList.remove('hide');
+    $('meCard').innerHTML=`<b>${m.name}</b> <span class="mut">${m.user}</span> · paper ${pill(m.paper)} · curveball ${pill(m.cb)}`+
+      `<div style="margin-top:10px"><div class="bar" style="max-width:320px"><i style="width:${m.pct}%;background:${clr(m.pct/100)}"></i><span>${m.pct}% complete</span></div></div>`+
+      `<div class="parts">${partsHtml(m.parts)}</div>`+
+      (m.found?'':`<div class="miss" style="margin-top:8px">No final-exam folder pushed yet.</div>`);
+  } else {$('meCard').classList.remove('hide');$('meCard').innerHTML='<span class="mut">You are signed in but not in the exam roster.</span>';}
+}
+async function pollAdmin(){
+  if(ROLE!=='admin')return; const r=await af('/api/admin/exam'); if(!r.ok)return;
+  const d=await r.json(); const o=d.overall,e=d.env,c=o.curveball,pp=o.paper,N=o.totalStudents;
+  $('adminWrap').classList.remove('hide');
+  $('env').innerHTML=`<span>homes <b>${e.homeBase}</b> · srv <b>${e.srvBase}</b> · paper <b>${e.paperDir}</b></span>`+
+    `<span>papers <b>${pp.open+pp.sealed}/${N}</b> · ${pp.sealed} sealed · <b style="color:#3fb37f">${pp.open} open</b></span>`+
+    `<span>curveballs <b>${c.open+c.sealed}/${N}</b> · ${c.sealed} sealed · <b style="color:#3fb37f">${c.open} open</b></span>`+
+    `<span>started <b>${o.foundCount}/${N}</b></span>`;
+  $('rows').innerHTML=d.students.map((s,i)=>{
+    const cells=['Docs','A','B','C','D','E'].map(p=>{const x=s.parts[p]||{p:0,t:0};const f=x.t?x.p/x.t:0;
+      return `<td><div class="cell" style="background:${clr(f)}">${x.p}/${x.t}</div></td>`;}).join('');
+    const nm=s.found?s.name:`<span class="miss">${s.name}</span>`;
+    return `<tr><td>${i+1}</td><td>${nm}<br><span class="mut">${s.user}</span></td>`+
+      `<td>${pill(s.paper)}</td><td>${pill(s.cb)}</td>`+
+      `<td><div class="bar"><i style="width:${s.pct}%;background:${clr(s.pct/100)}"></i><span>${s.pct}%</span></div></td>`+cells+`</tr>`;
+  }).join('');
+}
+async function ctl(target,action){
+  if(!confirm(`${action} ${target} for ALL students?`))return;
+  const r=await af('/api/admin/exam/control',{method:'POST',body:JSON.stringify({target,action})});
+  const d=await r.json();
+  $('ctlMsg').textContent=(r.ok&&d.ok)?`${action} ${target} — ${d.output}`:(d.output||d.error||'failed');
+  pollAdmin();
+}
+function start(){$('login').classList.add('hide');$('app').classList.remove('hide');
+  pollMe();pollAdmin();setInterval(()=>{pollMe();pollAdmin();},7000);setInterval(tick,250);}
+if(TOK){start();}
+</script>
+</body></html>"""
+
+
+# ── Final Exam Routes ──────────────────────────────────────────
+
+
+@app.route("/api/exam/status")
+@auth_required
+def route_exam_status():
+    username = request._session["username"]  # type: ignore
+    sid = _USER_TO_SID.get(username)
+    info = STUDENTS.get(sid) if sid else None
+    me = None
+    if info:
+        c = exam_completion(info["user"])
+        me = {
+            "id": sid, "name": info["name"], "user": info["user"],
+            "found": c["found"], "pct": c["pct"], "parts": c["parts"],
+            "paper": exam_paper_status(info["user"]),
+            "cb": exam_curveball_status(info["user"]),
+        }
+    return jsonify({
+        "serverNow": int(datetime.now(timezone.utc).timestamp() * 1000),
+        "schedule": exam_schedule(),
+        "role": request._session["role"],  # type: ignore
+        "me": me,
+    })
+
+
+@app.route("/api/admin/exam")
+@admin_required
+def route_admin_exam():
+    return jsonify(exam_admin_state())
+
+
+@app.route("/api/admin/exam/control", methods=["POST"])
+@admin_required
+def route_admin_exam_control():
+    body = request.get_json(silent=True) or {}
+    target = str(body.get("target", ""))
+    action = str(body.get("action", ""))
+    if target not in ("paper", "curveball") or action not in ("open", "seal"):
+        return jsonify({"error": "target=paper|curveball, action=open|seal"}), 400
+    res = exam_set_access(target, action)
+    return jsonify({"ok": res["ok"], "target": target, "action": action,
+                    "output": res["output"]})
+
+
+@app.route("/exam")
+def route_exam_page():
+    return EXAM_PAGE, 200, {"Content-Type": "text/html; charset=utf-8"}
 
 
 # ── Main ───────────────────────────────────────────────────────
