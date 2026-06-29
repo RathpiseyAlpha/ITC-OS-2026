@@ -1964,8 +1964,14 @@
                 else { el.innerHTML = '00:00 <small style="color:#e5736f">' + (doneLabel || 'done') + '</small>'; }
             }
             setT('exTexam', _examSched.start, _examSched.end, 'starts in');
-            // Exam-finish tile: start + duration (independent of End).
-            setT('exTfin', _examSched.start, _examSched.finish, 'starts in', 'FINISHED');
+            // Exam-finish tile: a duration countdown that begins at exam start —
+            // shows the full duration before start, then counts down to finish.
+            var fel = document.getElementById('exTfin');
+            if (fel) {
+                if (now < _examSched.start) { fel.innerHTML = _examFmt(_examSched.finish - _examSched.start) + ' <small style="color:#9ca3af">duration</small>'; }
+                else if (now < _examSched.finish) { fel.innerHTML = _examFmt(_examSched.finish - now) + ' <small style="color:#3fb37f">left</small>'; }
+                else { fel.innerHTML = '00:00 <small style="color:#e5736f">FINISHED</small>'; }
+            }
             setT('exTcbo', _examSched.cbOpen, _examSched.cbSeal, 'opens in');
             // "closes" tile counts down to the seal moment only (then shows done).
             setT('exTcbs', _examSched.cbSeal, _examSched.cbSeal, 'closes in');
