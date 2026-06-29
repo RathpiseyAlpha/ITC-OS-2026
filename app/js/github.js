@@ -2,8 +2,11 @@
 // Fetches the actual file structure from GitHub instead of a hardcoded manifest.
 
 const GitHubAPI = (function () {
-    const CACHE_KEY = 'itc-os-repo-tree';
-    const CACHE_TS_KEY = 'itc-os-repo-tree-ts';
+    const CACHE_KEY = 'itc-os-repo-tree-v2';
+    const CACHE_TS_KEY = 'itc-os-repo-tree-ts-v2';
+
+    // Top-level entries hidden from the file browser (tooling/config dirs).
+    const HIDDEN_TOP = ['.claude', '.github', '.vscode'];
 
     let fileTree = null; // { '': { dirs: [], files: [] }, 'labs': {...}, ... }
     let allFiles = null; // Set of all file paths for existence checks
@@ -67,6 +70,9 @@ const GitHubAPI = (function () {
         const tree = {};
         const dirs = new Set();
         const fileSet = new Set();
+
+        // Drop hidden tooling/config directories (and their contents).
+        entries = entries.filter(e => HIDDEN_TOP.indexOf(e.path.split('/')[0]) === -1);
 
         // Collect all directories (including implicit parents)
         entries.forEach(e => {
