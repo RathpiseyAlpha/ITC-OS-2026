@@ -1604,6 +1604,7 @@ FINAL_EXAM_ITEMS = {
         "partA_threads/thread_demo.c", "partA_threads/signal_demo.c",
         "partA_threads/thread_map.txt",
         "partA_threads/images/a1_thread_run.png",
+        "partA_threads/images/a2_signal_catch.png",
         "partA_threads/images/live_a.png",
     ],
     "B": [
