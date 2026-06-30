@@ -1607,10 +1607,9 @@ FINAL_EXAM_ITEMS = {
         "partA_threads/images/live_a.png",
     ],
     "B": [
-        "partB_security/perm_report.txt", "partB_security/acl_report.txt",
+        "partB_security/perm_report.txt",
         "partB_security/setuid_demo.c",
         "partB_security/images/b1_special_bits.png",
-        "partB_security/images/b2_acl.png",
     ],
     "C": [
         "partC_scripting/scripts/greeter", "partC_scripting/scripts/collector",
@@ -1628,7 +1627,6 @@ FINAL_EXAM_ITEMS = {
         "partE_automation/scripts/timed_job",
         "partE_automation/cron_report.txt",
         "partE_automation/images/e1_backup_retention.png",
-        "partE_automation/images/e2_cron_fired.png",
         "partE_automation/images/live_e.png",
     ],
 }
