@@ -1626,6 +1626,9 @@ FINAL_EXAM_ITEMS = {
     "E": [
         "partE_automation/scripts/backup_project",
         "partE_automation/scripts/timed_job",
+        "partE_automation/scripts/backup_exam",
+        "partE_automation/logs/cron_recurring.log",
+        "partE_automation/logs/cron_oneshot.log",
         "partE_automation/cron_report.txt",
         "partE_automation/images/e1_backup_retention.png",
         "partE_automation/images/live_e.png",
