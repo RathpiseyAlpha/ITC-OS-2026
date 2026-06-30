@@ -1817,7 +1817,7 @@
     //  Final Exam view (reuses the logged-in session)
     // ──────────────────────────────────────
     var _examPoll = null, _examTick = null, _examSched = null, _examSkew = 0;
-    var _examTab = 'live', _examSchedFilled = false, _examPrevRank = {}, _examDoPoll = null;
+    var _examTab = 'brief', _examSchedFilled = false, _examPrevRank = {}, _examDoPoll = null;
     function _examClr() {
         if (_examPoll) { clearInterval(_examPoll); _examPoll = null; }
         if (_examTick) { clearInterval(_examTick); _examTick = null; }
@@ -1911,6 +1911,7 @@
         var ccss = 'background:#171c24;border:1px solid #262d39;border-radius:10px;padding:12px 14px;margin-bottom:12px';
 
         var tabbar = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap">'
+            + '<button id="exTabBtnBrief" class="admin-tab" onclick="examSwitchTab(\'brief\')">📋 Briefing</button>'
             + '<button id="exTabBtnLive" class="admin-tab" onclick="examSwitchTab(\'live\')">📊 Live standings</button>'
             + (isAdmin ? '<button id="exTabBtnCtrl" class="admin-tab" onclick="examSwitchTab(\'ctrl\')">⚙ Control</button>' : '')
             + '<span style="flex:1"></span>'
@@ -1922,7 +1923,7 @@
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball release</div><div style="' + bcss + '" id="exTcbo">--:--</div></div>'
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball closes</div><div style="' + bcss + '" id="exTcbs">--:--</div></div></div>';
 
-        var brief = '<div style="' + ccss + '">'
+        var briefBody = '<div style="' + ccss + '">'
             + '<div style="font-size:15px;font-weight:700;margin-bottom:6px">📋 OS Practical Final — read before you start</div>'
             + '<div style="color:#c9d1d9;font-size:13px;line-height:1.55">'
             + '<b>2 hours · Labs 5–10 · individual · submit by <code>git push</code>.</b><br><br>'
@@ -1935,9 +1936,10 @@
             + '<li>At the finish, <b>SSH access is blocked automatically</b>.</li>'
             + '</ol>'
             + '<b>Rules:</b> server only · no <code>sudo</code> · individual work · AI allowed, but record exact commands in <code>commands.md</code> and answer with <b>your own</b> scenario numbers — be ready to explain any line.<br><br>'
-            + '<b>Your live dashboard is below:</b> countdowns, your completion %, and paper / curveball / SSH status.'
+            + '<b>Open the <code>📊 Live standings</code> tab</b> for your countdowns, completion %, and paper / curveball / SSH status.'
             + '</div></div>';
-        var live = '<div id="exTabLive">' + brief + timers + '<div id="exMeCard"></div>'
+        var brief = '<div id="exTabBrief" style="display:none">' + briefBody + '</div>';
+        var live = '<div id="exTabLive">' + timers + '<div id="exMeCard"></div>'
             + (isAdmin ? ('<div id="exStats" style="color:#8b949e;font-size:12px;margin:4px 0 10px"></div>'
                 + '<div id="exTableWrap" style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
                 + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>SSH</th><th>Overall</th><th style="text-align:center">Docs</th><th style="text-align:center">A</th><th style="text-align:center">B</th><th style="text-align:center">C</th><th style="text-align:center">D</th><th style="text-align:center">E</th></tr></thead><tbody id="exTbody"></tbody></table></div>') : '')
@@ -1965,8 +1967,8 @@
                 + '<div style="color:#8b949e;margin-top:8px" id="examSchMsg"></div></div>';
         }
 
-        viewerEl.innerHTML = '<div class="admin-panel" id="exam-root">' + tabbar + live + ctrl + '</div>';
-        examSwitchTab((_examTab === 'ctrl' && isAdmin) ? 'ctrl' : 'live');
+        viewerEl.innerHTML = '<div class="admin-panel" id="exam-root">' + tabbar + brief + live + ctrl + '</div>';
+        examSwitchTab((_examTab === 'ctrl' && !isAdmin) ? 'brief' : _examTab);
 
         function tick() {
             if (!document.getElementById('exam-root')) { _examClr(); return; }
@@ -2037,10 +2039,12 @@
 
     window.examSwitchTab = function (name) {
         _examTab = name;
-        var live = document.getElementById('exTabLive'), ctrl = document.getElementById('exTabCtrl');
-        var bL = document.getElementById('exTabBtnLive'), bC = document.getElementById('exTabBtnCtrl');
+        var brief = document.getElementById('exTabBrief'), live = document.getElementById('exTabLive'), ctrl = document.getElementById('exTabCtrl');
+        var bB = document.getElementById('exTabBtnBrief'), bL = document.getElementById('exTabBtnLive'), bC = document.getElementById('exTabBtnCtrl');
+        if (brief) brief.style.display = (name === 'brief') ? 'block' : 'none';
         if (live) live.style.display = (name === 'live') ? 'block' : 'none';
         if (ctrl) ctrl.style.display = (name === 'ctrl') ? 'block' : 'none';
+        if (bB) bB.style.background = (name === 'brief') ? '#1f6feb' : '';
         if (bL) bL.style.background = (name === 'live') ? '#1f6feb' : '';
         if (bC) bC.style.background = (name === 'ctrl') ? '#1f6feb' : '';
     };
