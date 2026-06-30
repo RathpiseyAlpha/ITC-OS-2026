@@ -1,9 +1,24 @@
 # OS Practical Final — Exam Briefing (read before you start)
 
-**2 hours · Labs 5–10 · individual · submit by `git push`.**
+**2 hours · Labs 5–10 · five parts (A–E) · individual · submit by `git push`.**
 
 This page explains the rules and exactly how the exam runs. Read it **before** the
 exam. You can watch your live status any time in the **📝 final exam** tab of the site.
+
+---
+
+## The five parts (100 marks)
+
+| Part | Topic | Marks |
+|:---:|---|:---:|
+| **A** | Threads, kernel mapping & signals | 18 |
+| **B** | Files, permissions & special bits | 18 |
+| **C** | Bash scripting, PATH & safe file scanning | 22 |
+| **D** | Concurrency, a race condition & file locking (`flock`) | 20 |
+| **E** | Backups, archiving & `cron` automation | 22 |
+
+Each part also carries part of its marks for **evidence (screenshots + reports)** and a
+**short written answer**. Parts **A, D and E** additionally include a **live curveball**.
 
 ---
 
