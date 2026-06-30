@@ -1930,7 +1930,7 @@
             + '<div style="color:#8b949e;margin:4px 0 10px">Parts: <b>A</b> threads/signals · <b>B</b> permissions &amp; special bits · <b>C</b> scripting/PATH · <b>D</b> race + <code>flock</code> · <b>E</b> backups + cron</div>'
             + '<b>How it runs</b>'
             + '<ol>'
-            + '<li>Your paper is sealed until the start time — it appears at <code>~/exam-paper/FINAL-EXAM.md</code> when the invigilator opens it. Unzip <code>~/exam-paper/final-exam-templates.zip</code> for the <code>README</code> / <code>commands</code> / <code>live_mods</code> skeletons.</li>'
+            + '<li>Your paper is sealed until the start time — it appears at <code>~/exam-paper/FINAL-EXAM.md</code> when the invigilator opens it. Your answer skeletons are ready in <code>~/exam-templates/</code> — copy them into your <code>final-exam/</code> folder (<code>cp ~/exam-templates/*.md …/final-exam/</code>).</li>'
             + '<li>Work inside your existing <code>~/OS-SE-…</code> repo, in a <code>final-exam/</code> folder. Scripts: lowercase <code>snake_case</code>, <b>no <code>.sh</code></b>.</li>'
             + '<li><b>Live curveballs</b> (3 — Parts A, D, E): live modification tasks released once, late in the exam (~20 min total). Each edits something you already built using <b>your live values</b> (PIDs / stock / timestamps). When released, read yours at <code>/srv/exam/&lt;your-username&gt;/curveball.md</code> (try <code>cat /srv/exam/$(whoami)/curveball.md</code>); record answers in <code>live_mods.md</code>.</li>'
             + '<li><code>git add · commit · push</code> your repo <b>before the end</b> — uncommitted work is not graded.</li>'

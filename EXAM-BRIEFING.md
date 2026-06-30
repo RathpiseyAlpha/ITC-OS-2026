@@ -29,10 +29,11 @@ Each part also carries part of its marks for **evidence (screenshots + reports)*
    ```
    ~/exam-paper/FINAL-EXAM.md
    ```
-   Next to it is a starter pack — unzip it to get the answer skeletons:
+   The answer skeletons are already extracted in your home at `~/exam-templates/`. Copy
+   them into your exam folder:
    ```
-   cd ~/<your-OS-SE-repo>/final-exam
-   unzip ~/exam-paper/final-exam-templates.zip      # README.md, commands.md, live_mods.md
+   mkdir -p ~/<your-OS-SE-repo>/final-exam
+   cp ~/exam-templates/*.md ~/<your-OS-SE-repo>/final-exam/   # README.md, commands.md, live_mods.md
    ```
 2. **Work inside your existing course repo** (the `OS-SE-…` / `os-se-…` folder in your
    home that has a `.git`), in a new top-level **`final-exam/`** folder. Follow the tree
