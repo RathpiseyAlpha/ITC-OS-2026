@@ -2,8 +2,8 @@
 // Fetches the actual file structure from GitHub instead of a hardcoded manifest.
 
 const GitHubAPI = (function () {
-    const CACHE_KEY = 'itc-os-repo-tree-v3';
-    const CACHE_TS_KEY = 'itc-os-repo-tree-ts-v3';
+    const CACHE_KEY = 'itc-os-repo-tree-v4';
+    const CACHE_TS_KEY = 'itc-os-repo-tree-ts-v4';
 
     // Top-level entries hidden from the file browser (tooling/config/app source).
     const HIDDEN_TOP = ['.claude', '.github', '.vscode', 'app', '.gitignore', '.nojekyll'];

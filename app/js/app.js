@@ -1931,12 +1931,13 @@
             + '<ol>'
             + '<li>Your paper is sealed until the start time — it appears at <code>~/exam-paper/FINAL-EXAM.md</code> when the invigilator opens it. Unzip <code>~/exam-paper/final-exam-templates.zip</code> for the <code>README</code> / <code>commands</code> / <code>live_mods</code> skeletons.</li>'
             + '<li>Work inside your existing <code>~/OS-SE-…</code> repo, in a <code>final-exam/</code> folder. Scripts: lowercase <code>snake_case</code>, <b>no <code>.sh</code></b>.</li>'
-            + '<li><b>Live curveballs</b> (Parts A, D, E) are released once, late in the exam, for ~20 min.</li>'
+            + '<li><b>Live curveballs</b> (3 — Parts A, D, E): live modification tasks released once, late in the exam (~20 min total). Each edits something you already built using <b>your live values</b> (PIDs / stock / timestamps). When released, read yours at <code>/srv/exam/&lt;your-username&gt;/curveball.md</code> (try <code>cat /srv/exam/$(whoami)/curveball.md</code>); record answers in <code>live_mods.md</code>.</li>'
             + '<li><code>git add · commit · push</code> your repo <b>before the end</b> — uncommitted work is not graded.</li>'
             + '<li>At the finish, <b>SSH access is blocked automatically</b>.</li>'
             + '</ol>'
             + '<b>Rules:</b> server only · no <code>sudo</code> · individual work · AI allowed, but record exact commands in <code>commands.md</code> and answer with <b>your own</b> scenario numbers — be ready to explain any line.<br><br>'
             + '<b>Open the <code>📊 Live standings</code> tab</b> for your countdowns, completion %, and paper / curveball / SSH status.'
+            + '<br><br><span style="color:#8b949e">Full written briefing: <code>EXAM-BRIEFING.md</code> in the course repo.</span>'
             + '</div></div>';
         var brief = '<div id="exTabBrief" style="display:none">' + briefBody + '</div>';
         var live = '<div id="exTabLive">' + timers + '<div id="exMeCard"></div>'
