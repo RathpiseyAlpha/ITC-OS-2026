@@ -1856,7 +1856,9 @@
         var st = document.createElement('style'); st.id = 'exam-style';
         st.textContent = '#exTabLive:fullscreen,#exTabLive:-webkit-full-screen{background:#0d1117;padding:22px 26px;overflow:auto}'
             + '#exTabLive:fullscreen #exTexam,#exTabLive:fullscreen #exTcbo,#exTabLive:fullscreen #exTcbs,'
-            + '#exTabLive:-webkit-full-screen #exTexam,#exTabLive:-webkit-full-screen #exTcbo,#exTabLive:-webkit-full-screen #exTcbs{font-size:42px}';
+            + '#exTabLive:-webkit-full-screen #exTexam,#exTabLive:-webkit-full-screen #exTcbo,#exTabLive:-webkit-full-screen #exTcbs{font-size:42px}'
+            + '#exam-root code{background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:0 4px;font-size:12px;color:#e6edf3}'
+            + '#exam-root ol{margin:6px 0 6px 18px;padding:0}#exam-root ol li{margin:3px 0}';
         document.head.appendChild(st);
     }
     function _examMeCardHtml(m) {
@@ -1920,7 +1922,22 @@
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball release</div><div style="' + bcss + '" id="exTcbo">--:--</div></div>'
             + '<div style="' + tcss + '"><div style="' + lcss + '">Curveball closes</div><div style="' + bcss + '" id="exTcbs">--:--</div></div></div>';
 
-        var live = '<div id="exTabLive">' + timers + '<div id="exMeCard"></div>'
+        var brief = '<div style="' + ccss + '">'
+            + '<div style="font-size:15px;font-weight:700;margin-bottom:6px">📋 OS Practical Final — read before you start</div>'
+            + '<div style="color:#c9d1d9;font-size:13px;line-height:1.55">'
+            + '<b>2 hours · Labs 5–10 · individual · submit by <code>git push</code>.</b><br><br>'
+            + '<b>How it runs</b>'
+            + '<ol>'
+            + '<li>Your paper is sealed until the start time — it appears at <code>~/exam-paper/FINAL-EXAM.md</code> when the invigilator opens it. Unzip <code>~/exam-paper/final-exam-templates.zip</code> for the <code>README</code> / <code>commands</code> / <code>live_mods</code> skeletons.</li>'
+            + '<li>Work inside your existing <code>~/OS-SE-…</code> repo, in a <code>final-exam/</code> folder. Scripts: lowercase <code>snake_case</code>, <b>no <code>.sh</code></b>.</li>'
+            + '<li><b>Live curveballs</b> (Parts A, D, E) are released once, late in the exam, for ~20 min.</li>'
+            + '<li><code>git add · commit · push</code> your repo <b>before the end</b> — uncommitted work is not graded.</li>'
+            + '<li>At the finish, <b>SSH access is blocked automatically</b>.</li>'
+            + '</ol>'
+            + '<b>Rules:</b> server only · no <code>sudo</code> · individual work · AI allowed, but record exact commands in <code>commands.md</code> and answer with <b>your own</b> scenario numbers — be ready to explain any line.<br><br>'
+            + '<b>Your live dashboard is below:</b> countdowns, your completion %, and paper / curveball / SSH status.'
+            + '</div></div>';
+        var live = '<div id="exTabLive">' + brief + timers + '<div id="exMeCard"></div>'
             + (isAdmin ? ('<div id="exStats" style="color:#8b949e;font-size:12px;margin:4px 0 10px"></div>'
                 + '<div id="exTableWrap" style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="color:#8b949e;text-align:left">'
                 + '<th style="padding:6px">#</th><th>Student</th><th>Paper</th><th>Curveball</th><th>SSH</th><th>Overall</th><th style="text-align:center">Docs</th><th style="text-align:center">A</th><th style="text-align:center">B</th><th style="text-align:center">C</th><th style="text-align:center">D</th><th style="text-align:center">E</th></tr></thead><tbody id="exTbody"></tbody></table></div>') : '')
