@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>try{var t=localStorage.getItem('os-theme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Demand Paging &amp; Virtual Memory — Swap In / Swap Out</title>
@@ -30,7 +31,7 @@
   .progs{display:flex;gap:14px}
   .prog{display:flex;flex-direction:column;gap:6px}
   .pgcell{width:48px;height:30px;border-radius:6px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
-          font-weight:700;font-size:14px;background:#0e1826;color:#7e93ab;position:relative;transition:.2s}
+          font-weight:700;font-size:14px;background:var(--s2,#0e1826);color:#7e93ab;position:relative;transition:.2s}
   .pgcell .pi{position:absolute;left:-16px;font-size:10px;color:var(--muted);font-weight:600}
   .pgcell.resident{color:#fff}
   .pgcell.cur{box-shadow:0 0 0 2px var(--accent)}
@@ -42,15 +43,15 @@
   .ptable td,.ptable th{font-size:12px;text-align:center;padding:0}
   .ptable th{color:var(--muted);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
   .ptable .idx{color:var(--muted);width:18px}
-  .ptable .fr{width:34px;height:26px;border:1px solid var(--border);border-radius:5px;background:#0e1826;font-weight:700}
+  .ptable .fr{width:34px;height:26px;border:1px solid var(--border);border-radius:5px;background:var(--s2,#0e1826);font-weight:700}
   .ptable .bit{width:24px;height:26px;border:1px solid var(--border);border-radius:5px;font-weight:800}
   .ptable .bit.v{color:var(--hit);background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.4)}
-  .ptable .bit.i{color:var(--muted);background:#0c141d}
-  .ptable .fr.set{background:#13233f;color:#cfe0ff}
+  .ptable .bit.i{color:var(--muted);background:var(--s1,#0c141d)}
+  .ptable .fr.set{background:var(--s3,#13233f);color:var(--t3,#cfe0ff)}
 
   /* physical memory (RAM) */
-  .frame{width:64px;height:30px;border-radius:6px;border:1px solid var(--border);background:#0e1826;display:flex;align-items:center;justify-content:center;
-         font-weight:700;font-size:14px;color:#9fb4cc;position:relative;transition:background .2s,border-color .2s,box-shadow .25s}
+  .frame{width:64px;height:30px;border-radius:6px;border:1px solid var(--border);background:var(--s2,#0e1826);display:flex;align-items:center;justify-content:center;
+         font-weight:700;font-size:14px;color:var(--t2,#9fb4cc);position:relative;transition:background .2s,border-color .2s,box-shadow .25s}
   .frame .fi{position:absolute;left:-22px;font-size:10px;color:var(--muted);font-weight:600}
   .frame.filled{color:#fff}
   .frame.flashHit{border-color:var(--hit);box-shadow:0 0 0 2px var(--hit),0 0 14px rgba(34,197,94,.5)}
@@ -87,14 +88,14 @@
   .flyer.out{background:var(--evict);color:#2a1c00;box-shadow:0 4px 16px rgba(245,158,11,.55)}
 
   /* controls / side */
-  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
-  button:hover:not(:disabled){background:#2e4459}
+  button{background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:var(--s5,#2e4459)}
   button:disabled{opacity:.4;cursor:not-allowed}
   button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
-  .modes{display:flex;gap:4px;background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:14px}
+  .modes{display:flex;gap:4px;background:rgba(0,0,0,.32);border:1px solid var(--border);border-radius:11px;padding:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.35);margin-bottom:14px}
   .modes button{flex:1;background:transparent;border:1px solid transparent;border-radius:8px;padding:10px 12px;color:var(--muted);font-weight:600}
   .modes button:hover:not(.active){background:rgba(255,255,255,.06);color:var(--ink)}
-  .modes button.active{background:linear-gradient(135deg,#6db1ff,#2f74d6);color:#07121f;border-color:transparent;font-weight:700;box-shadow:0 2px 7px rgba(47,116,214,.45)}
+  .modes button.active{background:linear-gradient(180deg,#7cbaff,#3f82e6);color:#06152b;border-color:rgba(255,255,255,.22);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 3px 9px rgba(37,99,235,.45)}
   .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:104px;margin-bottom:14px}
   .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
   .caption .text{font-size:15px;line-height:1.55}
@@ -107,7 +108,7 @@
   .vmrow:first-of-type{border-top:none}
   .vmrow b{font-size:17px}
   .vmrow .vp{color:var(--new)} .vmrow .pp{color:var(--accent)}
-  .takeaway{background:#13233f;border:1px solid #2a4565;border-radius:8px;padding:11px 13px;margin-top:10px;font-size:13px;line-height:1.5;color:#cfe0ff}
+  .takeaway{background:var(--s3,#13233f);border:1px solid #2a4565;border-radius:8px;padding:11px 13px;margin-top:10px;font-size:13px;line-height:1.5;color:var(--t3,#cfe0ff)}
   .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;font-size:13px}
   .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
   .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto;border:1px solid var(--border)}
@@ -127,17 +128,32 @@
   header .sub{grid-column:2;grid-row:2}
 /* full-screen control for the visualization area (.wrap) */
   header{grid-template-columns:auto 1fr auto}
-  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
-  .fsBtn:hover{background:#2e4459;border-color:var(--accent)}
+  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .fsBtn:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
   .fsBtn .fsIcon{margin-right:6px}
-  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
-  .fsExit:hover{background:#2e4459;border-color:var(--accent)}
+  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .fsExit:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
   .fsRoot:fullscreen{background:var(--bg);overflow:auto;padding:20px}
   .fsRoot:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
   .fsRoot:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
   .fsRoot:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
   .fsRoot:fullscreen .side{top:14px}
   .fsRoot:-webkit-full-screen .side{top:14px}
+</style>
+<style id="os-theme-vars">
+html[data-theme=light]{
+  --bg:#f4f7fb; --panel:#ffffff; --ink:#16222e; --muted:#566575; --border:#d5deea; --accent:#2563eb;
+  --s1:#eef2f7; --s2:#f1f5fa; --s3:#dce9fb; --s4:#e8eef5; --s5:#d8e2ec; --s6:#c3cdd9;
+  --s7:#e4eaf1; --s8:#e1e9f4; --s9:#eaf0f7; --s10:#e6ecf3; --s11:#dbe6f2; --s12:#e2e9f1; --s13:#cdd8e4;
+  --t1:#2a3744; --t2:#4b5a6b; --t3:#23415f;
+  color-scheme:light;
+}
+html[data-theme=light] body{background:var(--bg);color:var(--ink)}
+.themeBtn{position:fixed;right:16px;bottom:16px;z-index:120;background:var(--s4,#243446);color:var(--ink,#e7eef7);
+  border:1px solid var(--s6,#33485f);border-radius:999px;padding:9px 15px;font:600 13px/1 "Segoe UI",system-ui,sans-serif;
+  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.32);display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.themeBtn:hover{border-color:var(--accent);transform:translateY(-1px)}
+.themeBtn .ic{font-size:15px;line-height:1}
 </style>
 </head>
 <body>
@@ -146,7 +162,7 @@
   <h1>Demand Paging &amp; Virtual Memory — Swap In / Swap Out</h1>
   <div class="sub">A page is brought into RAM <b>only when needed</b>. Pages live on the <b>disk backing store</b>; the <b>valid–invalid bit</b> says whether a page is currently in a frame. Watch how virtual memory can be <b>larger than RAM</b>, and how <b>several programs</b> share the same frames.</div>
 </header>
-<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:#cdd9e6;font-size:13.5px;line-height:1.7;"><li>Explain demand paging: a page is brought into memory only when it is first referenced.</li><li>Trace a page fault: locate the page in swap, bring it into a frame, update the page table.</li><li>Follow victim selection and swap-out when no free frame is available.</li><li>Track how valid / invalid bits change as pages move between memory and disk.</li></ul></details>
+<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:var(--t1,#cdd9e6);font-size:13.5px;line-height:1.7;"><li>Explain demand paging: a page is brought into memory only when it is first referenced.</li><li>Trace a page fault: locate the page in swap, bring it into a frame, update the page table.</li><li>Follow victim selection and swap-out when no free frame is available.</li><li>Track how valid / invalid bits change as pages move between memory and disk.</li></ul></details>
 
 <div class="wrap">
   <div class="stage">
@@ -184,17 +200,17 @@
       <button id="mMulti" onclick="setMode('multi')">Three programs · shared RAM</button>
     </div>
 
-    <div class="caption">
-      <div class="step" id="stepLabel">Step 0</div>
-      <div class="text" id="captionText">Every page starts on disk. Press <b>Next</b> to reference a page — it is paged into RAM on demand.</div>
-    </div>
-
     <div class="controls">
       <button id="prevBtn" onclick="prev()">◀ Prev</button>
       <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
       <button id="playBtn" onclick="togglePlay()">▶ Play</button>
       <button onclick="reset()">↻ Reset</button>
       <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText">Every page starts on disk. Press <b>Next</b> to reference a page — it is paged into RAM on demand.</div>
     </div>
 
     <div class="vmbox">
@@ -207,7 +223,7 @@
     </div>
 
     <div class="legend">
-      <div class="row"><span class="sq" style="background:#13233f"></span> Resident page (valid bit = <b style="color:var(--hit)">v</b>, lives in a frame)</div>
+      <div class="row"><span class="sq" style="background:var(--s3,#13233f)"></span> Resident page (valid bit = <b style="color:var(--hit)">v</b>, lives in a frame)</div>
       <div class="row"><span class="sq" style="background:var(--diskface);border-color:var(--diskedge)"></span> On disk only (valid bit = <b style="color:var(--muted)">i</b>)</div>
       <div class="row"><span class="sq" style="background:var(--evict)"></span> swap <b>out</b> &nbsp; <span class="sq" style="background:var(--new)"></span> swap <b>in</b> &nbsp; <span class="sq" style="background:var(--hit)"></span> hit</div>
     </div>
@@ -522,6 +538,17 @@ setMode('single');
   function sync(){ var t=enter.querySelector('.fsTxt'); if(t) t.textContent=(fsEl()===wrap)?'Exit full screen':'Full screen'; }
   document.addEventListener('fullscreenchange',sync);
   document.addEventListener('webkitfullscreenchange',sync);
+})();</script>
+<script>(function(){
+  var KEY='os-theme', root=document.documentElement;
+  function cur(){ return root.getAttribute('data-theme')==='light'?'light':'dark'; }
+  function apply(t){ if(t==='light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme'); }
+  var btn=document.createElement('button');
+  btn.className='themeBtn'; btn.type='button'; btn.title='Toggle light / dark';
+  document.body.appendChild(btn);
+  function render(){ btn.innerHTML = cur()==='light' ? '<span class="ic">\u263e</span><span>Dark</span>' : '<span class="ic">\u2600</span><span>Light</span>'; }
+  render();
+  btn.addEventListener('click',function(){ var t=cur()==='light'?'dark':'light'; apply(t); try{localStorage.setItem(KEY,t);}catch(e){} render(); });
 })();</script>
 </body>
 </html>

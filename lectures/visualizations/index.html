@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>try{var t=localStorage.getItem('os-theme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OS Course — Interactive Visualizations</title>
@@ -10,109 +11,290 @@
   html,body{height:100%}
   body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink);
        display:flex;flex-direction:column;min-height:100vh}
-  header{flex:0 0 auto;padding:clamp(10px,2.2vh,22px) clamp(16px,3vw,28px);border-bottom:1px solid var(--border)}
+  .wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;
+        width:100%;max-width:1560px;margin:0 auto;padding:0 clamp(18px,3vw,36px)}
+
+  header{flex:0 0 auto;padding:clamp(12px,2.2vh,22px) 0;border-bottom:1px solid var(--border);margin-bottom:clamp(10px,1.6vh,16px)}
+  .bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px}
   h1{margin:0;font-size:clamp(17px,2.5vh,24px)}
   .sub{color:var(--muted);font-size:clamp(11px,1.5vh,14px);margin-top:4px}
 
-  /* 3×3 grid that fills the space between header and footer */
-  .grid{flex:1 1 auto;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;
-        gap:clamp(10px,1.6vw,18px);padding:clamp(12px,2vh,24px) clamp(16px,3vw,28px);
-        width:100%;max-width:1280px;margin:0 auto;min-height:0}
+  /* toolbar (top-right) */
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .field{display:flex;align-items:center;gap:7px}
+  .field label{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:700}
+  select{background:var(--s1,#0c141d);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;
+         padding:7px 28px 7px 10px;font-size:13px;cursor:pointer;font-family:inherit;
+         -webkit-appearance:none;appearance:none;
+         background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238aa0b6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+         background-repeat:no-repeat;background-position:right 10px center}
+  select:hover{border-color:var(--accent)}
+  .viewtoggle{display:inline-flex;border:1px solid var(--s6,#33485f);border-radius:8px;overflow:hidden}
+  .viewtoggle button{background:var(--s4,#243446);border:none;color:var(--muted);padding:7px 12px;cursor:pointer;
+                     font-size:14px;display:inline-flex;align-items:center;gap:6px;font-family:inherit;transition:.15s}
+  .viewtoggle button+button{border-left:1px solid var(--s6,#33485f)}
+  .viewtoggle button:hover:not(.active){background:var(--s5,#2e4459);color:var(--ink)}
+  .viewtoggle button.active{background:var(--accent);color:#06121f;font-weight:700}
+  .viewtoggle .vi{font-size:15px;line-height:1}
+
+  /* card area — fills the space between header and pager/footer; clips (never scrolls) so the pager stays put */
+  .gridwrap{flex:1 1 auto;min-height:0;overflow:hidden}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:var(--rowh,minmax(150px,1fr));
+        align-content:start;height:100%;gap:clamp(10px,1.6vw,18px);padding:2px 0}
   a.card{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:var(--panel);
-         border:1px solid var(--border);border-radius:14px;padding:clamp(12px,2vh,20px);transition:.15s;min-height:0;overflow:hidden}
+         border:1px solid var(--border);border-radius:14px;padding:clamp(12px,1.9vh,20px);transition:.15s;overflow:hidden;min-height:0}
   a.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  a.card .body{display:flex;flex-direction:column;min-height:0}
   .tag{font-size:clamp(9px,1.3vh,11px);text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:700}
   h2{margin:5px 0 6px;font-size:clamp(14px,2vh,18px);line-height:1.2}
   p{margin:0;color:var(--muted);font-size:clamp(11px,1.5vh,14px);line-height:1.45;
     display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   .go{margin-top:auto;padding-top:10px;font-size:clamp(11px,1.5vh,13px);color:var(--ok);font-weight:600}
-  footer{flex:0 0 auto;padding:clamp(8px,1.4vh,16px) clamp(16px,3vw,28px);color:var(--muted);
-         font-size:clamp(10px,1.3vh,12px);border-top:1px solid var(--border)}
+
+  /* list view — fixed-height rows; JS shows exactly the number that fit the screen */
+  .grid.list{grid-template-columns:1fr;grid-auto-rows:104px;gap:9px;align-content:start;height:auto}
+  .grid.list a.card{flex-direction:row;align-items:center;gap:18px;padding:11px 18px;height:104px}
+  .grid.list a.card .body{flex:1;min-width:0}
+  .grid.list h2{margin:3px 0 5px}
+  .grid.list p{-webkit-line-clamp:2}
+  .grid.list .go{margin-top:0;padding-top:0;white-space:nowrap}
+
+  /* pager — fixed row above the footer */
+  .pager{flex:0 0 auto;display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 0 6px}
+  .pager .count{color:var(--muted);font-size:12px;margin-right:10px}
+  .pager button{min-width:32px;height:32px;padding:0 10px;background:var(--s4,#243446);color:var(--ink);
+                border:1px solid var(--s6,#33485f);border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit;transition:.15s}
+  .pager button:hover:not(:disabled):not(.active){background:var(--s5,#2e4459)}
+  .pager button.active{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:700}
+  .pager button:disabled{opacity:.4;cursor:not-allowed}
+  .empty{grid-column:1/-1;align-self:center;text-align:center;color:var(--muted);padding:40px 0;font-size:14px}
+
+  /* footer */
+  footer{flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 16px;
+         padding:9px 0;border-top:1px solid var(--border);color:var(--muted);font-size:clamp(10px,1.3vh,12px)}
+  footer a{color:var(--accent);text-decoration:none;font-weight:600}
+  footer a:hover{text-decoration:underline}
+
+  /* keep the floating theme toggle clear of the footer */
+  body .themeBtn{bottom:46px}
 
   /* lock to a single screen on normal laptop/desktop heights */
   @media (min-height:560px){ body{height:100vh;overflow:hidden} }
-  /* narrower screens: fewer columns, allow scrolling */
-  @media (max-width:900px){
-    .grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:minmax(120px,1fr)}
+  @media (max-width:900px){ .grid{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:600px){
     body{height:auto;overflow:auto}
+    .gridwrap{overflow:visible}
+    .grid{grid-template-columns:1fr;grid-auto-rows:auto;height:auto;align-content:start}
+    .grid.list a.card{height:auto}
+    .bar{align-items:stretch}
+    .toolbar{width:100%}
+    .field{flex:1 1 auto}
+    select{flex:1}
   }
-  @media (max-width:560px){
-    .grid{grid-template-columns:1fr}
-    body{height:auto;overflow:auto}
-  }
+</style>
+<style id="os-theme-vars">
+html[data-theme=light]{
+  --bg:#f4f7fb; --panel:#ffffff; --ink:#16222e; --muted:#566575; --border:#d5deea; --accent:#2563eb;
+  --s1:#eef2f7; --s2:#f1f5fa; --s3:#dce9fb; --s4:#e8eef5; --s5:#d8e2ec; --s6:#c3cdd9;
+  --s7:#e4eaf1; --s8:#e1e9f4; --s9:#eaf0f7; --s10:#e6ecf3; --s11:#dbe6f2; --s12:#e2e9f1; --s13:#cdd8e4;
+  --t1:#2a3744; --t2:#4b5a6b; --t3:#23415f;
+  color-scheme:light;
+}
+html[data-theme=light] body{background:var(--bg);color:var(--ink)}
+.themeBtn{position:fixed;right:16px;bottom:16px;z-index:120;background:var(--s4,#243446);color:var(--ink,#e7eef7);
+  border:1px solid var(--s6,#33485f);border-radius:999px;padding:9px 15px;font:600 13px/1 "Segoe UI",system-ui,sans-serif;
+  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.32);display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.themeBtn:hover{border-color:var(--accent);transform:translateY(-1px)}
+.themeBtn .ic{font-size:15px;line-height:1}
 </style>
 </head>
 <body>
-<header>
-  <h1>Operating Systems — Interactive Visualizations</h1>
-  <div class="sub">Step-through animations for the OS &amp; SE course · Lecturer: Heng Rathpisey</div>
-</header>
+<div class="wrap">
+  <header>
+    <div class="bar">
+      <div class="titles">
+        <h1>Operating Systems — Interactive Visualizations</h1>
+        <div class="sub">Step-through animations for the OS &amp; SE course · Lecturer: Heng Rathpisey</div>
+      </div>
+      <div class="toolbar">
+        <div class="field">
+          <label for="topicSel">Topic</label>
+          <select id="topicSel"></select>
+        </div>
+        <div class="field">
+          <label for="sortSel">Sort</label>
+          <select id="sortSel">
+            <option value="course">Course order</option>
+            <option value="title">Title (A–Z)</option>
+            <option value="topic">Topic</option>
+          </select>
+        </div>
+        <div class="viewtoggle" role="group" aria-label="View">
+          <button id="viewGrid" title="Grid view" onclick="setView('grid')"><span class="vi">▦</span> Blocks</button>
+          <button id="viewList" title="List view" onclick="setView('list')"><span class="vi">☰</span> List</button>
+        </div>
+      </div>
+    </div>
+  </header>
 
-<div class="grid">
-  <a class="card" href="rag-deadlock.html">
-    <div class="tag">Week 9 · Activity 7</div>
-    <h2>Resource Allocation Graph</h2>
-    <p>Build a graph edge-by-edge, then watch DFS detect the cycle that means deadlock. Compare a deadlocked vs. a safe graph.</p>
-    <div class="go">Open →</div>
-  </a>
+  <div class="gridwrap" id="gridwrap">
+    <div class="grid" id="grid"></div>
+  </div>
 
-  <a class="card" href="bankers-algorithm.html">
-    <div class="tag">Week 9 · Activity 7</div>
-    <h2>Banker's Algorithm</h2>
-    <p>Animate the safety check and safe-sequence building, plus resource requests being granted or denied (and rolled back).</p>
-    <div class="go">Open →</div>
-  </a>
+  <div class="pager" id="pager"></div>
 
-  <a class="card" href="deadlock-detection.html">
-    <div class="tag">Week 9 · Activity 7 (extension)</div>
-    <h2>Multi-Instance Deadlock Detection</h2>
-    <p>Resources with multiple instances: set the instance count and watch the reduction algorithm decide. Shows a cycle that is <i>not</i> a deadlock.</p>
-    <div class="go">Open →</div>
-  </a>
-
-  <a class="card" href="paging-translation.html">
-    <div class="tag">Week 10 · Activity 8</div>
-    <h2>Paging &amp; Address Translation</h2>
-    <p>Split a logical address into page + offset, index the page table (with valid/invalid bits), and assemble the physical address bit by bit.</p>
-    <div class="go">Open →</div>
-  </a>
-
-  <a class="card" href="tlb.html">
-    <div class="tag">Week 10 · Chapter 9</div>
-    <h2>TLB (Translation Look-Aside Buffer)</h2>
-    <p>Step a page-reference stream through the TLB cache: watch hits, misses, LRU eviction, and a running hit ratio rise with locality.</p>
-    <div class="go">Open →</div>
-  </a>
-
-  <a class="card" href="eat-calculator.html">
-    <div class="tag">Week 10 · Chapter 9</div>
-    <h2>Effective Access Time (EAT)</h2>
-    <p>Drag the TLB hit ratio and memory-time sliders; watch EAT drop on a live graph and see why a high hit ratio makes the TLB worth it.</p>
-    <div class="go">Open →</div>
-  </a>
-
-  <a class="card" href="page-replacement.html">
-    <div class="tag">Week 11 · Activity 8</div>
-    <h2>Page Replacement (FIFO / LRU / OPT)</h2>
-    <p>Run a reference string through frames; watch hits, faults, and victim eviction. Compare FIFO, LRU and OPT totals, and reproduce Belady's anomaly.</p>
-    <div class="go">Open →</div>
-  </a>
-
-  <a class="card" href="demand-paging.html">
-    <div class="tag">Week 11 · Chapter 9</div>
-    <h2>Demand Paging &amp; Virtual Memory</h2>
-    <p>Step through page faults: swap pages in from disk, evict victims back to swap, and watch valid/invalid bits and the page table update live.</p>
-    <div class="go">Open →</div>
-  </a>
-
-  <a class="card" href="contiguous-allocation.html">
-    <div class="tag">Week 10 · Chapter 9</div>
-    <h2>Contiguous Allocation &amp; Fit Algorithms</h2>
-    <p>Place process requests into holes with First / Best / Worst fit, watch external fragmentation appear, then compact memory to fix it.</p>
-    <div class="go">Open →</div>
-  </a>
+  <footer>
+    <span>Self-contained HTML — works offline · Inside each: Next / Prev / Play, or → ← Space</span>
+    <a href="https://github.com/RathpiseyAlpha/ITC-OS-2026" target="_blank" rel="noopener noreferrer">GitHub repository ↗</a>
+  </footer>
 </div>
 
-<footer>Self-contained HTML — works offline. Controls: Next / Prev / Play, or keyboard → ← Space.</footer>
+<script>
+/* ---------- data ---------- */
+const VIZ = [
+  { href:'producer-consumer.html', week:8,  tag:'Week 8 · Chapter 8',              topic:'Synchronization',
+    title:'Semaphores — Producer / Consumer',
+    desc:'Build the bounded-buffer solution one problem at a time: why a FIFO buffer, precedence with a semaphore = 0, counting semaphores for full/empty, and a mutex for two producers.' },
+  { href:'rag-deadlock.html', week:9, tag:'Week 9 · Activity 7', topic:'Deadlocks',
+    title:'Resource Allocation Graph',
+    desc:'Build a graph edge-by-edge, then watch DFS detect the cycle that means deadlock. Compare a deadlocked vs. a safe graph.' },
+  { href:'bankers-algorithm.html', week:9, tag:'Week 9 · Activity 7', topic:'Deadlocks',
+    title:"Banker's Algorithm",
+    desc:'Animate the safety check and safe-sequence building, plus resource requests being granted or denied (and rolled back).' },
+  { href:'deadlock-detection.html', week:9, tag:'Week 9 · Activity 7 (extension)', topic:'Deadlocks',
+    title:'Multi-Instance Deadlock Detection',
+    desc:'Resources with multiple instances: set the instance count and watch the reduction algorithm decide. Shows a cycle that is <i>not</i> a deadlock.' },
+  { href:'paging-translation.html', week:10, tag:'Week 10 · Activity 8', topic:'Memory & Paging',
+    title:'Paging & Address Translation',
+    desc:'Split a logical address into page + offset, index the page table (with valid/invalid bits), and assemble the physical address bit by bit.' },
+  { href:'tlb.html', week:10, tag:'Week 10 · Chapter 9', topic:'Memory & Paging',
+    title:'TLB (Translation Look-Aside Buffer)',
+    desc:'Step a page-reference stream through the TLB cache: watch hits, misses, LRU eviction, and a running hit ratio rise with locality.' },
+  { href:'eat-calculator.html', week:10, tag:'Week 10 · Chapter 9', topic:'Memory & Paging',
+    title:'Effective Access Time (EAT)',
+    desc:'Drag the TLB hit ratio and memory-time sliders; watch EAT drop on a live graph and see why a high hit ratio makes the TLB worth it.' },
+  { href:'contiguous-allocation.html', week:10, tag:'Week 10 · Chapter 9', topic:'Memory & Paging',
+    title:'Contiguous Allocation & Fit Algorithms',
+    desc:'Place process requests into holes with First / Best / Worst fit, watch external fragmentation appear, then compact memory to fix it.' },
+  { href:'page-replacement.html', week:11, tag:'Week 11 · Activity 8', topic:'Memory & Paging',
+    title:'Page Replacement (FIFO / LRU / OPT)',
+    desc:"Run a reference string through frames; watch hits, faults, and victim eviction. Compare FIFO, LRU and OPT totals, and reproduce Belady's anomaly." },
+  { href:'demand-paging.html', week:11, tag:'Week 11 · Chapter 9', topic:'Memory & Paging',
+    title:'Demand Paging & Virtual Memory',
+    desc:'Step through page faults: swap pages in from disk, evict victims back to swap, and watch valid/invalid bits and the page table update live.' },
+];
+VIZ.forEach((v,i)=>v.idx=i);
+
+const BLOCK_COLS = 3, BLOCK_ROWS = 3;        // blocks: fixed 3×3 grid → 9 per page
+const CARD_MAX = 230;                         // blocks: cap card height so tall screens don't overstretch
+const LIST_ROW = 104;                         // list: fixed row height (matches CSS)
+
+/* ---------- state ---------- */
+let topic = 'all';
+let sort  = 'course';
+let view  = (function(){ try{ return localStorage.getItem('viz-view')||'grid'; }catch(e){ return 'grid'; } })();
+let page  = 1;
+
+/* ---------- build topic filter options ---------- */
+(function(){
+  const topics = [...new Set(VIZ.map(v=>v.topic))].sort();
+  const sel = document.getElementById('topicSel');
+  sel.innerHTML = '<option value="all">All topics</option>' +
+    topics.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
+})();
+
+/* ---------- filter + sort ---------- */
+function current(){
+  let list = VIZ.filter(v => topic==='all' || v.topic===topic);
+  const cmp = {
+    course: (a,b)=> a.week-b.week || a.idx-b.idx,
+    title:  (a,b)=> a.title.replace(/[^a-z0-9]/gi,'').localeCompare(b.title.replace(/[^a-z0-9]/gi,'')),
+    topic:  (a,b)=> a.topic.localeCompare(b.topic) || a.week-b.week || a.idx-b.idx,
+  }[sort];
+  return list.slice().sort(cmp);
+}
+
+/* ---------- layout: how many cards per page + the block row height ---------- */
+function layout(){
+  const grid = document.getElementById('grid');
+  grid.className = 'grid' + (view==='list' ? ' list' : '');   // set first so gap is read for the right view
+  if(window.innerWidth <= 600) return { perPage: 9, rowh: null };   // mobile: simple scroll
+
+  const H = document.getElementById('gridwrap').clientHeight;
+  const gap = parseFloat(getComputedStyle(grid).rowGap) || 14;
+
+  if(view === 'list'){
+    return { perPage: Math.max(1, Math.floor((H + gap) / (LIST_ROW + gap))), rowh: null };
+  }
+  const rowh = Math.min(CARD_MAX, Math.max(150, Math.floor((H - gap*(BLOCK_ROWS-1)) / BLOCK_ROWS)));
+  return { perPage: BLOCK_COLS * BLOCK_ROWS, rowh };
+}
+
+/* ---------- render ---------- */
+function render(){
+  const { perPage, rowh } = layout();
+  const list  = current();
+  const pages = Math.max(1, Math.ceil(list.length / perPage));
+  if(page > pages) page = pages;
+  const start = (page-1)*perPage;
+  const slice = list.slice(start, start+perPage);
+
+  const grid = document.getElementById('grid');
+  grid.style.setProperty('--rowh', rowh ? rowh+'px' : 'minmax(150px,1fr)');
+  grid.innerHTML = slice.length ? slice.map(v =>
+    '<a class="card" href="'+v.href+'">'+
+      '<div class="body">'+
+        '<div class="tag">'+v.tag+'</div>'+
+        '<h2>'+v.title+'</h2>'+
+        '<p>'+v.desc+'</p>'+
+      '</div>'+
+      '<div class="go">Open →</div>'+
+    '</a>'
+  ).join('') : '<div class="empty">No visualizations match this filter.</div>';
+
+  document.getElementById('viewGrid').classList.toggle('active', view==='grid');
+  document.getElementById('viewList').classList.toggle('active', view==='list');
+
+  const pager = document.getElementById('pager');
+  if(list.length === 0){ pager.innerHTML=''; return; }
+  const from = start+1, to = Math.min(start+perPage, list.length);
+  if(pages > 1){
+    let html = '<span class="count">'+from+'–'+to+' of '+list.length+'</span>';
+    html += '<button onclick="go('+(page-1)+')"'+(page===1?' disabled':'')+'>‹ Prev</button>';
+    for(let p=1; p<=pages; p++){
+      html += '<button class="'+(p===page?'active':'')+'" onclick="go('+p+')">'+p+'</button>';
+    }
+    html += '<button onclick="go('+(page+1)+')"'+(page===pages?' disabled':'')+'>Next ›</button>';
+    pager.innerHTML = html;
+  } else {
+    pager.innerHTML = '<span class="count">'+list.length+' visualization'+(list.length===1?'':'s')+'</span>';
+  }
+}
+
+/* ---------- controls ---------- */
+function go(p){ page = p; render(); }
+function setView(v){ view=v; page=1; try{ localStorage.setItem('viz-view',v); }catch(e){} render(); }
+document.getElementById('topicSel').addEventListener('change', e=>{ topic=e.target.value; page=1; render(); });
+document.getElementById('sortSel').addEventListener('change',  e=>{ sort=e.target.value;  page=1; render(); });
+
+let rz; function schedule(){ clearTimeout(rz); rz=setTimeout(render, 120); }
+window.addEventListener('resize', schedule);
+if(window.visualViewport) window.visualViewport.addEventListener('resize', schedule);  // zoom / DPI / monitor change
+window.addEventListener('load', render);        // re-measure once fonts/layout have settled
+window.addEventListener('pageshow', render);    // bfcache / back-forward restore
+render();                                       // first paint
+requestAnimationFrame(function(){ requestAnimationFrame(render); });  // and again after layout flushes
+</script>
+<script>(function(){
+  var KEY='os-theme', root=document.documentElement;
+  function cur(){ return root.getAttribute('data-theme')==='light'?'light':'dark'; }
+  function apply(t){ if(t==='light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme'); }
+  var btn=document.createElement('button');
+  btn.className='themeBtn'; btn.type='button'; btn.title='Toggle light / dark';
+  document.body.appendChild(btn);
+  function render(){ btn.innerHTML = cur()==='light' ? '<span class="ic">☾</span><span>Dark</span>' : '<span class="ic">☀</span><span>Light</span>'; }
+  render();
+  btn.addEventListener('click',function(){ var t=cur()==='light'?'dark':'light'; apply(t); try{localStorage.setItem(KEY,t);}catch(e){} render(); });
+})();</script>
 </body>
 </html>

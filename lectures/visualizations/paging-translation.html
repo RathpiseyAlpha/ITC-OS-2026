@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>try{var t=localStorage.getItem('os-theme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Paging &amp; Address Translation</title>
@@ -24,26 +25,26 @@
   .verdict{font-size:18px;font-weight:700;margin-top:10px}
   .verdict.ok{color:var(--ok)} .verdict.bad{color:var(--bad)}
   .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-  button{background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
-  button:hover:not(:disabled){background:#2e4459}
+  button{background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:var(--s5,#2e4459)}
   button:disabled{opacity:.4;cursor:not-allowed}
   button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
   /* grouped tabs — parent pill bar encloses its child chips */
-  .tabgroup{display:flex;flex-direction:column;gap:8px;background:linear-gradient(160deg,#1a2942,#0e1826);border:1px solid var(--border);border-radius:14px;padding:8px;margin-bottom:14px}
+  .tabgroup{display:flex;flex-direction:column;gap:8px;background:linear-gradient(160deg,var(--s9,#1a2942),var(--s2,#0e1826));border:1px solid var(--border);border-radius:14px;padding:8px;margin-bottom:14px}
   /* parent tabs — segmented pill, blue gradient active */
-  .modes{display:flex;gap:4px;background:rgba(0,0,0,.28);border:1px solid var(--border);border-radius:10px;padding:4px}
-  .modes button{flex:1;background:transparent;border:1px solid transparent;border-radius:8px;padding:9px 12px;color:var(--muted);font-weight:600}
+  .modes{display:flex;gap:4px;background:rgba(0,0,0,.32);border:1px solid var(--border);border-radius:11px;padding:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
+  .modes button{flex:1;background:transparent;border:1px solid transparent;border-radius:9px;padding:10px 13px;color:var(--muted);font-weight:600;transition:background .15s,color .15s,box-shadow .15s}
   .modes button:hover:not(.active){background:rgba(255,255,255,.06);color:var(--ink)}
-  .modes button.active{background:linear-gradient(135deg,#6db1ff,#2f74d6);color:#07121f;border-color:transparent;font-weight:700;box-shadow:0 2px 7px rgba(47,116,214,.45)}
+  .modes button.active{background:linear-gradient(180deg,#7cbaff,#3f82e6);color:#06152b;border-color:rgba(255,255,255,.22);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 3px 9px rgba(37,99,235,.45)}
   /* child tabs — chips, violet gradient active */
   .scenarios{display:flex;gap:6px;flex-wrap:wrap}
   .scenarios button{flex:1 1 60px;padding:8px 6px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--muted)}
   .scenarios button:hover:not(.active){background:rgba(255,255,255,.1);color:var(--ink)}
-  .scenarios button.active{background:linear-gradient(135deg,#a78bfa,#7c5cf0);color:#0b0820;border-color:transparent;font-weight:700;box-shadow:0 2px 7px rgba(124,92,240,.45)}
+  .scenarios button.active{background:linear-gradient(180deg,#b79dff,#7d5cf2);color:#0b0820;border-color:rgba(255,255,255,.22);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 9px rgba(124,92,240,.5)}
   /* +/- stepper */
-  .stepper{display:inline-flex;align-items:center;border:1px solid #33485f;border-radius:7px;overflow:hidden;background:#0c141d;vertical-align:middle}
-  .stepper button{background:#1a2735;border:none;color:var(--ink);width:26px;height:32px;padding:0;font-size:15px;line-height:1;cursor:pointer;border-radius:0;transition:.15s}
-  .stepper button:hover:not(:disabled){background:#2e4459}
+  .stepper{display:inline-flex;align-items:center;border:1px solid var(--s6,#33485f);border-radius:7px;overflow:hidden;background:var(--s1,#0c141d);vertical-align:middle}
+  .stepper button{background:var(--s7,#1a2735);border:none;color:var(--ink);width:26px;height:32px;padding:0;font-size:15px;line-height:1;cursor:pointer;border-radius:0;transition:.15s}
+  .stepper button:hover:not(:disabled){background:var(--s5,#2e4459)}
   .stepper button:disabled{opacity:.35;cursor:not-allowed}
   .stepper .sval{min-width:30px;text-align:center;font-weight:700;font-size:14px;padding:0 4px;font-variant-numeric:tabular-nums}
   .stepper.sm button{width:22px;height:26px;font-size:14px}
@@ -55,7 +56,7 @@
   .builder{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
   .builder h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
   .brow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-  input[type=number]{background:#0c141d;color:var(--ink);border:1px solid #33485f;border-radius:7px;padding:8px;font-size:14px;width:90px}
+  input[type=number]{background:var(--s1,#0c141d);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:7px;padding:8px;font-size:14px;width:90px}
   .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
   .msg{font-size:12px;color:var(--warn);min-height:16px;margin-top:4px}
 
@@ -65,7 +66,7 @@
   .addrLabel{font-size:13px;color:var(--muted)}
   .addrVal{font-size:22px;font-weight:700}
   .bits{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
-  .bit{width:30px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:16px;border:2px solid transparent;background:#0c141d;transition:.25s}
+  .bit{width:30px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:16px;border:2px solid transparent;background:var(--s1,#0c141d);transition:.25s}
   .bit.page{border-color:var(--page);color:#bcd4ff}
   .bit.offset{border-color:var(--offset);color:#bff0dd}
   .bit.frame{border-color:var(--frame);color:#e6ccff}
@@ -78,7 +79,7 @@
   table.pt th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
   table.pt td.valid{color:var(--ok);font-weight:700}
   table.pt td.invalid{color:var(--bad);font-weight:700}
-  table.pt tr.active td{background:#1d2c3e;box-shadow:inset 0 0 0 2px var(--accent)}
+  table.pt tr.active td{background:var(--s12,#1d2c3e);box-shadow:inset 0 0 0 2px var(--accent)}
   table.pt tr.active.faultrow td{box-shadow:inset 0 0 0 2px var(--bad)}
   .ptInput{width:46px;padding:4px;text-align:center}
   /* memory map: logical pages | page table | physical RAM frames, side by side */
@@ -90,19 +91,19 @@
   .memcolhead{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;line-height:1.3;min-height:30px}
   .memcolhead span{font-size:10px;opacity:.8}
   .memstack{display:flex;flex-direction:column;gap:5px}
-  .memcell{border:1px solid var(--border);border-radius:6px;padding:0 10px;height:34px;background:#0c141d;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:.25s}
+  .memcell{border:1px solid var(--border);border-radius:6px;padding:0 10px;height:34px;background:var(--s1,#0c141d);display:flex;align-items:center;justify-content:space-between;gap:8px;transition:.25s}
   .memcell .mlabel{font-size:12px;font-weight:700}
   .memcell .mmap{font-size:11px;color:var(--muted)}
   .memcell .mmap.bad{color:var(--bad)}
   .memcell .mmap.dim{opacity:.45}
   .memcell.invalidpage{opacity:.5}
-  .memcell.selpage{border-color:var(--page);background:#13233f;box-shadow:0 0 0 2px var(--page)}
+  .memcell.selpage{border-color:var(--page);background:var(--s3,#13233f);box-shadow:0 0 0 2px var(--page)}
   .memcell.selpage .mlabel{color:#bcd4ff}
   .memcell.target{border-color:var(--frame);background:#241a33;box-shadow:0 0 0 2px var(--frame)}
   .memcell.target .mlabel{color:#e6ccff}
   .pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:700}
-  .pill.page{background:#13233f;color:#9cc2ff}
-  .calc{font-family:"Consolas",monospace;font-size:14px;background:#0c141d;border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;line-height:1.7;white-space:pre-wrap}
+  .pill.page{background:var(--s3,#13233f);color:#9cc2ff}
+  .calc{font-family:"Consolas",monospace;font-size:14px;background:var(--s1,#0c141d);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;line-height:1.7;white-space:pre-wrap}
 /* fixed, responsive page header (matches the index page) */
   header{position:sticky;top:0;z-index:50;background:var(--bg);padding:clamp(10px,2.2vh,22px) clamp(16px,3vw,28px)}
   header h1{font-size:clamp(17px,2.5vh,24px)}
@@ -119,17 +120,32 @@
   header .sub{grid-column:2;grid-row:2}
 /* full-screen control for the visualization area (.wrap) */
   header{grid-template-columns:auto 1fr auto}
-  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
-  .fsBtn:hover{background:#2e4459;border-color:var(--accent)}
+  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .fsBtn:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
   .fsBtn .fsIcon{margin-right:6px}
-  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
-  .fsExit:hover{background:#2e4459;border-color:var(--accent)}
+  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .fsExit:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
   .fsRoot:fullscreen{background:var(--bg);overflow:auto;padding:20px}
   .fsRoot:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
   .fsRoot:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
   .fsRoot:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
   .fsRoot:fullscreen .side{top:14px}
   .fsRoot:-webkit-full-screen .side{top:14px}
+</style>
+<style id="os-theme-vars">
+html[data-theme=light]{
+  --bg:#f4f7fb; --panel:#ffffff; --ink:#16222e; --muted:#566575; --border:#d5deea; --accent:#2563eb;
+  --s1:#eef2f7; --s2:#f1f5fa; --s3:#dce9fb; --s4:#e8eef5; --s5:#d8e2ec; --s6:#c3cdd9;
+  --s7:#e4eaf1; --s8:#e1e9f4; --s9:#eaf0f7; --s10:#e6ecf3; --s11:#dbe6f2; --s12:#e2e9f1; --s13:#cdd8e4;
+  --t1:#2a3744; --t2:#4b5a6b; --t3:#23415f;
+  color-scheme:light;
+}
+html[data-theme=light] body{background:var(--bg);color:var(--ink)}
+.themeBtn{position:fixed;right:16px;bottom:16px;z-index:120;background:var(--s4,#243446);color:var(--ink,#e7eef7);
+  border:1px solid var(--s6,#33485f);border-radius:999px;padding:9px 15px;font:600 13px/1 "Segoe UI",system-ui,sans-serif;
+  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.32);display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.themeBtn:hover{border-color:var(--accent);transform:translateY(-1px)}
+.themeBtn .ic{font-size:15px;line-height:1}
 </style>
 </head>
 <body>
@@ -138,7 +154,7 @@
   <h1>Paging &amp; Address Translation</h1>
   <div class="sub">Class Activity 8 · Task 1 — how the MMU turns a <b>logical address</b> into a <b>physical address</b> through a page table (Chapter 9). For the cache that speeds this up, see the <a href="tlb.html" style="color:var(--accent)">TLB visualizer</a>.</div>
 </header>
-<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:#cdd9e6;font-size:13.5px;line-height:1.7;"><li>Split a logical address into page number and offset using the page size.</li><li>Use the page number to index the page table and read the frame number plus valid / invalid bit.</li><li>Assemble the physical address from frame number and offset.</li><li>Recognise when an access triggers a page fault (invalid bit).</li></ul></details>
+<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:var(--t1,#cdd9e6);font-size:13.5px;line-height:1.7;"><li>Split a logical address into page number and offset using the page size.</li><li>Use the page number to index the page table and read the frame number plus valid / invalid bit.</li><li>Assemble the physical address from frame number and offset.</li><li>Recognise when an access triggers a page fault (invalid bit).</li></ul></details>
 
 <div class="wrap">
   <div class="stage">
@@ -199,18 +215,18 @@
       <div class="msg" id="builderMsg"></div>
     </div>
 
-    <div class="caption">
-      <div class="step" id="stepLabel">Step 0</div>
-      <div class="text" id="captionText">Pick a logical address, then press <b>Next</b> to translate it one step at a time, or <b>Play</b> to auto-run.</div>
-      <div class="verdict" id="verdict"></div>
-    </div>
-
     <div class="controls">
       <button id="prevBtn" onclick="prev()">◀ Prev</button>
       <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
       <button id="playBtn" onclick="togglePlay()">▶ Play</button>
       <button onclick="reset()">↻ Reset</button>
       <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText">Pick a logical address, then press <b>Next</b> to translate it one step at a time, or <b>Play</b> to auto-run.</div>
+      <div class="verdict" id="verdict"></div>
     </div>
 
     <div class="legend">
@@ -500,6 +516,17 @@ render();
   function sync(){ var t=enter.querySelector('.fsTxt'); if(t) t.textContent=(fsEl()===wrap)?'Exit full screen':'Full screen'; }
   document.addEventListener('fullscreenchange',sync);
   document.addEventListener('webkitfullscreenchange',sync);
+})();</script>
+<script>(function(){
+  var KEY='os-theme', root=document.documentElement;
+  function cur(){ return root.getAttribute('data-theme')==='light'?'light':'dark'; }
+  function apply(t){ if(t==='light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme'); }
+  var btn=document.createElement('button');
+  btn.className='themeBtn'; btn.type='button'; btn.title='Toggle light / dark';
+  document.body.appendChild(btn);
+  function render(){ btn.innerHTML = cur()==='light' ? '<span class="ic">\u263e</span><span>Dark</span>' : '<span class="ic">\u2600</span><span>Light</span>'; }
+  render();
+  btn.addEventListener('click',function(){ var t=cur()==='light'?'dark':'light'; apply(t); try{localStorage.setItem(KEY,t);}catch(e){} render(); });
 })();</script>
 </body>
 </html>

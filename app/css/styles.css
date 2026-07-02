@@ -1480,3 +1480,79 @@ body.readme-mode .view-switch .toggle-thumb { background: var(--cyan); box-shado
     .terminal-body { padding: 12px 14px; }
     .ascii-banner pre { font-size: 4px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   LIGHT THEME  —  activated by html[data-theme="light"]
+   Redefines the palette; overrides the few hardcoded dark surfaces.
+   ══════════════════════════════════════════════════════════════ */
+html[data-theme="light"] {
+    --bg: #eef1f5;
+    --terminal-bg: #ffffff;
+    --border: #c9d6cd;
+    --green: #0b7a33;
+    --green-dim: #0a6b2c;
+    --green-dark: #3f9463;
+    --cyan: #0e7fa6;
+    --yellow: #a86f00;
+    --red: #d1242f;
+    --white: #1f2328;
+    --gray: #57606a;
+    --comment: #6a737d;
+    color-scheme: light;
+}
+html[data-theme="light"] body { color: var(--green); }
+/* dim the decorative background effects on a light canvas */
+html[data-theme="light"] #matrix-bg { opacity: 0.04; }
+html[data-theme="light"] body::after {
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,120,40,0.02) 2px, rgba(0,120,40,0.02) 4px);
+}
+html[data-theme="light"] .ascii-banner pre { text-shadow: none; }
+/* terminal chrome: soften glow, light title bar */
+html[data-theme="light"] .terminal {
+    box-shadow: 0 1px 3px rgba(20,40,30,0.14), inset 0 0 0 1px rgba(20,40,30,0.02);
+}
+html[data-theme="light"] .terminal-header {
+    background: linear-gradient(180deg, #f2f4f7, #e7ebf0);
+}
+/* dark translucent panels (admin / grades) → light surfaces */
+html[data-theme="light"] .admin-table-wrap {
+    background: rgba(15,40,25,0.03);
+    border-color: rgba(15,40,25,0.15);
+}
+html[data-theme="light"] .admin-table tbody td { background: #ffffff; }
+html[data-theme="light"] .admin-table thead th { background: #f3f6f4; }
+html[data-theme="light"] .admin-table tbody tr:hover td { background: rgba(11,122,51,0.06); }
+html[data-theme="light"] .admin-table-wrap.sticky-cols .pin-col { background: #f3f6f4; }
+html[data-theme="light"] .admin-table-wrap.sticky-cols td.pin-col { background: #f3f6f4; }
+html[data-theme="light"] .admin-table-wrap.sticky-cols tr:hover td.pin-col { background: #e7f0ea; }
+html[data-theme="light"] .grade-tree,
+html[data-theme="light"] .student-summary,
+html[data-theme="light"] .student-lab-card,
+html[data-theme="light"] .lab-deadline-info { background: #f5f8f6; }
+html[data-theme="light"] .admin-input,
+html[data-theme="light"] .admin-search-bar input { background: #ffffff; }
+/* date picker icon: undo the green invert filter under light */
+html[data-theme="light"] .admin-datetime::-webkit-calendar-picker-indicator { filter: none; }
+
+/* ─── Theme toggle button (shared: portal + all pages) ─── */
+.themeBtn {
+    position: fixed;
+    right: 14px;
+    bottom: 36px;
+    z-index: 200;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    font-family: 'Fira Code', monospace;
+    font-size: 11px;
+    color: var(--green);
+    background: var(--terminal-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.themeBtn:hover { border-color: var(--green-dark); background: rgba(0,255,65,0.06); }
+.themeBtn .ic { font-size: 12px; line-height: 1; }
+@media (max-width: 768px) { .themeBtn { bottom: 44px; } }

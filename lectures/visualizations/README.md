@@ -4,6 +4,7 @@ Step-through, animated explanations of OS concepts. Each file is **self-containe
 
 | Visualization | Topic | Activity |
 |---------------|-------|----------|
+| [producer-consumer.html](producer-consumer.html) | Semaphores & producer/consumer (bounded buffer): why FIFO buffering, precedence with a semaphore = 0, counting semaphores (`chars`/`space`), and `lock = 1` as a mutex for two producers — each shown broken ✗ then fixed ✓ | Week 8 (Ch 8) |
 | [rag-deadlock.html](rag-deadlock.html) | Resource Allocation Graph & cycle-based deadlock detection (single-instance) | Activity 7 · Task 1 |
 | [bankers-algorithm.html](bankers-algorithm.html) | Banker's Algorithm: safety check + resource requests | Activity 7 · Task 2 |
 | [deadlock-detection.html](deadlock-detection.html) | Multi-instance deadlock detection (reduction algorithm) — shows a cycle that is *not* a deadlock | Activity 7 · Task 1 extension |
@@ -29,6 +30,7 @@ Each one has two modes:
 
 These links render the pages immediately through `htmlpreview.github.io`:
 
+- **Semaphores — Producer/Consumer** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/producer-consumer.html
 - **RAG / Deadlock** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/rag-deadlock.html
 - **Banker's Algorithm** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/bankers-algorithm.html
 - **Multi-Instance Deadlock Detection** → https://htmlpreview.github.io/?https://github.com/RathpiseyAlpha/ITC-OS-2026/blob/main/lectures/visualizations/deadlock-detection.html
@@ -53,6 +55,7 @@ Enable once, then the pages are served from your own domain.
 **Then the visualizations live at:**
 
 - Menu → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/
+- Semaphores — Producer/Consumer → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/producer-consumer.html
 - RAG / Deadlock → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/rag-deadlock.html
 - Banker's Algorithm → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/bankers-algorithm.html
 - Multi-Instance Deadlock Detection → https://rathpiseyalpha.github.io/ITC-OS-2026/lectures/visualizations/deadlock-detection.html

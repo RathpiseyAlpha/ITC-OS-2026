@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>try{var t=localStorage.getItem('os-theme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semaphores — Producer / Consumer (Bounded Buffer)</title>
+<style>
+  :root{
+    --bg:#0f1722; --panel:#16212f; --ink:#e7eef7; --muted:#8aa0b6;
+    --accent:#60a5fa; --border:#233042;
+    --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+    --p1:#f97316; --p2:#a855f7; --con:#22d3ee;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:18px 24px;border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:20px;padding:20px 24px;flex-wrap:wrap}
+  .stage{flex:1 1 620px;min-width:360px;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px;overflow-x:auto}
+  .side{flex:0 0 380px;min-width:310px;position:sticky;top:16px;align-self:flex-start}
+  .caption{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;min-height:130px;margin-bottom:14px}
+  .caption .step{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .caption .text{font-size:14.5px;line-height:1.55}
+  .caption code{background:var(--s1,#0c141d);border:1px solid var(--s13,#2c3e54);border-radius:4px;padding:1px 5px;font-size:13px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;transition:.15s}
+  button:hover:not(:disabled){background:var(--s5,#2e4459)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.primary{background:var(--accent);color:#06121f;border-color:var(--accent);font-weight:600}
+  .progress{font-size:12px;color:var(--muted);margin-left:auto;align-self:center}
+  /* grouped tabs — parent pill bar encloses its child chips */
+  .tabgroup{display:flex;flex-direction:column;gap:8px;background:linear-gradient(160deg,var(--s9,#1a2942),var(--s2,#0e1826));border:1px solid var(--border);border-radius:14px;padding:8px;margin-bottom:14px}
+  .parts{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:rgba(0,0,0,.32);border:1px solid var(--border);border-radius:11px;padding:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.35)}
+  .parts button{background:transparent;border:1px solid transparent;border-radius:8px;padding:8px 8px;color:var(--muted);font-weight:600;font-size:12.5px;line-height:1.25;text-align:left}
+  .parts button:hover:not(.active){background:rgba(255,255,255,.06);color:var(--ink)}
+  .parts button.active{background:linear-gradient(180deg,#7cbaff,#3f82e6);color:#06152b;border-color:rgba(255,255,255,.22);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 3px 9px rgba(37,99,235,.45)}
+  .variants{display:flex;gap:6px}
+  .variants button{flex:1;padding:8px 6px;font-size:13px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;color:var(--muted)}
+  .variants button:hover:not(.active){background:rgba(255,255,255,.1);color:var(--ink)}
+  .variants button.active{background:linear-gradient(180deg,#b79dff,#7d5cf2);color:#0b0820;border-color:rgba(255,255,255,.22);font-weight:700;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 9px rgba(124,92,240,.5)}
+  .idea{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px;line-height:1.55;color:var(--t1,#cdd9e6)}
+  .idea h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+  .idea code{background:var(--s1,#0c141d);border:1px solid var(--s13,#2c3e54);border-radius:4px;padding:1px 5px;font-size:12px}
+  .legend{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:14px;font-size:13px}
+  .legend .row{display:flex;align-items:center;gap:10px;margin:7px 0}
+  .sq{width:15px;height:15px;border-radius:3px;flex:0 0 auto;border:1px solid var(--border)}
+
+  /* ---------- shared memory box ---------- */
+  .blockTitle{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+  .shared{background:#0d1f14;border:1px solid #1e5232;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-family:Consolas,"Cascadia Mono",monospace;font-size:13px;line-height:1.65;color:#bfe8cd}
+  .shared .cm{color:#6f9a80}
+  .shared b{color:#7ce3a4}
+
+  /* ---------- scene ---------- */
+  .scene{position:relative;display:flex;gap:14px;align-items:stretch;flex-wrap:wrap}
+  .pcol{flex:0 0 218px;display:flex;flex-direction:column;gap:12px;min-width:200px}
+  .ccol{flex:1 1 240px;min-width:230px;display:flex;flex-direction:column;gap:12px}
+  .pcard{border:1px solid var(--border);border-radius:10px;background:var(--s1,#0c141d);padding:10px 12px;transition:box-shadow .2s,border-color .2s}
+  .pcard.running{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .pcard.asleep{border-color:var(--warn)}
+  .phead{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .pname{font-weight:800;font-size:13px}
+  .badge{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:5px;padding:2px 7px}
+  .badge.run{background:#12324f;color:#8ecbff}
+  .badge.zzz{background:#3a2a10;color:#f6c873;animation:pulse 1.2s ease-in-out infinite}
+  .badge.done{background:#123222;color:#7ce3a4}
+  .badge.ready{background:var(--s7,#1a2735);color:#8aa0b6}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .pcode{font-family:Consolas,"Cascadia Mono",monospace;font-size:12.5px;line-height:1.7;color:var(--t2,#9fb4cc)}
+  .pcode .ln{display:block;border-radius:5px;padding:0 7px;white-space:pre;border-left:3px solid transparent}
+  .pcode .ln.cur{background:var(--s3,#13233f);color:#e7eef7;border-left-color:var(--accent)}
+  .pcode .ln.zz{background:#2a1c00;color:#f6c873;border-left-color:var(--warn)}
+  .pitem{margin-top:8px;font-size:11.5px;color:var(--muted);min-height:24px;display:flex;align-items:center;gap:6px}
+  .chip{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 6px;border-radius:6px;font-weight:800;font-size:14px;color:#0b0f14;animation:cpop .25s ease}
+  @keyframes cpop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+
+  /* semaphores */
+  .semrow{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .sem{flex:1 1 90px;border:1px solid var(--border);border-radius:10px;background:var(--s1,#0c141d);padding:8px 10px;text-align:center;transition:box-shadow .2s}
+  .sem .sname{font-size:11px;color:var(--muted);font-family:Consolas,monospace}
+  .sem .sval{font-size:26px;font-weight:800;color:var(--t3,#cfe0ff);font-variant-numeric:tabular-nums}
+  .sem .squeue{font-size:10.5px;color:var(--warn);min-height:15px}
+  .sem.flash{box-shadow:0 0 0 2px var(--accent)}
+
+  /* buffer */
+  .bufwrap{border:1px solid var(--border);border-radius:10px;background:var(--s1,#0c141d);padding:12px;margin-bottom:12px}
+  .ptrrow{display:flex;gap:6px;height:20px;margin:2px 0}
+  .ptrcell{width:52px;flex:0 0 52px;text-align:center;font-size:11px;font-weight:800}
+  .ptr-in{color:var(--p1)} .ptr-out{color:var(--con)}
+  .slots{display:flex;gap:6px}
+  .bslot{width:52px;flex:0 0 52px;height:46px;border-radius:8px;border:1px solid var(--border);background:var(--s2,#0e1826);display:flex;align-items:center;justify-content:center;position:relative;transition:box-shadow .25s,border-color .25s}
+  .bslot .idx{position:absolute;bottom:1px;right:5px;font-size:9px;color:var(--muted)}
+  .bslot .chip{width:28px;height:28px;font-size:15px}
+  .bslot.fWrite{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),0 0 14px rgba(96,165,250,.5)}
+  .bslot.fRead{border-color:var(--ok);box-shadow:0 0 0 2px var(--ok),0 0 14px rgba(34,197,94,.5)}
+  .bslot.fBad{border-color:var(--bad);box-shadow:0 0 0 2px var(--bad),0 0 14px rgba(239,68,68,.55)}
+
+  /* trays */
+  .trays{display:flex;gap:10px;flex-wrap:wrap}
+  .tray{flex:1 1 130px;border-radius:10px;padding:8px 10px;min-height:56px}
+  .tray .tlab{font-size:10px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px}
+  .tray .titems{display:flex;gap:5px;flex-wrap:wrap;min-height:24px;align-items:center}
+  .tray .none{font-size:11px;color:var(--muted)}
+  .tray.cons{background:#0d1f14;border:1px solid #1e5232}
+  .tray.cons .tlab{color:#7ce3a4}
+  .tray.lost{background:#230d0d;border:1px solid #5a1f1f}
+  .tray.lost .tlab{color:#f39d9d}
+  .chip.bad{background:var(--bad);color:#2a0505;text-decoration:line-through}
+  .chip.garb{background:var(--bad);color:#2a0505}
+
+  .flyer{position:absolute;left:0;top:0;transform:translate(-50%,-50%);min-width:28px;height:28px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;opacity:0;pointer-events:none;z-index:6;transition:opacity .12s;color:#0b0f14}
+  .flyer.show{opacity:1}
+
+  /* fixed, responsive page header (matches the index page) */
+  header{position:sticky;top:0;z-index:50;background:var(--bg);padding:clamp(10px,2.2vh,22px) clamp(16px,3vw,28px)}
+  header h1{font-size:clamp(17px,2.5vh,24px)}
+  header .sub{font-size:clamp(11px,1.5vh,14px)}
+  .side{top:calc(var(--hh,92px) + 12px)}
+  header{display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:14px;row-gap:2px}
+  header a[href="index.html"]{grid-column:1;grid-row:1 / span 2;align-self:center;margin-bottom:0 !important}
+  header h1{grid-column:2;grid-row:1}
+  header .sub{grid-column:2;grid-row:2}
+  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .fsBtn:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
+  .fsBtn .fsIcon{margin-right:6px}
+  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .fsExit:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
+  .fsRoot:fullscreen{background:var(--bg);overflow:auto;padding:20px}
+  .fsRoot:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
+  .fsRoot:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .fsRoot:-webkit-full-screen .fsExit{display:inline-flex;align-items:center;gap:6px}
+  .fsRoot:fullscreen .side{top:14px}
+  .fsRoot:-webkit-full-screen .side{top:14px}
+</style>
+<style id="os-theme-vars">
+html[data-theme=light]{
+  --bg:#f4f7fb; --panel:#ffffff; --ink:#16222e; --muted:#566575; --border:#d5deea; --accent:#2563eb;
+  --s1:#eef2f7; --s2:#f1f5fa; --s3:#dce9fb; --s4:#e8eef5; --s5:#d8e2ec; --s6:#c3cdd9;
+  --s7:#e4eaf1; --s8:#e1e9f4; --s9:#eaf0f7; --s10:#e6ecf3; --s11:#dbe6f2; --s12:#e2e9f1; --s13:#cdd8e4;
+  --t1:#2a3744; --t2:#4b5a6b; --t3:#23415f;
+  color-scheme:light;
+}
+html[data-theme=light] body{background:var(--bg);color:var(--ink)}
+.themeBtn{position:fixed;right:16px;bottom:16px;z-index:120;background:var(--s4,#243446);color:var(--ink,#e7eef7);
+  border:1px solid var(--s6,#33485f);border-radius:999px;padding:9px 15px;font:600 13px/1 "Segoe UI",system-ui,sans-serif;
+  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.32);display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.themeBtn:hover{border-color:var(--accent);transform:translateY(-1px)}
+.themeBtn .ic{font-size:15px;line-height:1}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html" style="display:inline-block;margin-bottom:10px;font-size:13px;color:#60a5fa;text-decoration:none;font-weight:600">&larr; All visualizations</a>
+  <h1>Semaphores — Producer / Consumer (Bounded Buffer)</h1>
+  <div class="sub">Week 8 · Chapter 8 — build the classic solution one problem at a time: <b>FIFO buffer</b> → <b>precedence</b> → <b>counting</b> → <b>mutex</b></div>
+</header>
+<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:var(--t1,#cdd9e6);font-size:13.5px;line-height:1.7;"><li>Explain why a FIFO bounded buffer is needed between a producer and a consumer that run at different speeds.</li><li>Use a semaphore initialised to <b>0</b> to enforce a <b>precedence constraint</b> — the consumer can never read an empty buffer.</li><li>Use <b>counting semaphores</b> (<code>chars</code> = items, <code>space</code> = free slots) so a full buffer puts the producer to sleep instead of destroying data.</li><li>Show the <b>race condition</b> two producers cause on the shared index <code>in</code>, and fix it with a binary semaphore <code>lock = 1</code> used as a <b>mutex</b>.</li></ul></details>
+
+<div class="wrap">
+  <div class="stage">
+    <p class="blockTitle">Shared memory</p>
+    <div class="shared" id="sharedBox"></div>
+
+    <p class="blockTitle">Semaphores</p>
+    <div class="semrow" id="semRow"></div>
+
+    <div class="scene" id="scene">
+      <div class="pcol" id="prodCol"></div>
+      <div class="ccol">
+        <div class="bufwrap">
+          <div class="ptrrow" id="inRow"></div>
+          <div class="slots" id="slotRow"></div>
+          <div class="ptrrow" id="outRow"></div>
+        </div>
+        <div class="trays">
+          <div class="tray cons" id="consTray"><div class="tlab">Consumed (in order)</div><div class="titems" id="consItems"></div></div>
+          <div class="tray lost" id="lostTray"><div class="tlab">Destroyed / garbage</div><div class="titems" id="lostItems"></div></div>
+        </div>
+      </div>
+      <div class="pcol" id="consCol"></div>
+      <div class="flyer" id="flyer"></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="tabgroup">
+      <div class="parts" id="partBar"></div>
+      <div class="variants" id="variantBar"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn" onclick="prev()">◀ Prev</button>
+      <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
+      <button id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="reset()">↻ Reset</button>
+      <span class="progress" id="progress"></span>
+    </div>
+
+    <div class="caption">
+      <div class="step" id="stepLabel">Step 0</div>
+      <div class="text" id="captionText"></div>
+    </div>
+
+    <div class="idea">
+      <h3 id="ideaTitle"></h3>
+      <div id="ideaText"></div>
+    </div>
+
+    <div class="legend">
+      <div class="row"><span class="sq" style="background:var(--p1)"></span> Item made by Producer&nbsp;P1 &nbsp;·&nbsp; <span class="sq" style="background:var(--p2)"></span> by P2</div>
+      <div class="row"><span class="sq" style="background:#0d1f14;border-color:#1e5232"></span> Consumed correctly, in FIFO order</div>
+      <div class="row"><span class="sq" style="background:var(--bad)"></span> Data destroyed by overwrite, or garbage read from an empty slot</div>
+      <div class="row"><span class="sq" style="background:#2a1c00;border-color:var(--warn)"></span> Process <b>asleep</b> inside <code style="font-size:11px">wait()</code> — it costs no CPU while blocked</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =============== tiny process/semaphore machine =============== */
+const COLORS = { P:'var(--p1)', P1:'var(--p1)', P2:'var(--p2)', C:'var(--con)' };
+const RAW = { P:'#f97316', P1:'#f97316', P2:'#a855f7', C:'#22d3ee' };
+
+function producerDef(items, o){
+  const code=[], map={};
+  map.produce = code.push('c = produce();')-1;
+  if(o.space) map.waitspace = code.push('wait(space);')-1;
+  if(o.lock)  map.waitlock  = code.push('wait(lock);')-1;
+  map.write = code.push('buf[in] = c;')-1;
+  map.inc   = code.push('in = (in+1) % N;')-1;
+  if(o.lock)  map.siglock  = code.push('signal(lock);')-1;
+  if(o.chars) map.sigchars = code.push('signal(chars);')-1;
+  const prog=[];
+  for(const ch of items){
+    prog.push({t:'produce', ch, line:map.produce});
+    if(o.space) prog.push({t:'wait', s:'space', line:map.waitspace});
+    if(o.lock)  prog.push({t:'wait', s:'lock',  line:map.waitlock});
+    prog.push({t:'write', line:map.write});
+    prog.push({t:'inc',   line:map.inc});
+    if(o.lock)  prog.push({t:'signal', s:'lock',  line:map.siglock});
+    if(o.chars) prog.push({t:'signal', s:'chars', line:map.sigchars});
+  }
+  return {code, prog};
+}
+function consumerDef(n, o){
+  const code=[], map={};
+  if(o.chars) map.waitchars = code.push('wait(chars);')-1;
+  if(o.lock)  map.waitlock  = code.push('wait(lock);')-1;
+  map.read   = code.push('c = buf[out];')-1;
+  map.incout = code.push('out = (out+1) % N;')-1;
+  if(o.lock)  map.siglock  = code.push('signal(lock);')-1;
+  if(o.space) map.sigspace = code.push('signal(space);')-1;
+  map.consume = code.push('consume(c);')-1;
+  const prog=[];
+  for(let i=0;i<n;i++){
+    if(o.chars) prog.push({t:'wait', s:'chars', line:map.waitchars});
+    if(o.lock)  prog.push({t:'wait', s:'lock',  line:map.waitlock});
+    prog.push({t:'read',   line:map.read});
+    prog.push({t:'incout', line:map.incout});
+    if(o.lock)  prog.push({t:'signal', s:'lock',  line:map.siglock});
+    if(o.space) prog.push({t:'signal', s:'space', line:map.sigspace});
+    prog.push({t:'consume', line:map.consume});
+  }
+  return {code, prog};
+}
+
+function nm(id){ return '<b style="color:'+COLORS[id]+'">'+(id==='C'?'Consumer':id==='P'?'Producer':id)+'</b>'; }
+function it(ch,by,extra){ return '<b style="color:'+(COLORS[by]||'var(--bad)')+'">‘'+ch+'’</b>'+(extra||''); }
+
+/* Run a scenario's schedule instruction-by-instruction; return one snapshot per tick. */
+function simulate(sc){
+  const N = sc.N;
+  const buf = Array(N).fill(null);
+  let inP=0, outP=0;
+  const sems={};
+  if(sc.o.chars) sems.chars={val:0, queue:[]};
+  if(sc.o.space) sems.space={val:N, queue:[]};
+  if(sc.o.lock)  sems.lock ={val:1, queue:[]};
+
+  const procs={};
+  for(const p of sc.producers){
+    const d = producerDef(p.items, sc.o);
+    procs[p.id] = {id:p.id, kind:'prod', code:d.code, prog:d.prog, pc:0, blocked:false, blockedOn:null, item:null};
+  }
+  { const d = consumerDef(sc.consumeCount, sc.o);
+    procs.C = {id:'C', kind:'cons', code:d.code, prog:d.prog, pc:0, blocked:false, blockedOn:null, item:null}; }
+
+  const consumed=[], lost=[];
+  const snaps=[];
+  const snap=(cap,ev,actor,actorLine)=>snaps.push(JSON.parse(JSON.stringify({
+    buf, inP, outP,
+    sems:Object.fromEntries(Object.entries(sems).map(([k,s])=>[k,{val:s.val,queue:s.queue.slice()}])),
+    procs:Object.fromEntries(Object.entries(procs).map(([k,p])=>[k,{pc:p.pc,blocked:p.blocked,blockedOn:p.blockedOn,item:p.item,itemBy:p.itemBy||null,done:p.pc>=p.prog.length}])),
+    consumed, lost, cap, ev, actor, actorLine
+  })));
+
+  snap(sc.intro, null, null, null);
+
+  const sched = sc.schedule.trim().split(/\s+/);
+  for(const pid of sched){
+    const p = procs[pid];
+    let cap='', ev=null, actorLine=null;
+    if(p.blocked){
+      cap = nm(pid)+' is still <b style="color:var(--warn)">asleep</b> inside <code>wait('+p.blockedOn+')</code>. The scheduler passes it over — a blocked process costs no CPU. Only <code>signal('+p.blockedOn+')</code> can wake it.';
+      ev = {type:'zzz', who:pid};
+      actorLine = p.prog[p.pc].line;
+    } else {
+      const ins = p.prog[p.pc];
+      actorLine = ins.line;
+      switch(ins.t){
+        case 'produce':
+          p.item = ins.ch;
+          cap = nm(pid)+' produces item '+it(ins.ch,pid)+' — now it needs somewhere safe to put it.';
+          p.pc++; break;
+        case 'wait': {
+          const s = sems[ins.s];
+          if(s.val > 0){
+            s.val--;
+            cap = nm(pid)+' calls <code>wait('+ins.s+')</code>: value was '+(s.val+1)+' &gt; 0, so it decrements '+(s.val+1)+' → '+s.val+' and <b>continues without blocking</b>.'
+              + (ins.s==='space' ? ' One free slot is now reserved for it.' : '')
+              + (ins.s==='chars' ? ' One item is now claimed for it.' : '')
+              + (ins.s==='lock'  ? ' It is now <b>inside the critical section</b>.' : '');
+            ev = {type:'sem', s:ins.s};
+            p.pc++;
+          } else {
+            s.queue.push(pid);
+            p.blocked = true; p.blockedOn = ins.s;
+            cap = nm(pid)+' calls <code>wait('+ins.s+')</code>: value is <b>0</b>, so '+nm(pid)+' is <b style="color:var(--warn)">put to sleep</b> in the queue of <code>'+ins.s+'</code>.'
+              + (ins.s==='chars' ? ' It cannot read: there is nothing in the buffer yet.' : '')
+              + (ins.s==='space' ? ' It cannot write: the buffer is completely full.' : '')
+              + (ins.s==='lock'  ? ' Someone else is inside the critical section.' : '');
+            ev = {type:'block', who:pid, s:ins.s};
+          }
+          break; }
+        case 'signal': {
+          const s = sems[ins.s];
+          if(s.queue.length){
+            const wid = s.queue.shift();
+            procs[wid].blocked = false; procs[wid].blockedOn = null;
+            procs[wid].pc++;                       // the sleeper's wait() now completes
+            cap = nm(pid)+' calls <code>signal('+ins.s+')</code>: '+nm(wid)+' was asleep in the queue, so it is <b style="color:var(--ok)">woken up</b> and its <code>wait('+ins.s+')</code> finally completes. (The value stays '+s.val+' — the signal was handed straight to the sleeper.)';
+            ev = {type:'wake', who:wid, s:ins.s};
+          } else {
+            s.val++;
+            cap = nm(pid)+' calls <code>signal('+ins.s+')</code>: nobody is waiting, so the value increments '+(s.val-1)+' → '+s.val+'.'
+              + (ins.s==='chars' ? ' (<code>chars</code> = items now available to consume.)' : '')
+              + (ins.s==='space' ? ' (<code>space</code> = free slots now available.)' : '');
+            ev = {type:'sem', s:ins.s};
+          }
+          p.pc++; break; }
+        case 'write': {
+          const slot = inP;
+          if(buf[slot] !== null){
+            const old = buf[slot];
+            lost.push({ch:old.ch, by:old.by, why:'overwritten'});
+            buf[slot] = {ch:p.item, by:pid};
+            cap = '💥 <code>buf['+slot+']</code> still holds '+it(old.ch,old.by)+' — <b>never consumed</b> — but '+nm(pid)+' writes '+it(p.item,pid)+' on top of it. '+it(old.ch,old.by)+' is <b style="color:var(--bad)">destroyed forever</b>.';
+            ev = {type:'overwrite', slot, ch:p.item, by:pid, oldCh:old.ch, oldBy:old.by};
+          } else {
+            buf[slot] = {ch:p.item, by:pid};
+            cap = nm(pid)+' executes <code>buf[in] = c</code>: it writes '+it(p.item,pid)+' into <code>buf['+slot+']</code> (using <code>in = '+slot+'</code>).';
+            ev = {type:'write', slot, ch:p.item, by:pid};
+          }
+          p.item = null;
+          p.pc++; break; }
+        case 'inc': {
+          const old = inP; inP = (inP+1)%N;
+          cap = nm(pid)+' advances the write index: <code>in = ('+old+'+1) % '+N+' = '+inP+'</code>.';
+          p.pc++; break; }
+        case 'read': {
+          const slot = outP;
+          if(buf[slot] === null){
+            p.item = '?';
+            cap = '💥 '+nm(pid)+' executes <code>c = buf[out]</code> on <code>buf['+slot+']</code> — but <b>nothing was ever written there</b>. It reads <b style="color:var(--bad)">garbage</b>.';
+            ev = {type:'garbage', slot};
+          } else {
+            p.item = buf[slot].ch; p.itemBy = buf[slot].by;
+            cap = nm(pid)+' executes <code>c = buf[out]</code>: it reads '+it(buf[slot].ch,buf[slot].by)+' from <code>buf['+slot+']</code> (using <code>out = '+slot+'</code>).';
+            ev = {type:'read', slot, ch:buf[slot].ch, by:buf[slot].by};
+            buf[slot] = null;
+          }
+          p.pc++; break; }
+        case 'incout': {
+          const old = outP; outP = (outP+1)%N;
+          cap = nm(pid)+' advances the read index: <code>out = ('+old+'+1) % '+N+' = '+outP+'</code>.';
+          p.pc++; break; }
+        case 'consume': {
+          const bad = (p.item === '?');
+          consumed.push({ch:p.item, by:bad?null:p.itemBy, bad});
+          cap = bad
+            ? nm(pid)+' consumes… <b style="color:var(--bad)">garbage</b> ✗. The application downstream now processes junk data.'
+            : nm(pid)+' consumes '+it(p.item, p.itemBy)+' ✓.';
+          ev = {type:'consume', bad};
+          p.item = null; p.itemBy = null;
+          p.pc++; break; }
+      }
+    }
+    snap(cap, ev, pid, actorLine);
+  }
+  if(sc.outro) snaps[snaps.length-1].cap += '<br><br>'+sc.outro;
+  return snaps;
+}
+
+/* =============== the four parts (each: broken ✗ then fixed ✓) =============== */
+const B = s => '<b style="color:var(--bad)">'+s+'</b>';
+const G = s => '<b style="color:var(--ok)">'+s+'</b>';
+
+const PARTS = [
+{ title:'1 · Why a FIFO buffer?',
+  ideaTitle:'Part 1 — decouple the speeds',
+  idea:'The producer and consumer run at <b>different, unpredictable speeds</b> — the OS scheduler decides who runs when. With no room to queue items, a fast producer destroys data it already made. A <b>FIFO bounded buffer</b> <code>buf[N]</code> with a write index <code>in</code> and a read index <code>out</code> lets the producer run ahead <i>and</i> guarantees the consumer receives items <b>in the exact order they were produced</b>.',
+  variants:[
+  { label:'✗ No room to queue', sc:{
+      N:1, o:{}, producers:[{id:'P', items:['A','B','C']}], consumeCount:2,
+      schedule:'P P P P P P C C C P P P C C C',
+      intro:'One producer, one consumer, and only a <b>single shared cell</b> (N = 1) — effectively <b>no buffer</b>. The scheduler happens to run the producer <b>twice</b> before the consumer gets a turn. Step through and watch what happens to item ‘A’.',
+      outro:B('Result:')+' ‘A’ was destroyed — the producer had nowhere to queue it while the consumer lagged behind. The consumer only ever saw B and C. We need a buffer with <b>room for several items</b>.' } },
+  { label:'✓ FIFO buffer, N = 4', sc:{
+      N:4, o:{}, producers:[{id:'P', items:['A','B','C']}], consumeCount:3,
+      schedule:'P P P P P P C C C P P P C C C C C C',
+      intro:'Same speed mismatch, but now a <b>circular FIFO buffer</b> of N = 4 slots sits between them. The producer writes at <code>in</code>, the consumer reads at <code>out</code>, both wrap around with <code>% N</code>.',
+      outro:G('Result:')+' the producer ran ahead safely — items queued up in slots — and the consumer received '+G('A, B, C in FIFO order')+'. But two dangers remain: reading an <b>empty</b> buffer and writing a <b>full</b> one. Parts 2 and 3 fix those with semaphores.' } }
+]},
+{ title:'2 · Empty buffer → precedence',
+  ideaTitle:'Part 2 — a semaphore starting at 0 enforces order',
+  idea:'Nothing stops the scheduler from running the <b>consumer first</b> — and reading a slot nobody wrote is garbage. A semaphore <code>chars = 0</code> enforces a <b>precedence constraint</b>: <code>wait(chars)</code> can only complete <i>after</i> some <code>signal(chars)</code> has happened, so the consumer is forced to run <b>after</b> the producer. Used like this (values only 0 and 1) it acts as a <b>binary semaphore</b>: “producer strictly first”.',
+  variants:[
+  { label:'✗ Consumer runs first', sc:{
+      N:4, o:{}, producers:[{id:'P', items:['A']}], consumeCount:1,
+      schedule:'C C C P P P',
+      intro:'The buffer exists, but there is <b>no synchronisation at all</b>. This time the scheduler picks the <b>consumer</b> first. <code>buf[0]</code> has never been written…',
+      outro:B('Result:')+' the consumer consumed garbage, and when ‘A’ finally arrived nobody was there to take it. We must guarantee the <b>precedence</b> “produce before consume”.' } },
+  { label:'✓ chars = 0 (binary)', sc:{
+      N:4, o:{chars:true}, producers:[{id:'P', items:['A']}], consumeCount:1,
+      schedule:'C C P P P P C C C',
+      intro:'Add one semaphore: <code>semaphore chars = 0</code>. The consumer must <code>wait(chars)</code> before reading; the producer calls <code>signal(chars)</code> after writing. The scheduler <i>still</i> picks the consumer first — but watch the semaphore protect it.',
+      outro:G('Result:')+' starting the semaphore at <b>0</b> made the consumer sleep until the item truly existed — the precedence constraint held even though the scheduler ran the consumer first. No busy-waiting either: the sleeping consumer used no CPU.' } }
+]},
+{ title:'3 · Full buffer → counting',
+  ideaTitle:'Part 3 — counting semaphores count items and holes',
+  idea:'<code>chars</code> is really a <b>counting semaphore</b>: its value = number of items waiting in the buffer. The mirror problem is a <b>full</b> buffer — a fast producer wrapping around and smashing unconsumed data. Symmetric fix: <code>space = N</code> counts <b>free slots</b>. Producer: <code>wait(space)</code> before writing … consumer: <code>signal(space)</code> after reading. Full buffer ⇒ producer <b>sleeps</b> instead of destroying data.',
+  variants:[
+  { label:'✗ Producer too fast', sc:{
+      N:4, o:{chars:true}, producers:[{id:'P', items:['A','B','C','D','E']}], consumeCount:2,
+      schedule:'P P P P P P P P P P P P P P P P P P P P C C C C C C C C',
+      intro:'We have <code>chars</code> protecting the consumer — but nothing limits the <b>producer</b>. It gets a long burst of CPU and produces <b>five</b> items into a 4-slot buffer while the consumer never runs. Watch <code>in</code> wrap around back to slot 0…',
+      outro:B('Result:')+' ‘A’ was destroyed by the wrap-around, and the consumer then received items in a corrupted order (E before B, and <code>chars</code> now over-counts). The producer must be <b>stopped while the buffer is full</b>.' } },
+  { label:'✓ space = N (counting)', sc:{
+      N:4, o:{chars:true, space:true}, producers:[{id:'P', items:['A','B','C','D','E']}], consumeCount:2,
+      schedule:'P P P P P P P P P P P P P P P P P P P P P P P C C C C C P P P C C C C C',
+      intro:'Now <code>semaphore space = N = 4</code> counts the free slots. The producer must <code>wait(space)</code> before each write; the consumer returns each freed slot with <code>signal(space)</code>. Same burst of producer CPU as before — five items, 4 slots.',
+      outro:G('Result:')+' when the buffer filled up, <code>wait(space)</code> put the producer to sleep on the 5th item instead of letting it destroy ‘A’. The consumer freed a slot, <code>signal(space)</code> woke the producer, and everything arrived intact and in order. <code>chars</code> counts items, <code>space</code> counts holes — together: <code>chars + space = N</code>, always.' } }
+]},
+{ title:'4 · Two producers → mutex',
+  ideaTitle:'Part 4 — lock = 1 makes the update atomic',
+  idea:'With <b>two producers</b>, <code>chars</code>/<code>space</code> are not enough: <code>buf[in] = c; in = (in+1)%N</code> is <b>two separate instructions</b>. If P2 runs between P1’s write and P1’s increment, both use <code>in = 0</code> — a classic <b>race condition</b> on shared data. A binary semaphore <code>lock = 1</code> used as a <b>mutex</b> turns those two lines into a <b>critical section</b>: at most one process inside at a time. This completes the code from the slide.',
+  variants:[
+  { label:'✗ Race on “in”', sc:{
+      N:4, o:{chars:true, space:true}, producers:[{id:'P1', items:['A']},{id:'P2', items:['X']}], consumeCount:2,
+      schedule:'P1 P2 P1 P2 P1 P2 P1 P2 P1 P2 C C C C C C C C C C',
+      intro:'Two producers, P1 and P2, both pass <code>wait(space)</code> — fine, there are 4 free slots. But the scheduler <b>interleaves them instruction by instruction</b>. Both are about to use <code>in</code> while it still equals 0…',
+      outro:B('Result:')+' both producers read <code>in = 0</code> before either incremented it: ‘A’ was overwritten, slot 1 was left empty yet <code>in</code> ended at 2, and the consumer ate garbage. The two-line update of <code>buf</code>/<code>in</code> must be <b>mutually exclusive</b>.' } },
+  { label:'✓ lock = 1 (mutex)', sc:{
+      N:4, o:{chars:true, space:true, lock:true}, producers:[{id:'P1', items:['A']},{id:'P2', items:['X']}], consumeCount:2,
+      schedule:'P1 P2 P1 P2 P1 P2 P1 P2 P1 P1 P1 P2 P2 P2 P2 C C C C C C C C C C C C C C',
+      intro:'Final version — the full code from the slide. <code>semaphore lock = 1</code> wraps the buffer update in <code>wait(lock) … signal(lock)</code>. The scheduler interleaves P1 and P2 <b>exactly as viciously as before</b> — but watch what happens when P2 tries to enter the critical section.',
+      outro:G('Result:')+' the mutex made P2 sleep until P1 finished the two-line update, so P1 → slot 0, P2 → slot 1, and the consumer got both items intact. <b>The complete recipe:</b> <code>chars = 0</code> (precedence/items), <code>space = N</code> (free slots), <code>lock = 1</code> (mutual exclusion) — three semaphores, three different jobs.' } }
+]}
+];
+
+/* =============== state + rendering =============== */
+let part=0, variant=0, snaps=[], step=0, playing=false, playTimer=null, animToken=0;
+const $ = id => document.getElementById(id);
+function SC(){ return PARTS[part].variants[variant].sc; }
+
+function renderTabs(){
+  $('partBar').innerHTML = PARTS.map((p,i)=>'<button class="'+(i===part?'active':'')+'" onclick="setPart('+i+')">'+p.title+'</button>').join('');
+  $('variantBar').innerHTML = PARTS[part].variants.map((v,i)=>'<button class="'+(i===variant?'active':'')+'" onclick="setVariant('+i+')">'+v.label+'</button>').join('');
+  $('ideaTitle').innerHTML = PARTS[part].ideaTitle;
+  $('ideaText').innerHTML = PARTS[part].idea;
+}
+
+function renderShared(){
+  const sc = SC(), o = sc.o;
+  let h = 'char buf[N];  <span class="cm">/* N = '+sc.N+' */</span><br>int in = 0, out = 0;';
+  if(o.chars) h += '<br><b>semaphore chars = 0;</b>  <span class="cm">/* items in buffer */</span>';
+  if(o.space) h += '<br><b>semaphore space = N;</b>  <span class="cm">/* free slots */</span>';
+  if(o.lock)  h += '<br><b>semaphore lock = 1;</b>   <span class="cm">/* mutex */</span>';
+  if(!o.chars && !o.space && !o.lock) h += '<br><span class="cm">/* no semaphores yet… */</span>';
+  $('sharedBox').innerHTML = h;
+}
+
+function procCard(id, s){
+  const sc = SC();
+  const def = id==='C' ? consumerDef(sc.consumeCount, sc.o) : producerDef(sc.producers.find(p=>p.id===id).items, sc.o);
+  const ps = s.procs[id];
+  const isActor = (s.actor===id);
+  const title = id==='C' ? 'Consumer' : (sc.producers.length>1 ? 'Producer '+id : 'Producer');
+  let badge, cls='pcard';
+  if(ps.blocked){ badge='<span class="badge zzz">asleep 💤</span>'; cls+=' asleep'; }
+  else if(ps.done){ badge='<span class="badge done">done ✓</span>'; }
+  else if(isActor){ badge='<span class="badge run">running</span>'; cls+=' running'; }
+  else badge='<span class="badge ready">ready</span>';
+  // which source line to light up
+  const blockedLine = ps.blocked ? (s.procs[id].pc<def.prog.length ? def.prog[s.procs[id].pc].line : null) : null;
+  let codeH='';
+  def.code.forEach((ln,i)=>{
+    let c='ln';
+    if(ps.blocked && i===blockedLine) c+=' zz';
+    else if(isActor && i===s.actorLine) c+=' cur';
+    codeH += '<span class="'+c+'">'+ln+(ps.blocked&&i===blockedLine?'  💤':'')+'</span>';
+  });
+  const itemH = ps.item
+    ? 'holding: <span class="chip" style="background:'+(ps.item==='?'?'var(--bad)':RAW[ps.itemBy||id])+'">'+ps.item+'</span>'
+    : '<span style="opacity:.45">holding: —</span>';
+  return '<div class="'+cls+'" id="card_'+id+'"><div class="phead"><span class="pname" style="color:'+COLORS[id]+'">'+title+'</span>'+badge+'</div><div class="pcode">'+codeH+'</div><div class="pitem">'+itemH+'</div></div>';
+}
+
+function renderScene(s){
+  const sc = SC();
+  $('prodCol').innerHTML = sc.producers.map(p=>procCard(p.id, s)).join('');
+  $('consCol').innerHTML = procCard('C', s);
+
+  // semaphores
+  let semH='';
+  for(const [k,v] of Object.entries(s.sems)){
+    semH += '<div class="sem" id="sem_'+k+'"><div class="sname">'+k+'</div><div class="sval">'+v.val+'</div><div class="squeue">'+(v.queue.length?('⏳ '+v.queue.join(', ')):'')+'</div></div>';
+  }
+  $('semRow').innerHTML = semH || '<div style="font-size:12px;color:var(--muted);padding:4px 2px">— none in this scenario —</div>';
+
+  // buffer + pointers
+  let inH='', outH='', slotH='';
+  for(let i=0;i<sc.N;i++){
+    inH  += '<div class="ptrcell ptr-in">'+(i===s.inP ? 'in ▼' : '')+'</div>';
+    outH += '<div class="ptrcell ptr-out">'+(i===s.outP ? 'out ▲' : '')+'</div>';
+    const cell = s.buf[i];
+    slotH += '<div class="bslot" id="slot'+i+'">'+(cell?'<span class="chip" style="background:'+RAW[cell.by]+'">'+cell.ch+'</span>':'')+'<span class="idx">'+i+'</span></div>';
+  }
+  $('inRow').innerHTML=inH; $('outRow').innerHTML=outH; $('slotRow').innerHTML=slotH;
+
+  // trays
+  $('consItems').innerHTML = s.consumed.length
+    ? s.consumed.map(c=>'<span class="chip'+(c.bad?' garb':'')+'" style="'+(c.bad?'':'background:'+RAW[c.by])+'">'+c.ch+'</span>').join('')
+    : '<span class="none">— nothing yet —</span>';
+  $('lostItems').innerHTML = s.lost.length
+    ? s.lost.map(c=>'<span class="chip bad">'+c.ch+'</span>').join('')
+    : '<span class="none">— none —</span>';
+}
+
+function flash(id, cls, ms){
+  const el=$(id); if(!el) return;
+  el.classList.add(cls);
+  setTimeout(()=>el.classList.remove(cls), ms||700);
+}
+function center(el, sr){ const r=el.getBoundingClientRect(); return [r.left-sr.left+r.width/2, r.top-sr.top+r.height/2]; }
+function fly(fromEl, toEl, label, bg, ms, my){
+  return new Promise(res=>{
+    const scene=$('scene'), fl=$('flyer');
+    if(!fromEl||!toEl){ res(); return; }
+    const sr=scene.getBoundingClientRect();
+    const [x0,y0]=center(fromEl,sr), [x1,y1]=center(toEl,sr);
+    fl.textContent=label; fl.className='flyer show'; fl.style.background=bg;
+    fl.style.left=x0+'px'; fl.style.top=y0+'px';
+    const t0=performance.now();
+    (function f(now){
+      if(my!==animToken){ res(); return; }
+      let k=Math.min(1,(now-t0)/ms);
+      const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+      fl.style.left=(x0+(x1-x0)*e)+'px';
+      fl.style.top =(y0+(y1-y0)*e)+'px';
+      if(k<1) requestAnimationFrame(f); else res();
+    })(performance.now());
+  });
+}
+function hideFlyer(){ $('flyer').className='flyer'; }
+
+async function animateStep(s){
+  const my = ++animToken;
+  const ev = s.ev; if(!ev) return;
+  const dur = playing?340:480;
+  if(ev.type==='write'){
+    await fly($('card_'+ev.by), $('slot'+ev.slot), ev.ch, RAW[ev.by], dur, my);
+    if(my!==animToken) return;
+    renderScene(s); hideFlyer(); flash('slot'+ev.slot,'fWrite');
+  } else if(ev.type==='overwrite'){
+    await fly($('slot'+ev.slot), $('lostTray'), ev.oldCh, '#ef4444', dur, my);
+    if(my!==animToken) return;
+    await fly($('card_'+ev.by), $('slot'+ev.slot), ev.ch, RAW[ev.by], dur, my);
+    if(my!==animToken) return;
+    renderScene(s); hideFlyer(); flash('slot'+ev.slot,'fBad',900);
+  } else if(ev.type==='read'){
+    await fly($('slot'+ev.slot), $('card_C'), ev.ch, RAW[ev.by], dur, my);
+    if(my!==animToken) return;
+    renderScene(s); hideFlyer(); flash('slot'+ev.slot,'fRead');
+  } else if(ev.type==='garbage'){
+    await fly($('slot'+ev.slot), $('card_C'), '?', '#ef4444', dur, my);
+    if(my!==animToken) return;
+    renderScene(s); hideFlyer(); flash('slot'+ev.slot,'fBad',900);
+  } else {
+    renderScene(s);
+    if(ev.type==='sem'||ev.type==='wake') flash('sem_'+ev.s,'flash');
+    if(ev.type==='wake') flash('card_'+ev.who,'running',900);
+  }
+}
+
+function render(animate){
+  const s = snaps[step];
+  renderShared();
+  animToken++;                     // cancel any in-flight animation
+  if(animate && step>0){
+    renderScene(snaps[step-1]);    // draw the "before" state…
+    hideFlyer();
+    animateStep(s);                // …then animate into the new one
+  } else {
+    renderScene(s); hideFlyer();
+  }
+  $('stepLabel').textContent = 'Step '+step+' of '+(snaps.length-1);
+  $('captionText').innerHTML = s.cap || '';
+  $('prevBtn').disabled = (step===0);
+  $('nextBtn').disabled = (step>=snaps.length-1);
+  $('progress').textContent = 'Step '+step+' / '+(snaps.length-1);
+}
+
+/* =============== tabs / controls =============== */
+function load(){
+  stopPlay();
+  snaps = simulate(SC());
+  step = 0;
+  renderTabs();
+  render();
+}
+function setPart(i){ part=i; variant=0; load(); }
+function setVariant(i){ variant=i; load(); }
+
+function next(){ if(step<snaps.length-1){ step++; render(true); } if(step>=snaps.length-1) stopPlay(); }
+function prev(){ if(step>0){ step--; stopPlay(); render(); } }
+function reset(){ step=0; stopPlay(); render(); }
+function togglePlay(){ playing?stopPlay():startPlay(); }
+function startPlay(){
+  playing=true; $('playBtn').textContent='⏸ Pause';
+  playTimer=setInterval(()=>{ if(step>=snaps.length-1){stopPlay();return;} next(); }, 1250);
+}
+function stopPlay(){ playing=false; $('playBtn').textContent='▶ Play'; if(playTimer){clearInterval(playTimer);playTimer=null;} }
+
+document.addEventListener('keydown', e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select') return;
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+});
+
+load();
+</script>
+<script>(function(){function h(){var el=document.querySelector("header");document.documentElement.style.setProperty("--hh",(el?el.offsetHeight:92)+"px");}window.addEventListener("resize",h);h();})();</script>
+<script>(function(){
+  var wrap=document.querySelector('[data-fs-root]')||document.querySelector('.wrap'); if(!wrap) return; wrap.classList.add('fsRoot');
+  var header=document.querySelector('header'); if(!header) return;
+  function reqFs(el){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
+  function exitFs(){ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
+  function fsEl(){ return document.fullscreenElement||document.webkitFullscreenElement||null; }
+  var enter=document.createElement('button');
+  enter.className='fsBtn'; enter.type='button';
+  enter.innerHTML='<span class="fsIcon">⛶</span><span class="fsTxt">Full screen</span>';
+  enter.addEventListener('click',function(){ fsEl()===wrap?exitFs():reqFs(wrap); });
+  header.appendChild(enter);
+  var exit=document.createElement('button');
+  exit.className='fsExit'; exit.type='button';
+  exit.innerHTML='✕ Exit full screen';
+  exit.addEventListener('click',exitFs);
+  wrap.appendChild(exit);
+  function sync(){ var t=enter.querySelector('.fsTxt'); if(t) t.textContent=(fsEl()===wrap)?'Exit full screen':'Full screen'; }
+  document.addEventListener('fullscreenchange',sync);
+  document.addEventListener('webkitfullscreenchange',sync);
+})();</script>
+<script>(function(){
+  var KEY='os-theme', root=document.documentElement;
+  function cur(){ return root.getAttribute('data-theme')==='light'?'light':'dark'; }
+  function apply(t){ if(t==='light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme'); }
+  var btn=document.createElement('button');
+  btn.className='themeBtn'; btn.type='button'; btn.title='Toggle light / dark';
+  document.body.appendChild(btn);
+  function render(){ btn.innerHTML = cur()==='light' ? '<span class="ic">\u263e</span><span>Dark</span>' : '<span class="ic">\u2600</span><span>Light</span>'; }
+  render();
+  btn.addEventListener('click',function(){ var t=cur()==='light'?'dark':'light'; apply(t); try{localStorage.setItem(KEY,t);}catch(e){} render(); });
+})();</script>
+</body>
+</html>

@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ITC Operating Systems 2026</title>
-    <link rel="stylesheet" href="app/css/styles.css?v=12">
+    <script>try{var t=localStorage.getItem('os-theme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+    <link rel="stylesheet" href="app/css/styles.css?v=13">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Firebase SDK (for web visitor presence — optional, enable in app/js/config.js) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -295,6 +296,18 @@
         </a>
     </span>
 </div>
+
+<!-- Theme toggle (light / dark) -->
+<script>(function(){
+  var KEY='os-theme', root=document.documentElement;
+  function cur(){ return root.getAttribute('data-theme')==='light'?'light':'dark'; }
+  function apply(t){ if(t==='light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme'); }
+  var btn=document.createElement('button');
+  btn.className='themeBtn'; btn.type='button'; btn.title='Toggle light / dark theme';
+  function render(){ btn.innerHTML = cur()==='light' ? '<span class="ic">☾</span><span>dark</span>' : '<span class="ic">☀</span><span>light</span>'; }
+  document.body.appendChild(btn); render();
+  btn.addEventListener('click',function(){ var t=cur()==='light'?'dark':'light'; apply(t); try{localStorage.setItem(KEY,t);}catch(e){} render(); });
+})();</script>
 
 <!-- Application Scripts -->
 <script src="app/js/env.js"></script>

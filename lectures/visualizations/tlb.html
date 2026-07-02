@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+<script>try{var t=localStorage.getItem('os-theme')||((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TLB — Translation Look-Aside Buffer</title>
@@ -75,7 +76,7 @@
     }
 
     .caption {
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 16px;
@@ -104,9 +105,9 @@
     }
 
     button {
-      background: #243446;
+      background: var(--s4,#243446);
       color: var(--ink);
-      border: 1px solid #33485f;
+      border: 1px solid var(--s6,#33485f);
       border-radius: 8px;
       padding: 9px 14px;
       font-size: 14px;
@@ -115,7 +116,7 @@
     }
 
     button:hover:not(:disabled) {
-      background: #2e4459
+      background: var(--s5,#2e4459)
     }
 
     button:disabled {
@@ -135,7 +136,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      background: linear-gradient(160deg, #1a2942, #0e1826);
+      background: linear-gradient(160deg, var(--s9,#1a2942), var(--s2,#0e1826));
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 8px;
@@ -209,15 +210,15 @@
     .stepper {
       display: inline-flex;
       align-items: center;
-      border: 1px solid #33485f;
+      border: 1px solid var(--s6,#33485f);
       border-radius: 7px;
       overflow: hidden;
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       vertical-align: middle
     }
 
     .stepper button {
-      background: #1a2735;
+      background: var(--s7,#1a2735);
       border: none;
       color: var(--ink);
       width: 26px;
@@ -231,7 +232,7 @@
     }
 
     .stepper button:hover:not(:disabled) {
-      background: #2e4459
+      background: var(--s5,#2e4459)
     }
 
     .stepper button:disabled {
@@ -256,7 +257,7 @@
     }
 
     .builder {
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 14px;
@@ -280,9 +281,9 @@
     }
 
     input[type=text] {
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       color: var(--ink);
-      border: 1px solid #33485f;
+      border: 1px solid var(--s6,#33485f);
       border-radius: 7px;
       padding: 8px;
       font-size: 14px;
@@ -290,9 +291,9 @@
     }
 
     input[type=number] {
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       color: var(--ink);
-      border: 1px solid #33485f;
+      border: 1px solid var(--s6,#33485f);
       border-radius: 7px;
       padding: 8px;
       font-size: 14px;
@@ -345,7 +346,7 @@
       padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid var(--border);
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       font-size: 13px;
       font-weight: 600;
       color: var(--muted);
@@ -358,8 +359,8 @@
 
     .pbox.cpu.on {
       border-color: var(--accent);
-      background: #13233f;
-      color: #cfe0ff
+      background: var(--s3,#13233f);
+      color: var(--t3,#cfe0ff)
     }
 
     .pbox.tlb.on {
@@ -370,8 +371,8 @@
 
     .pbox.pt.on {
       border-color: var(--accent);
-      background: #13233f;
-      color: #cfe0ff
+      background: var(--s3,#13233f);
+      color: var(--t3,#cfe0ff)
     }
 
     .pbox.mem.on {
@@ -469,7 +470,7 @@
     }
 
     table.pt tr.active td {
-      background: #1d2c3e;
+      background: var(--s12,#1d2c3e);
       box-shadow: inset 0 0 0 2px var(--accent)
     }
 
@@ -489,7 +490,7 @@
       width: 32px;
       height: 44px;
       border-radius: 6px;
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       border: 1px solid var(--border);
       display: flex;
       flex-direction: column;
@@ -565,7 +566,7 @@
     }
 
     .legend {
-      background: #0c141d;
+      background: var(--s1,#0c141d);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 14px;
@@ -596,7 +597,7 @@
     }
 
     #paging .box {
-      fill: #16314a;
+      fill: var(--s11,#16314a);
       stroke: #4a6c8e;
       stroke-width: 1.5
     }
@@ -608,7 +609,7 @@
     }
 
     #paging .ctext {
-      fill: #0c1722;
+      fill: var(--s10,#0c1722);
       font-weight: 700;
       font-size: 15px;
       font-family: Consolas, monospace
@@ -621,7 +622,7 @@
     }
 
     #paging .lbl.dark {
-      fill: #0c1722
+      fill: var(--s10,#0c1722)
     }
 
     #paging .grid {
@@ -715,7 +716,7 @@
     }
 
     #paging .memcell {
-      fill: #16314a;
+      fill: var(--s11,#16314a);
       stroke: #3a5a78;
       stroke-width: .8
     }
@@ -762,7 +763,7 @@
       transition: opacity .18s;
       pointer-events: none;
       paint-order: stroke;
-      stroke: #0c141d;
+      stroke: var(--s1,#0c141d);
       stroke-width: 2.5px;
       stroke-linejoin: round
     }
@@ -793,7 +794,7 @@
     }
 
     #paging .regionlbl {
-      fill: #c3d4e6;
+      fill: var(--t2,#c3d4e6);
       font-size: 12.5px;
       font-weight: 700;
       font-family: "Segoe UI", sans-serif
@@ -821,11 +822,11 @@
   header .sub{grid-column:2;grid-row:2}
 /* full-screen control for the visualization area (.wrap) */
   header{grid-template-columns:auto 1fr auto}
-  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
-  .fsBtn:hover{background:#2e4459;border-color:var(--accent)}
+  .fsBtn{grid-column:3;grid-row:1 / span 2;align-self:center;justify-self:end;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:clamp(11px,1.5vh,13px);font-weight:600;cursor:pointer;white-space:nowrap;transition:.15s}
+  .fsBtn:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
   .fsBtn .fsIcon{margin-right:6px}
-  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:#243446;color:var(--ink);border:1px solid #33485f;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
-  .fsExit:hover{background:#2e4459;border-color:var(--accent)}
+  .fsExit{position:fixed;top:14px;right:16px;z-index:100;display:none;background:var(--s4,#243446);color:var(--ink);border:1px solid var(--s6,#33485f);border-radius:8px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer}
+  .fsExit:hover{background:var(--s5,#2e4459);border-color:var(--accent)}
   .fsRoot:fullscreen{background:var(--bg);overflow:auto;padding:20px}
   .fsRoot:-webkit-full-screen{background:var(--bg);overflow:auto;padding:20px}
   .fsRoot:fullscreen .fsExit{display:inline-flex;align-items:center;gap:6px}
@@ -833,6 +834,21 @@
   .fsRoot:fullscreen .side{top:14px}
   .fsRoot:-webkit-full-screen .side{top:14px}
   </style>
+<style id="os-theme-vars">
+html[data-theme=light]{
+  --bg:#f4f7fb; --panel:#ffffff; --ink:#16222e; --muted:#566575; --border:#d5deea; --accent:#2563eb;
+  --s1:#eef2f7; --s2:#f1f5fa; --s3:#dce9fb; --s4:#e8eef5; --s5:#d8e2ec; --s6:#c3cdd9;
+  --s7:#e4eaf1; --s8:#e1e9f4; --s9:#eaf0f7; --s10:#e6ecf3; --s11:#dbe6f2; --s12:#e2e9f1; --s13:#cdd8e4;
+  --t1:#2a3744; --t2:#4b5a6b; --t3:#23415f;
+  color-scheme:light;
+}
+html[data-theme=light] body{background:var(--bg);color:var(--ink)}
+.themeBtn{position:fixed;right:16px;bottom:16px;z-index:120;background:var(--s4,#243446);color:var(--ink,#e7eef7);
+  border:1px solid var(--s6,#33485f);border-radius:999px;padding:9px 15px;font:600 13px/1 "Segoe UI",system-ui,sans-serif;
+  cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.32);display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.themeBtn:hover{border-color:var(--accent);transform:translateY(-1px)}
+.themeBtn .ic{font-size:15px;line-height:1}
+</style>
 </head>
 
 <body>
@@ -844,7 +860,7 @@
         href="paging-translation.html" style="color:var(--accent)">Paging &amp; Address Translation</a>; for the timing
       impact, the <a href="eat-calculator.html" style="color:var(--accent)">EAT calculator</a>.</div>
   </header>
-<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:#cdd9e6;font-size:13.5px;line-height:1.7;"><li>Explain the TLB as a small cache of recent page&rarr;frame translations.</li><li>Distinguish a TLB hit (skip the page table) from a miss (walk it, then cache the result).</li><li>Trace LRU eviction when the TLB is full.</li><li>Compute a running hit ratio and see how locality of reference raises it.</li></ul></details>
+<details open class="lobj" style="margin:16px 24px 0;border:1px solid #2c6cb0;border-left:4px solid #60a5fa;border-radius:10px;background:rgba(96,165,250,.08);padding:2px 16px;"><summary style="cursor:pointer;padding:11px 0;font-weight:700;color:#60a5fa;font-size:14px;">&#127919; Learning objectives <span style="color:#8aa0b6;font-weight:500;font-size:12px;">&mdash; what you should be able to do (click to minimize)</span></summary><ul style="margin:4px 0 14px;padding-left:22px;color:var(--t1,#cdd9e6);font-size:13.5px;line-height:1.7;"><li>Explain the TLB as a small cache of recent page&rarr;frame translations.</li><li>Distinguish a TLB hit (skip the page table) from a miss (walk it, then cache the result).</li><li>Trace LRU eviction when the TLB is full.</li><li>Compute a running hit ratio and see how locality of reference raises it.</li></ul></details>
 
   <div class="wrap">
     <div class="sim-panel">
@@ -877,18 +893,18 @@
       </div>
 
       <!-- controls, caption -->
-      <div class="caption">
-        <div class="step" id="stepLabel">Step 0</div>
-        <div class="text" id="captionText">Press <b>Next</b> to reference one page at a time, or <b>Play</b> to
-          auto-run. Watch the TLB fill, then start serving hits.</div>
-      </div>
-
       <div class="controls" style="margin-bottom:18px">
         <button id="prevBtn" onclick="prev()">◀ Prev</button>
         <button id="nextBtn" class="primary" onclick="next()">Next ▶</button>
         <button id="playBtn" onclick="togglePlay()">▶ Play</button>
         <button onclick="reset()">↻ Reset</button>
         <span class="progress" id="progress"></span>
+      </div>
+
+      <div class="caption">
+        <div class="step" id="stepLabel">Step 0</div>
+        <div class="text" id="captionText">Press <b>Next</b> to reference one page at a time, or <b>Play</b> to
+          auto-run. Watch the TLB fill, then start serving hits.</div>
       </div>
 
       <!-- reference stream -->
@@ -962,7 +978,7 @@
 
       <p class="blockTitle" style="margin-top:20px">Paging Hardware Translation Process</p>
       <div
-        style="background:#0c141d;border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:10px;overflow-x:auto">
+        style="background:var(--s1,#0c141d);border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:10px;overflow-x:auto">
         <svg id="paging" viewBox="0 0 860 600" aria-label="Paging hardware with TLB animation">
           <defs>
             <marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="5.5" markerHeight="5.5"
@@ -1298,7 +1314,7 @@
       const boxHeight = tlbSize * TRH;
       $('nTLB').setAttribute('height', boxHeight);
 
-      g.appendChild(el('rect', { x: TX, y: TY, width: TW, height: boxHeight, fill: '#16314a' }));
+      g.appendChild(el('rect', { x: TX, y: TY, width: TW, height: boxHeight, fill: 'var(--s11,#16314a)' }));
       if (hl.tlbRow != null) {
         g.appendChild(el('rect', { x: TX, y: TY + hl.tlbRow * TRH, width: TW, height: TRH, 'class': 'rowhl ' + (hl.tlbKind || '') }));
       }
@@ -1561,6 +1577,17 @@
   function sync(){ var t=enter.querySelector('.fsTxt'); if(t) t.textContent=(fsEl()===wrap)?'Exit full screen':'Full screen'; }
   document.addEventListener('fullscreenchange',sync);
   document.addEventListener('webkitfullscreenchange',sync);
+})();</script>
+<script>(function(){
+  var KEY='os-theme', root=document.documentElement;
+  function cur(){ return root.getAttribute('data-theme')==='light'?'light':'dark'; }
+  function apply(t){ if(t==='light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme'); }
+  var btn=document.createElement('button');
+  btn.className='themeBtn'; btn.type='button'; btn.title='Toggle light / dark';
+  document.body.appendChild(btn);
+  function render(){ btn.innerHTML = cur()==='light' ? '<span class="ic">\u263e</span><span>Dark</span>' : '<span class="ic">\u2600</span><span>Light</span>'; }
+  render();
+  btn.addEventListener('click',function(){ var t=cur()==='light'?'dark':'light'; apply(t); try{localStorage.setItem(KEY,t);}catch(e){} render(); });
 })();</script>
 </body>
 
